@@ -1743,6 +1743,7 @@
   var KEEP_KEY = 'tue_pass_keep_v1';
   var keepNotes = [];
   var keepEditingId = null;
+  var keepFreshId = null;
 
   function persistKeep() {
     try { localStorage.setItem(KEEP_KEY, JSON.stringify(keepNotes)); } catch (e) {}
@@ -1779,50 +1780,10 @@
     } catch (e) {}
   }
 
-  var TOPIC_KEY = 'tue_pass_topics_v1';
-
-  function getTopics() {
-    try {
-      var raw = localStorage.getItem(TOPIC_KEY);
-      if (raw) return JSON.parse(raw);
-    } catch (e) {}
-    return [];
-  }
-
-  function saveTopics(t) {
-    try { localStorage.setItem(TOPIC_KEY, JSON.stringify(t)); } catch (e) {}
-  }
-
-  function topicName(id) {
-    var t = getTopics().find(function (x) { return x.id === id; });
-    return t ? t.name : 'Topic';
-  }
-
   function keepScopeLabel(scope) {
     if (!scope || scope === 'general') return 'General';
     var c = state.courses.find(function (x) { return x.id === scope; });
-    if (c) return c.code;
-    if (scope.indexOf('topic:') === 0) return topicName(scope.slice(6));
-    return 'General';
-  }
-
-  function populateKeepScopes(selected) {
-    var sel = document.getElementById('keepScope');
-    var html = '<option value="general">General</option>' + state.courses.map(function (c) {
-      return '<option value="' + c.id + '">' + c.code + ' — ' + escapeHtml(c.name) + '</option>';
-    }).join('');
-    getTopics().forEach(function (t) {
-      html += '<option value="topic:' + t.id + '">' + escapeHtml(t.name) + '</option>';
-    });
-    sel.innerHTML = html;
-    sel.value = selected || 'general';
-    refreshTopicUI();
-  }
-
-  function refreshTopicUI() {
-    var scope = document.getElementById('keepScope').value;
-    var isCustom = scope && scope.indexOf('topic:') === 0;
-    document.getElementById('btnDelTopic').style.display = isCustom ? '' : 'none';
+    return c ? c.code : 'General';
   }
 
   function resetComposer() {
@@ -1857,10 +1818,13 @@
       del.setAttribute('aria-label', 'Delete note');
       del.addEventListener('click', function (e) {
         e.stopPropagation();
-        keepNotes = keepNotes.filter(function (x) { return x.id !== n.id; });
-        if (keepEditingId === n.id) resetComposer();
-        persistKeep();
-        renderKeepList();
+        card.classList.add('leaving');
+        setTimeout(function () {
+          keepNotes = keepNotes.filter(function (x) { return x.id !== n.id; });
+          if (keepEditingId === n.id) resetComposer();
+          persistKeep();
+          renderKeepList();
+        }, 180);
         showToast('Note deleted', 'info');
       });
       top.appendChild(chip);
@@ -1883,8 +1847,10 @@
 
       card.addEventListener('click', function () { loadKeepIntoComposer(n.id); });
       enableCardDrag(card, n.id);
+      if (n.id === keepFreshId) card.classList.add('fresh');
       list.appendChild(card);
     });
+    keepFreshId = null;
     updateDash();
   }
 
@@ -1941,20 +1907,20 @@
     if (!n) return;
     keepEditingId = id;
     document.getElementById('keepTitle').value = n.title || '';
-    document.getElementById('keepScope').value = n.scope || 'general';
     document.getElementById('keepBody').value = n.body || '';
     document.getElementById('btnKeepSave').textContent = 'Save changes';
   }
 
   function saveKeepComposer() {
     var title = document.getElementById('keepTitle').value.trim();
-    var scope = document.getElementById('keepScope').value;
+    var scope = 'general';
     var body = document.getElementById('keepBody').value.trim();
     if (!title && !body) {
       showToast('Write something first', 'warn');
       return;
     }
     if (keepEditingId) {
+      keepFreshId = keepEditingId;
       var n = keepNotes.find(function (x) { return x.id === keepEditingId; });
       if (n) {
         n.title = title;
@@ -1963,8 +1929,10 @@
         n.updated = Date.now();
       }
     } else {
+      var nid = 'k' + Date.now();
+      keepFreshId = nid;
       keepNotes.unshift({
-        id: 'k' + Date.now(),
+        id: nid,
         title: title,
         body: body,
         type: 'note',
@@ -1975,7 +1943,6 @@
     }
     persistKeep();
     resetComposer();
-    document.getElementById('keepScope').value = scope;
     renderKeepList();
     showToast('Note saved', 'success');
   }
@@ -2024,7 +1991,7 @@
   }
 
   function renderTodoPane() {
-    var scope = document.getElementById('keepScope').value || 'general';
+    var scope = 'general';
     var box = document.getElementById('todoList');
     var prog = document.getElementById('todoProgress');
     box.innerHTML = '';
@@ -2064,7 +2031,12 @@
           entry.it.done = !entry.it.done;
           note.updated = Date.now();
           persistKeep();
-          renderTodoPane();
+          circle.classList.toggle('done', entry.it.done);
+          circle.setAttribute('aria-label', entry.it.done ? 'Mark as not done' : 'Mark as done');
+          text.classList.toggle('done', entry.it.done);
+          var doneCount = note.items.filter(function (x) { return x.done; }).length;
+          prog.textContent = note.items.length ? doneCount + ' of ' + note.items.length + ' done' : 'Nothing here yet — add your first task above';
+          setTimeout(renderTodoPane, 450);
         });
         var text = document.createElement('span');
         text.className = 'todo-text' + (entry.it.done ? ' done' : '');
@@ -2088,7 +2060,7 @@
   }
 
   function persistTodoOrder() {
-    var scope = document.getElementById('keepScope').value || 'general';
+    var scope = 'general';
     var note = getTaskNote(scope, false);
     var box = document.getElementById('todoList');
     if (!note || !box) return;
@@ -2103,7 +2075,7 @@
     var inp = document.getElementById('todoQuickInput');
     var v = inp.value.trim();
     if (!v) return;
-    var scope = document.getElementById('keepScope').value || 'general';
+    var scope = 'general';
     var note = getTaskNote(scope, true);
     note.items.push({ t: v, done: false, id: 'i' + Date.now() });
     note.updated = Date.now();
@@ -2174,11 +2146,11 @@
     updateOverallKPIs();
     updateTimerDisplay();
     renderSprintCount();
+    renderKeepList();
 
     setInterval(function () { updateStanfordClock(); updateOverallKPIs(); updatePanicMeter(); }, 1000);
     updateStanfordClock();
     updatePanicMeter();
-    renderHeatmap();
 
     // Quote of the day + hidden morse eggs
     renderDailyQuote();
@@ -2188,6 +2160,14 @@
     setInterval(checkReminders, 60000);
     document.getElementById('btnShuffleQuote').addEventListener('click', shuffleQuote);
     window.addEventListener('resize', fitQuote);
+
+    // Nav pills appear only after scrolling past the hero
+    var navLinks = document.querySelector('.nav-links');
+    function syncNavVisibility() {
+      if (navLinks) navLinks.classList.toggle('show', window.scrollY > 120);
+    }
+    window.addEventListener('scroll', syncNavVisibility, { passive: true });
+    syncNavVisibility();
 
     // Keyboard shortcuts
     initKeyboardShortcuts();
@@ -2283,37 +2263,7 @@
     document.getElementById('todoQuickInput').addEventListener('keydown', function (e) {
       if (e.key === 'Enter') { e.preventDefault(); addTodoQuick(); }
     });
-    document.getElementById('keepScope').addEventListener('change', function () { refreshTopicUI(); renderTodoPane(); });
-    document.getElementById('btnAddTopic').addEventListener('click', function () {
-      var ad = document.getElementById('topicAdder');
-      var show = ad.style.display === 'none';
-      ad.style.display = show ? '' : 'none';
-      if (show) document.getElementById('topicNameInput').focus();
-    });
-    document.getElementById('btnTopicAdd').addEventListener('click', function () {
-      var inp = document.getElementById('topicNameInput');
-      var name = inp.value.trim().slice(0, 30);
-      if (!name) { showToast('Name the topic first', 'warn'); return; }
-      var topics = getTopics();
-      var t = { id: 't' + Date.now(), name: name };
-      topics.push(t);
-      saveTopics(topics);
-      inp.value = '';
-      document.getElementById('topicAdder').style.display = 'none';
-      populateKeepScopes('topic:' + t.id);
-      showToast('Topic added', 'success');
-    });
-    document.getElementById('btnDelTopic').addEventListener('click', function () {
-      var scope = document.getElementById('keepScope').value;
-      if (!scope || scope.indexOf('topic:') !== 0) return;
-      var id = scope.slice(6);
-      saveTopics(getTopics().filter(function (t) { return t.id !== id; }));
-      keepNotes.forEach(function (n) { if (n.scope === scope) n.scope = 'general'; });
-      persistKeep();
-      populateKeepScopes('general');
-      renderKeepList();
-      showToast('Topic deleted — notes moved to General', 'info');
-    });
+
     document.getElementById('btnCloseWhatifModal').addEventListener('click', closeWhatifModal);
     document.getElementById('btnWhatifDone').addEventListener('click', closeWhatifModal);
     document.getElementById('whatifRange').addEventListener('input', updateWhatifResult);

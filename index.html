@@ -18,8 +18,8 @@
   <meta name="twitter:description" content="Know exactly what you need on every final. Track every deadline.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=31">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Caveat:wght@500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css?v=33">
 </head>
 <body>
   <!-- Fullscreen Native Confetti Canvas -->
@@ -366,26 +366,14 @@
         </div>
 
         <div class="notes-board">
-          <div class="form-field notes-filter">
-            <label for="keepScope">Subject</label>
-            <select id="keepScope" class="apple-select"></select>
-          </div>
           <div class="segmented-control keep-tabs" role="group" aria-label="Notes or todos">
             <button type="button" class="seg-btn active" id="keepTabNotes">Notes</button>
             <button type="button" class="seg-btn" id="keepTabTodo">To Do</button>
           </div>
           <div id="notesTabPane">
-            <div class="keep-composer">
-              <input type="text" id="keepTitle" placeholder="Title" maxlength="80">
-              <div class="keep-composer-row">
-                <button type="button" class="pill-btn pill-btn-secondary pill-sm" id="btnAddTopic">+ Topic</button>
-                <button type="button" class="pill-btn pill-btn-secondary pill-sm" id="btnDelTopic" style="display:none;">Delete topic</button>
-              </div>
-              <div class="keep-add-row" id="topicAdder" style="display:none;">
-                <input type="text" id="topicNameInput" placeholder="Topic name" maxlength="30">
-                <button type="button" class="pill-btn pill-btn-secondary pill-sm" id="btnTopicAdd">Add</button>
-              </div>
-              <textarea id="keepBody" class="apple-textarea notes-area" rows="4" placeholder="Take a note..."></textarea>
+          <div class="keep-composer">
+            <input type="text" id="keepTitle" placeholder="Title" maxlength="80">
+            <textarea id="keepBody" class="apple-textarea notes-area" rows="4" placeholder="Take a note..."></textarea>
               <div class="modal-actions-footer">
                 <button type="button" class="pill-btn pill-btn-primary" id="btnKeepSave">Add note</button>
               </div>
@@ -679,7 +667,7 @@ Final Project (60%) - 2026-10-28 23:59"></textarea>
     <div class="site-container footer-container">
       <div class="footer-left">
         <span class="footer-logo">SU</span>
-        <span class="footer-copy">Stanford University<span class="footer-sub">2026 · v31</span></span>
+        <span class="footer-copy">Stanford University<span class="footer-sub">2026 · v33</span></span>
       </div>
       <div class="footer-right">
         <button class="footer-link-btn" id="btnExportJsonData">Export JSON</button>
@@ -690,6 +678,10 @@ Final Project (60%) - 2026-10-28 23:59"></textarea>
       <div class="footer-credits-row">
         <button class="footer-link-btn tempting" id="btnOpenCredits">Credits</button>
       </div>
+      <a class="cookie-row" href="https://www.youtube.com/watch?v=dQw4w9WgXcQ">
+        <svg class="pixel-cookie" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"><path fill="#d9a441" d="M2 0h4v1H2zM1 1h6v1H1zM0 2h8v1H0zM0 3h8v1H0zM0 4h8v1H0zM0 5h8v1H0zM1 6h6v1H1zM2 7h4v1H2z"/><path fill="#5a3313" d="M3 2h1v1H3zM5 3h1v1H5zM2 4h1v1H2zM4 5h1v1H4zM6 5h1v1H6z"/></svg>
+        <span class="cookie-text">click me</span>
+      </a>
       <div class="footer-year-widget">
         <span class="footer-year-pct" id="yearPct">0%</span>
         <div class="footer-year-track"><div class="footer-year-fill" id="yearBar"></div></div>
@@ -760,6 +752,6 @@ Final Project (60%) - 2026-10-28 23:59"></textarea>
     </div>
   </div>
 
-  <script src="app.js?v=30"></script>
+  <script src="app.js?v=33"></script>
 </body>
 </html>
