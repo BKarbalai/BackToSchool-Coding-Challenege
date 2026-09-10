@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>404 — Horizon</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+  <style>
+    :root { color-scheme: dark; }
+    [data-theme="light"] { color-scheme: light; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Inter", -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+      background: #000;
+      color: #f5f5f7;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 24px;
+      -webkit-font-smoothing: antialiased;
+    }
+    [data-theme="light"] body { background: #f5f5f7; color: #1d1d1f; }
+    .code {
+      font-family: "Space Grotesk", "Inter", sans-serif;
+      font-size: clamp(6rem, 20vw, 12rem);
+      font-weight: 700;
+      letter-spacing: -0.05em;
+      line-height: 1;
+      color: #0071e3;
+    }
+    h1 {
+      font-family: "Space Grotesk", "Inter", sans-serif;
+      font-size: clamp(1.6rem, 4vw, 2.4rem);
+      font-weight: 600;
+      letter-spacing: -0.03em;
+      margin: 16px 0 8px;
+    }
+    p { color: #86868b; font-size: 15px; margin-bottom: 32px; }
+    [data-theme="light"] p { color: #515154; }
+    a.btn {
+      display: inline-flex;
+      align-items: center;
+      padding: 10px 24px;
+      border-radius: 980px;
+      background: #0071e3;
+      color: #fff;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    a.btn:hover { background: #0077ed; }
+    .made {
+      position: fixed;
+      bottom: 24px;
+      font-size: 12px;
+      color: #6e6e73;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .pixel-heart {
+      width: 14px;
+      height: 12px;
+      image-rendering: pixelated;
+    }
+
+  </style>
+  <script>
+    try {
+      var t = localStorage.getItem('tue_radar_theme_v1');
+      if (t === 'light' || t === 'indie' || t === 'moss' ||
+        (!t && matchMedia('(prefers-color-scheme: light)').matches)) {
+        document.documentElement.setAttribute('data-theme', 'light');
+      }
+    } catch (e) {}
+  </script>
+</head>
+<body>
+  <div class="code">404</div>
+  <h1>This page skipped class.</h1>
+  <p>It doesn't exist. Your deadlines are still waiting, though.</p>
+  <a class="btn" href="index.html">Back home</a>
+  <div class="made">Made with <svg class="pixel-heart" viewBox="0 0 8 7" shape-rendering="crispEdges" aria-hidden="true"><path fill="#ff3b30" d="M1 0h2v1H1zM5 0h2v1H5zM0 1h8v3H0zM1 4h6v1H1zM2 5h4v1H2zM3 6h2v1H3z"/></svg> and too much coffee</div>
+</body>
+</html>

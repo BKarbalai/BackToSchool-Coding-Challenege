@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Horizon — Stanford Grades &amp; Deadlines</title>
+  <meta name="description" content="Horizon: know exactly what you need on every final, track every 11:59pm deadline, and lock in with focus sprints. Built for Stanford quarter life.">
+  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=30">
+  <!-- TODO(launch): replace og:url + og:image with your real absolute domain -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Horizon — Stanford Grades & Deadlines">
+  <meta property="og:description" content="Know exactly what you need on every final. Track every deadline. Focus sprints included.">
+  <meta property="og:image" content="og-image.svg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Horizon — Stanford Grades & Deadlines">
+  <meta name="twitter:description" content="Know exactly what you need on every final. Track every deadline.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css?v=31">
+</head>
+<body>
+  <!-- Fullscreen Native Confetti Canvas -->
+  <canvas id="confettiCanvas" class="confetti-canvas"></canvas>
+
+  <!-- .... . .-.. .-.. --- -->
+  <!-- .... .. -->
+  <!-- ... --- ... -->
+  <!-- - . ... - -->
+  <!-- -- .- -.. .  .-- .. - ....  .-.. --- ...- . -->
+
+  <!-- Apple-Style Sticky Frosted Navigation Header -->
+  <header class="nav-bar">
+    <div class="nav-container">
+      <div class="nav-brand">
+        <a href="#hero" class="nav-brand-link">
+          <span class="hole-logo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9.8" stroke="currentColor" stroke-width="1" pathLength="100" stroke-dasharray="16 34" stroke-dashoffset="-18" opacity="0.55"/><circle cx="12" cy="12" r="6.8" stroke="currentColor" stroke-width="3.1"/><polygon points="3.6,20.4 5.2,18.8 20,4" fill="currentColor"/></svg></span>
+          <span class="brand-name">Horizon</span>
+        </a>
+      </div>
+
+      <nav class="nav-links">
+        <a href="#radar" class="nav-link">Grades</a>
+        <a href="#deadlines" class="nav-link">Deadlines</a>
+        <a href="#focus" class="nav-link">Focus</a>
+        <a href="#notes" class="nav-link">Notes</a>
+      </nav>
+
+      <div class="nav-actions">
+        <div class="pt-indicator" title="Current Time at Stanford (Pacific Time)">
+          <span class="pt-text">Stanford</span>
+          <span class="pt-digits" id="ptDigits">--:--:--</span>
+        </div>
+
+        <div class="theme-picker">
+          <button class="pill-btn pill-btn-secondary theme-toggle-btn" id="btnThemeToggle" title="Choose theme" aria-label="Choose theme" aria-haspopup="menu"></button>
+          <div class="theme-menu" id="themeMenu" role="menu">
+            <button class="theme-option" data-theme-value="dark" role="menuitem"><span class="theme-dots"><i style="background:#000000"></i><i style="background:#121215"></i><i style="background:#0071e3"></i></span>Dark</button>
+            <button class="theme-option" data-theme-value="light" role="menuitem"><span class="theme-dots"><i style="background:#f5f5f7"></i><i style="background:#ffffff"></i><i style="background:#0071e3"></i></span>Light</button>
+            <button class="theme-option" data-theme-value="indie" role="menuitem"><span class="theme-dots"><i style="background:#f1ece1"></i><i style="background:#faf6ec"></i><i style="background:#a94a26"></i></span>Indie</button>
+            <button class="theme-option" data-theme-value="moss" role="menuitem"><span class="theme-dots"><i style="background:#ece6d5"></i><i style="background:#f4efe0"></i><i style="background:#4a6741"></i></span>Moss</button>
+            <button class="theme-option" data-theme-value="ghost" role="menuitem"><span class="theme-dots"><i style="background:#000000"></i><i style="background:#101014"></i><i style="background:#ffffff"></i></span>Ghost</button>
+          </div>
+        </div>
+
+        <button class="import-text-btn" id="btnQuickImport" title="Import syllabus">Import</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- QUOTE OF THE DAY -->
+    <section class="quote-band" id="quote">
+      <div class="site-container quote-container">
+        <span class="section-eyebrow" id="quoteDateLabel">Quote of the day</span>
+        <p class="quote-text" id="quoteText"></p>
+        <p class="quote-author" id="quoteAuthor"></p>
+        <button class="shuffle-btn" id="btnShuffleQuote" title="Shuffle" aria-label="Shuffle quote">
+          <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
+        </button>
+      </div>
+    </section>
+
+    <!-- HERO SECTION -->
+    <section class="hero-section" id="hero">
+      <div class="site-container hero-container">
+        <span class="section-eyebrow">Stanford</span>
+        <h1 class="hero-headline">
+          Grades. Deadlines.
+          <span class="hero-headline-sub">Done.</span>
+        </h1>
+        <p class="hero-lead">
+          See exactly what you need on each final. Track every deadline in one place.
+        </p>
+
+        <div class="dash-grid">
+          <a href="#radar" class="dash-btn">
+            <svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
+              <circle cx="8" cy="8" r="6"></circle>
+              <circle cx="8" cy="8" r="2"></circle>
+            </svg>
+            <span class="dash-label">Grades</span>
+            <span class="dash-meta" id="dashCourses">—</span>
+          </a>
+          <a href="#deadlines" class="dash-btn">
+            <svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
+              <circle cx="8" cy="8" r="6"></circle>
+              <path d="M8 4.5v3.5l2.5 1.5"></path>
+            </svg>
+            <span class="dash-label">Deadlines</span>
+            <span class="dash-meta" id="dashDeadlines">—</span>
+          </a>
+          <a href="#focus" class="dash-btn">
+            <svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
+              <circle cx="8" cy="8" r="3"></circle>
+              <path d="M8 1v2M8 13v2M1 8h2M13 8h2"></path>
+            </svg>
+            <span class="dash-label">Focus</span>
+            <span class="dash-meta" id="dashSprints">—</span>
+          </a>
+          <a href="#notes" class="dash-btn" id="dashNotesBtn">
+            <svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M4 2.5h6l2.5 2.5v8.5a1 1 0 0 1-1 1h-7.5a1 1 0 0 1-1-1v-10a1 1 0 0 1 1-1z"></path>
+              <path d="M10 2.5v2.5h2.5"></path>
+              <path d="M6 8h4M6 10.5h4"></path>
+            </svg>
+            <span class="dash-label">Notes</span>
+            <span class="dash-meta" id="dashNotes">—</span>
+          </a>
+        </div>
+
+        <!-- Spec Stats Line -->
+        <p class="hero-stats-line">
+          <span id="kpiEcts">14 units</span>
+          <span class="hero-stats-sep">·</span>
+          <span>avg <span id="kpiAvgGrade">3.4</span></span>
+        </p>
+
+        <div class="panic-widget calm" id="panicWidget">
+          <div class="panic-top">
+            <span class="spec-label">Next cutoff</span>
+            <span class="panic-title" id="panicTitle">—</span>
+          </div>
+          <div class="panic-digits" id="panicDigits">--:--:--</div>
+          <div class="panic-sub" id="panicSub"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 1: GRADES -->
+    <section class="section-block" id="radar">
+      <div class="site-container">
+        <div class="section-header-centered">
+          <span class="section-eyebrow">Grades</span>
+          <h2 class="section-headline">What do you need on the final?</h2>
+
+          <div class="radar-controls-row">
+            <div class="segmented-control" role="group" aria-label="Grading Scale">
+              <button class="seg-btn active" id="scaleDutchBtn">GPA 4.0 (2.0 Pass)</button>
+              <button class="seg-btn" id="scalePctBtn">Percentage %</button>
+            </div>
+            <button class="pill-btn pill-btn-primary" id="btnAddCourseBtn">
+              <svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M8 3v10M3 8h10"></path>
+              </svg>
+              <span>Add Course</span>
+            </button>
+          </div>
+          <p class="grade-insight" id="gradeInsights" style="display:none;"></p>
+        </div>
+
+        <!-- Course Cards Grid -->
+        <div class="courses-grid" id="coursesContainer"></div>
+      </div>
+    </section>
+
+    <!-- SECTION 2: DEADLINES -->
+    <section class="section-block section-alt" id="deadlines">
+      <div class="site-container">
+        <div class="section-header-centered">
+          <span class="section-eyebrow">Deadlines</span>
+          <h2 class="section-headline">Never miss a deadline.</h2>
+
+          <div class="deadlines-action-bar">
+            <div class="filter-controls">
+              <select id="filterCourseSelect" class="apple-select" aria-label="Filter by course">
+                <option value="all">All Enrolled Courses</option>
+              </select>
+              <select id="filterUrgencySelect" class="apple-select" aria-label="Filter by status">
+                <option value="all">All Deadlines</option>
+                <option value="urgent">Urgent (&lt; 48 hours)</option>
+                <option value="pending">Upcoming</option>
+                <option value="completed">Completed</option>
+              </select>
+            </div>
+            <div class="button-actions-group">
+              <button class="pill-btn pill-btn-secondary pill-sm" id="btnExportIcs">
+                <svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
+                  <rect x="2" y="3" width="12" height="11" rx="1.5"></rect>
+                  <path d="M5 1.5v3M11 1.5v3M2 6.5h12"></path>
+                </svg>
+                <span>Export</span>
+              </button>
+              <button class="pill-btn pill-btn-secondary pill-sm" id="btnReminders">Enable reminders</button>
+              <button class="pill-btn pill-btn-primary pill-sm" id="btnAddDeadlineBtn">
+                <svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M8 3v10M3 8h10"></path>
+                </svg>
+                <span>New Deadline</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Deadlines List -->
+        <div class="deadlines-list" id="deadlinesContainer"></div>
+      </div>
+    </section>
+
+    <!-- SECTION 3: METAFORUM FOCUS SPRINT & WEB AUDIO SYNTH -->
+    <section class="section-block" id="focus">
+      <div class="site-container">
+        <div class="section-header-centered">
+          <span class="section-eyebrow">Focus</span>
+          <h2 class="section-headline">Focus Mode.</h2>
+        </div>
+
+        <div class="focus-layout">
+          <!-- Timer Card with Gradient Ring -->
+          <div class="apple-card timer-card">
+            <div class="card-caption-row">
+              <div class="location-tag">
+                <span class="location-dot"></span>
+                <span>Focus Mode</span>
+              </div>
+              <span class="phase-badge" id="timerPhasePill">FOCUS SPRINT</span>
+            </div>
+
+            <div class="timer-display-wrap">
+              <svg class="timer-svg" viewBox="0 0 240 240">
+                <defs>
+                  <filter id="timerGlow" x="-20%" y="-20%" width="140%" height="140%">
+                    <feGaussianBlur stdDeviation="3.5" result="glow"></feGaussianBlur>
+                    <feMerge>
+                      <feMergeNode in="glow"></feMergeNode>
+                      <feMergeNode in="SourceGraphic"></feMergeNode>
+                    </feMerge>
+                  </filter>
+                </defs>
+                <circle class="timer-circle-track" cx="120" cy="120" r="102"></circle>
+                <circle class="timer-circle-fill" id="timerProgressCircle" cx="120" cy="120" r="102"></circle>
+              </svg>
+              <div class="timer-text-content">
+                <span class="timer-digits-display" id="timerDisplay">25:00</span>
+              </div>
+            </div>
+
+            <div class="timer-button-row">
+              <button class="pill-btn pill-btn-secondary" id="btnTimerReset">
+                <svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
+                  <path d="M2.5 8a5.5 5.5 0 1 1 1.6 3.9M2.5 12V8h4"></path>
+                </svg>
+                <span>Reset</span>
+              </button>
+              <button class="pill-btn pill-btn-primary pill-btn-lg" id="btnTimerToggle">
+                <svg class="icon-svg" id="timerPlayIconSvg" viewBox="0 0 16 16" fill="currentColor">
+                  <polygon points="4,2 14,8 4,14"></polygon>
+                </svg>
+                <span id="timerPlayText">Start Sprint</span>
+              </button>
+              <button class="pill-btn pill-btn-secondary" id="btnTimerSkip">
+                <svg class="icon-svg" viewBox="0 0 16 16" fill="currentColor">
+                  <polygon points="3,3 10,8 3,13"></polygon>
+                  <rect x="11" y="3" width="2" height="10"></rect>
+                </svg>
+                <span>Next</span>
+              </button>
+            </div>
+
+            <div class="duration-chips">
+              <button class="chip-btn active" data-duration="25" data-phase="focus">25m</button>
+              <button class="chip-btn" data-duration="50" data-phase="focus">50m</button>
+              <button class="chip-btn" data-duration="5" data-phase="break">5m break</button>
+            </div>
+            <div class="sprint-count" id="sprintCount"></div>
+          </div>
+
+          <!-- Audio Card -->
+          <div class="apple-card audio-card">
+            <div class="card-caption-row">
+              <span class="card-title">Soundscapes</span>
+            </div>
+
+            <div class="sound-tracks-list">
+              <div class="sound-track-row">
+                <div class="track-meta">
+                  <div class="track-icon-box">
+                    <svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+                      <path d="M4 10a3 3 0 1 1 2.2-5A4 4 0 0 1 14 7a2.5 2.5 0 0 1-1.5 2.5"></path>
+                      <path d="M5 12.5l-.8 2M8 12.5l-.8 2M11 12.5l-.8 2"></path>
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 class="track-name">Rain</h4>
+                  </div>
+                </div>
+                <div class="track-actions">
+                  <input type="range" class="apple-slider" id="volRain" min="0" max="1" step="0.05" value="0.7" aria-label="Rain volume">
+                  <button class="pill-btn pill-btn-secondary pill-sm" id="btnSoundRain">Play</button>
+                </div>
+              </div>
+
+              <div class="sound-track-row">
+                <div class="track-meta">
+                  <div class="track-icon-box">
+                    <svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+                      <path d="M6 13V4l7-2v9"></path>
+                      <circle cx="4" cy="13" r="2"></circle>
+                      <circle cx="11" cy="11" r="2"></circle>
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 class="track-name">Lo-Fi</h4>
+                  </div>
+                </div>
+                <div class="track-actions">
+                  <input type="range" class="apple-slider" id="volSynth" min="0" max="1" step="0.05" value="0.6" aria-label="Lo-Fi chord volume">
+                  <button class="pill-btn pill-btn-secondary pill-sm" id="btnSoundSynth">Play</button>
+                </div>
+              </div>
+
+              <div class="sound-track-row">
+                <div class="track-meta">
+                  <div class="track-icon-box">
+                    <svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+                      <path d="M2 8h1.5l1.5-4 3 8 2.5-6 1.5 3 1.5-1H14"></path>
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 class="track-name">White noise</h4>
+                  </div>
+                </div>
+                <div class="track-actions">
+                  <input type="range" class="apple-slider" id="volWhite" min="0" max="1" step="0.05" value="0.5" aria-label="White noise volume">
+                  <button class="pill-btn pill-btn-secondary pill-sm" id="btnSoundWhite">Play</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="sound-footer-row">
+              <button class="pill-btn pill-btn-secondary pill-sm" id="btnMuteAllAudio">Mute all</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 4: NOTES -->
+    <section class="section-block" id="notes">
+      <div class="site-container">
+        <div class="section-header-centered">
+          <span class="section-eyebrow">Notes</span>
+          <h2 class="section-headline">Get it out of your head.</h2>
+        </div>
+
+        <div class="notes-board">
+          <div class="form-field notes-filter">
+            <label for="keepScope">Subject</label>
+            <select id="keepScope" class="apple-select"></select>
+          </div>
+          <div class="segmented-control keep-tabs" role="group" aria-label="Notes or todos">
+            <button type="button" class="seg-btn active" id="keepTabNotes">Notes</button>
+            <button type="button" class="seg-btn" id="keepTabTodo">To Do</button>
+          </div>
+          <div id="notesTabPane">
+            <div class="keep-composer">
+              <input type="text" id="keepTitle" placeholder="Title" maxlength="80">
+              <div class="keep-composer-row">
+                <button type="button" class="pill-btn pill-btn-secondary pill-sm" id="btnAddTopic">+ Topic</button>
+                <button type="button" class="pill-btn pill-btn-secondary pill-sm" id="btnDelTopic" style="display:none;">Delete topic</button>
+              </div>
+              <div class="keep-add-row" id="topicAdder" style="display:none;">
+                <input type="text" id="topicNameInput" placeholder="Topic name" maxlength="30">
+                <button type="button" class="pill-btn pill-btn-secondary pill-sm" id="btnTopicAdd">Add</button>
+              </div>
+              <textarea id="keepBody" class="apple-textarea notes-area" rows="4" placeholder="Take a note..."></textarea>
+              <div class="modal-actions-footer">
+                <button type="button" class="pill-btn pill-btn-primary" id="btnKeepSave">Add note</button>
+              </div>
+            </div>
+            <div class="keep-grid" id="keepList"></div>
+          </div>
+          <div id="todoTabPane" style="display:none;">
+            <div class="keep-add-row todo-quick-add">
+              <input type="text" id="todoQuickInput" placeholder="New task — e.g. drink the juice" maxlength="120">
+              <button type="button" class="pill-btn pill-btn-primary pill-sm" id="btnTodoAdd">Add</button>
+            </div>
+            <div class="todo-progress" id="todoProgress"></div>
+            <div class="todo-list" id="todoList"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- MODAL: Add / Edit Course -->
+  <div class="modal-backdrop" id="courseModal">
+    <div class="modal-surface">
+      <div class="modal-header">
+        <h3 class="modal-title" id="courseModalTitle">Course</h3>
+        <button class="modal-close-btn" id="btnCloseCourseModal" aria-label="Close modal">
+          <svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 3l10 10M13 3L3 13"></path>
+          </svg>
+        </button>
+      </div>
+      <form id="courseForm" class="modal-form">
+        <input type="hidden" id="courseEditId" value="">
+        <div class="form-dual-row">
+          <div class="form-field flex-2">
+            <label for="courseCodeInput">Course Code</label>
+            <input type="text" id="courseCodeInput" placeholder="e.g. CS106A" required>
+          </div>
+          <div class="form-field flex-1">
+            <label for="courseEctsInput">Course units</label>
+            <input type="number" id="courseEctsInput" min="1" max="30" step="0.5" value="5" required>
+          </div>
+        </div>
+        <div class="form-field">
+          <label for="courseNameInput">Course Name</label>
+          <input type="text" id="courseNameInput" placeholder="e.g. Programming Methodology" required>
+        </div>
+        <div class="form-dual-row">
+          <div class="form-field flex-1">
+            <label for="courseQuartileInput">Quarter</label>
+            <select id="courseQuartileInput" class="apple-select">
+              <option value="Fall" selected>Fall</option>
+              <option value="Winter">Winter</option>
+              <option value="Spring">Spring</option>
+              <option value="Summer">Summer</option>
+            </select>
+          </div>
+        </div>
+        <div class="components-config-block">
+          <div class="config-header">
+            <label>Graded Components &amp; Weights</label>
+            <button type="button" class="btn-inline-action" id="btnAddGradedComponent">+ Add Row</button>
+          </div>
+          <p class="config-hint">Weights must sum to 100%. Leave score blank for pending exams.</p>
+          <div class="components-rows" id="modalComponentsList"></div>
+          <div class="weights-sum-bar">
+            <span>Total Weight:</span>
+            <span id="modalTotalWeight">100%</span>
+          </div>
+        </div>
+        <div class="modal-actions-footer">
+          <button type="button" class="pill-btn pill-btn-secondary" id="btnCancelCourseModal">Cancel</button>
+          <button type="submit" class="pill-btn pill-btn-primary" id="btnSaveCourse">Save Course</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Add / Edit Deadline -->
+  <div class="modal-backdrop" id="deadlineModal">
+    <div class="modal-surface">
+      <div class="modal-header">
+        <h3 class="modal-title" id="deadlineModalTitle">New deadline</h3>
+        <button class="modal-close-btn" id="btnCloseDeadlineModal" aria-label="Close modal">
+          <svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 3l10 10M13 3L3 13"></path>
+          </svg>
+        </button>
+      </div>
+      <form id="deadlineForm" class="modal-form">
+        <input type="hidden" id="deadlineEditId" value="">
+        <div class="form-field">
+          <label for="deadlineCourseSelect">Enrolled Course</label>
+          <select id="deadlineCourseSelect" class="apple-select" required></select>
+        </div>
+        <div class="form-field">
+          <label for="deadlineTitleInput">Assignment Title</label>
+          <input type="text" id="deadlineTitleInput" placeholder="e.g. Assignment 2: Hypothesis Testing" required>
+        </div>
+        <div class="form-dual-row">
+          <div class="form-field flex-1">
+            <label for="deadlineDateInput">Due Date</label>
+            <input type="date" id="deadlineDateInput" required>
+          </div>
+          <div class="form-field flex-1">
+            <label for="deadlineTimeInput">Due Time (PT)</label>
+            <input type="time" id="deadlineTimeInput" value="23:59" required>
+          </div>
+        </div>
+        <div class="form-dual-row">
+          <div class="form-field flex-1">
+            <label for="deadlineWeightInput">Grade Weight (%)</label>
+            <input type="number" id="deadlineWeightInput" min="0" max="100" value="15">
+          </div>
+          <div class="form-field flex-1">
+            <label for="deadlineLocationInput">Submission Portal</label>
+            <input type="text" id="deadlineLocationInput" value="Canvas">
+          </div>
+        </div>
+        <div class="modal-actions-footer">
+          <button type="button" class="pill-btn pill-btn-secondary" id="btnCancelDeadlineModal">Cancel</button>
+          <button type="submit" class="pill-btn pill-btn-primary">Save Deadline</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: What-If Simulator -->
+  <div class="modal-backdrop" id="whatifModal">
+    <div class="modal-surface">
+      <div class="modal-header">
+        <h3 class="modal-title" id="whatifTitle">What if?</h3>
+        <button class="modal-close-btn" id="btnCloseWhatifModal" aria-label="Close modal">
+          <svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 3l10 10M13 3L3 13"></path>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-form">
+        <p class="modal-desc">Drag to simulate your score on the remaining work.</p>
+        <div class="form-field">
+          <label for="whatifRange">Hypothetical score <span id="whatifWeight"></span></label>
+          <input type="range" class="apple-slider" id="whatifRange" min="1" max="10" step="0.1" value="6">
+        </div>
+        <div class="sim-output-badge">
+          <span class="sim-badge-label">Projected final:</span>
+          <span class="sim-badge-val" id="whatifResult">—</span>
+        </div>
+        <div class="modal-actions-footer">
+          <button type="button" class="pill-btn pill-btn-primary" id="btnWhatifDone">Done</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Feedback -->
+  <div class="modal-backdrop" id="feedbackModal">
+    <div class="modal-surface">
+      <div class="modal-header">
+        <h3 class="modal-title">Feedback</h3>
+        <button class="modal-close-btn" id="btnCloseFeedbackModal" aria-label="Close modal">
+          <svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 3l10 10M13 3L3 13"></path>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-form">
+        <p class="modal-desc">Found a bug or want a feature? Tell me.</p>
+        <button type="button" class="credit-link" id="btnCopyEmail">
+          <span class="credit-link-icon brand-mail">
+            <svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+              <rect x="2" y="4" width="12" height="9" rx="1.5"></rect>
+              <path d="M2.5 5.5l5.5 3.5 5.5-3.5"></path>
+            </svg>
+          </span>
+          <span class="credit-link-text">
+            <span class="credit-link-label">Email</span>
+            <span class="credit-link-handle">karbalai@outlook.in — click to copy</span>
+          </span>
+          <span class="credit-link-go">
+            <svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="5" width="9" height="9" rx="1.5"></rect><path d="M11 5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h2"></path></svg>
+          </span>
+        </button>
+        <div class="form-field">
+          <label for="feedbackText">Message</label>
+          <textarea id="feedbackText" class="apple-textarea notes-area" rows="5" placeholder="What happened, or what should exist..."></textarea>
+        </div>
+        <div class="modal-actions-footer">
+          <button type="button" class="pill-btn pill-btn-secondary" id="btnFeedbackDone">Done</button>
+          <button type="button" class="pill-btn pill-btn-primary" id="btnSendFeedback">Send via email</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Quick Syllabus Importer -->
+  <div class="modal-backdrop" id="importModal">
+    <div class="modal-surface modal-surface-wide">
+      <div class="modal-header">
+        <h3 class="modal-title">Import syllabus</h3>
+        <button class="modal-close-btn" id="btnCloseImportModal" aria-label="Close modal">
+          <svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 3l10 10M13 3L3 13"></path>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-form">
+        <p class="modal-desc">
+          Paste course syllabus modules or a Canvas task list. The parser extracts course codes, weights, and deadlines automatically.
+        </p>
+        <textarea id="importRawText" class="apple-textarea" rows="7" placeholder="Paste syllabus text here:
+CS106A Programming Methodology
+Homework 1 (15%) - 2026-09-18 23:59
+Midterm Exam (25%) - 2026-10-06 14:00
+Final Project (60%) - 2026-10-28 23:59"></textarea>
+        <div class="import-preview-box" id="importPreview" style="display:none;">
+          <span class="preview-title">Parsed Output Preview:</span>
+          <div id="importPreviewList"></div>
+        </div>
+        <div class="modal-actions-footer">
+          <button type="button" class="pill-btn pill-btn-secondary" id="btnLoadExampleSyllabus">Load Sample</button>
+          <button type="button" class="pill-btn pill-btn-primary" id="btnExecuteImport">Parse &amp; Import</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Command Palette -->
+  <div class="modal-backdrop cmd-backdrop" id="cmdPalette">
+    <div class="cmd-panel">
+      <input type="text" id="cmdInput" class="cmd-input" placeholder="Type a command or search..." autocomplete="off" aria-label="Command search">
+      <div class="cmd-list" id="cmdList"></div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+  <!-- Keyboard Shortcut Hint Bar -->
+  <div class="shortcut-bar" id="shortcutBar">
+    <span><kbd>Cmd</kbd>+<kbd>K</kbd> Search</span>
+    <span><kbd>N</kbd> New Deadline</span>
+    <span><kbd>C</kbd> Add Course</span>
+    <span><kbd>M</kbd> Mute</span>
+    <span><kbd>T</kbd> Theme</span>
+    <span><kbd>Space</kbd> Timer</span>
+    <span><kbd>?</kbd> Hide</span>
+  </div>
+
+  <!-- Mobile Bottom Navigation -->
+  <nav class="mobile-nav" id="mobileNav" aria-label="Mobile Navigation">
+    <a href="#radar" class="mobile-nav-item active" data-nav="radar">
+      <svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
+        <circle cx="8" cy="8" r="6"></circle>
+        <circle cx="8" cy="8" r="2.5"></circle>
+      </svg>
+      <span>Grades</span>
+    </a>
+    <a href="#deadlines" class="mobile-nav-item" data-nav="deadlines">
+      <svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
+        <circle cx="8" cy="8" r="6"></circle>
+        <path d="M8 4.5v3.5l2.5 1.5"></path>
+      </svg>
+      <span>Deadlines</span>
+    </a>
+    <a href="#focus" class="mobile-nav-item" data-nav="focus">
+      <svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
+        <circle cx="8" cy="8" r="3"></circle>
+        <path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M3.05 12.95l1.41-1.41M11.54 4.46l1.41-1.41"></path>
+      </svg>
+      <span>Focus</span>
+    </a>
+    <a href="#notes" class="mobile-nav-item" data-nav="notes">
+      <svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
+        <path d="M4 2.5h6l2.5 2.5v8.5a1 1 0 0 1-1 1h-7.5a1 1 0 0 1-1-1v-10a1 1 0 0 1 1-1z"></path>
+        <path d="M10 2.5v2.5h2.5"></path>
+        <path d="M6 8h4M6 10.5h4"></path>
+      </svg>
+      <span>Notes</span>
+    </a>
+    <a href="#hero" class="mobile-nav-item" data-nav="top">
+      <svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
+        <path d="M4 10l4-6 4 6"></path>
+        <path d="M3 14h10"></path>
+      </svg>
+      <span>Top</span>
+    </a>
+  </nav>
+
+  <!-- Minimal Footer -->
+  <footer class="site-footer">
+    <div class="site-container footer-container">
+      <div class="footer-left">
+        <span class="footer-logo">SU</span>
+        <span class="footer-copy">Stanford University<span class="footer-sub">2026 · v31</span></span>
+      </div>
+      <div class="footer-right">
+        <button class="footer-link-btn" id="btnExportJsonData">Export JSON</button>
+        <button class="footer-link-btn" id="btnOpenFeedback">Feedback</button>
+        <button class="footer-link-btn" id="btnResetAllData">Restore Demo Data</button>
+      </div>
+      <div class="footer-made">Made with <svg class="pixel-heart" viewBox="0 0 8 7" shape-rendering="crispEdges" aria-hidden="true"><path fill="#ff3b30" d="M1 0h2v1H1zM5 0h2v1H5zM0 1h8v3H0zM1 4h6v1H1zM2 5h4v1H2zM3 6h2v1H3z"/></svg> and too much coffee</div>
+      <div class="footer-credits-row">
+        <button class="footer-link-btn tempting" id="btnOpenCredits">Credits</button>
+      </div>
+      <div class="footer-year-widget">
+        <span class="footer-year-pct" id="yearPct">0%</span>
+        <div class="footer-year-track"><div class="footer-year-fill" id="yearBar"></div></div>
+        <span class="footer-year-label" id="yearLabel">of the year is over</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- MODAL: Credits -->
+  <div class="modal-backdrop" id="creditsModal">
+    <div class="modal-surface">
+      <div class="modal-header">
+        <h3 class="modal-title">Credits</h3>
+        <button class="modal-close-btn" id="btnCloseCreditsModal" aria-label="Close modal">
+          <svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 3l10 10M13 3L3 13"></path>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-form credits-body">
+        <div class="credits-logo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9.8" stroke="currentColor" stroke-width="1" pathLength="100" stroke-dasharray="16 34" stroke-dashoffset="-18" opacity="0.55"/><circle cx="12" cy="12" r="6.8" stroke="currentColor" stroke-width="3.1"/><polygon points="3.6,20.4 5.2,18.8 20,4" fill="currentColor"/></svg></div>
+        <p class="credits-name">Built by B. Karbalai</p>
+        <p class="credits-text">Doing C++, Python, and Boolean algebra into digital logic and Verilog &mdash; building an ALU, FSM, and UART along the way. Then FPGA and computer architecture with a pipelined CPU and Patterson &amp; Hennessy fundamentals. Then a full RISC-V core with pipelining, hazard detection, and advanced verification. Then cache coherence, memory hierarchy, and architecture research using gem5.</p>
+        <div class="credit-links">
+          <a class="credit-link" href="https://www.youtube.com/@OneThingEveryDay17" target="_blank" rel="noopener">
+            <span class="credit-link-icon brand-yt">
+              <svg class="icon-svg" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+            </span>
+            <span class="credit-link-text">
+              <span class="credit-link-label">YouTube</span>
+              <span class="credit-link-handle">@OneThingEveryDay17</span>
+            </span>
+            <span class="credit-link-go">
+              <svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 17L17 7M9 7h8v8"></path></svg>
+            </span>
+          </a>
+          <a class="credit-link" href="https://github.com/BKarbalai" target="_blank" rel="noopener">
+            <span class="credit-link-icon brand-gh">
+              <svg class="icon-svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+            </span>
+            <span class="credit-link-text">
+              <span class="credit-link-label">GitHub</span>
+              <span class="credit-link-handle">BKarbalai</span>
+            </span>
+            <span class="credit-link-go">
+              <svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 17L17 7M9 7h8v8"></path></svg>
+            </span>
+          </a>
+          <button type="button" class="credit-link" id="btnCopyDiscord">
+            <span class="credit-link-icon brand-dc">
+              <svg class="icon-svg" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.865-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.319 13.58.099 18.058a.082.082 0 0 0 .031.056 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.3 12.3 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.363 1.225 1.993a.076.076 0 0 0 .084.029 19.84 19.84 0 0 0 6.002-3.03.077.077 0 0 0 .032-.055c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.331c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
+            </span>
+            <span class="credit-link-text">
+              <span class="credit-link-label">Discord</span>
+              <span class="credit-link-handle">itzjacksparrow &mdash; click to copy</span>
+            </span>
+            <span class="credit-link-go">
+              <svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="5" width="9" height="9" rx="1.5"></rect><path d="M11 5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h2"></path></svg>
+            </span>
+          </button>
+        </div>
+        <p class="credits-text">Pure HTML, CSS and vanilla JavaScript. No frameworks, no tracking, your data never leaves this browser.</p>
+        <p class="made-with">Made with <svg class="pixel-heart" viewBox="0 0 8 7" shape-rendering="crispEdges" aria-hidden="true"><path fill="#ff3b30" d="M1 0h2v1H1zM5 0h2v1H5zM0 1h8v3H0zM1 4h6v1H1zM2 5h4v1H2zM3 6h2v1H3z"/></svg> and too much coffee</p>
+        <div class="modal-actions-footer">
+          <button type="button" class="pill-btn pill-btn-primary" id="btnCreditsDone">Done</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js?v=30"></script>
+</body>
+</html>

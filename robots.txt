@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# TODO(launch): uncomment with your real domain
+# Sitemap: https://example.com/sitemap.xml
