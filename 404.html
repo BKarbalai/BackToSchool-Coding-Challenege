@@ -73,11 +73,15 @@
   <script>
     try {
       var t = localStorage.getItem('tue_radar_theme_v1');
-      if (t === 'light' || t === 'indie' || t === 'moss' ||
-        (!t && matchMedia('(prefers-color-scheme: light)').matches)) {
+      if (t !== 'light' && t !== 'indie' && t !== 'moss' && t !== 'dark' && t !== 'nyc' && t !== 'ghost') {
+        t = 'light';
+      }
+      if (t === 'light' || t === 'indie' || t === 'moss') {
         document.documentElement.setAttribute('data-theme', 'light');
       }
-    } catch (e) {}
+    } catch (e) {
+      document.documentElement.setAttribute('data-theme', 'light');
+    }
   </script>
 </head>
 <body>

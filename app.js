@@ -312,10 +312,8 @@
     try { stored = localStorage.getItem(THEME_KEY); } catch (e) {}
     if (stored && THEMES.indexOf(stored) >= 0) {
       setTheme(stored);
-    } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
-      setTheme('light');
     } else {
-      setTheme('dark');
+      setTheme('light');
     }
   }
 
