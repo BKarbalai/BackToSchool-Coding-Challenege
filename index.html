@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Caveat:wght@500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=34">
+  <link rel="stylesheet" href="style.css?v=35">
 </head>
 <body>
   <!-- Fullscreen Native Confetti Canvas -->
@@ -44,6 +44,7 @@
       <nav class="nav-links">
         <a href="#radar" class="nav-link">Grades</a>
         <a href="#deadlines" class="nav-link">Deadlines</a>
+        <a href="#calendar" class="nav-link">Calendar</a>
         <a href="#focus" class="nav-link">Focus</a>
         <a href="#notes" class="nav-link">Notes</a>
       </nav>
@@ -111,6 +112,14 @@
             </svg>
             <span class="dash-label">Deadlines</span>
             <span class="dash-meta" id="dashDeadlines">—</span>
+          </a>
+          <a href="#calendar" class="dash-btn">
+            <svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
+              <rect x="2" y="3" width="12" height="11" rx="1.5"></rect>
+              <path d="M5 1.5v3M11 1.5v3M2 6.5h12"></path>
+            </svg>
+            <span class="dash-label">Calendar</span>
+            <span class="dash-meta" id="dashCal">—</span>
           </a>
           <a href="#focus" class="dash-btn">
             <svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
@@ -216,6 +225,51 @@
 
         <!-- Deadlines List -->
         <div class="deadlines-list" id="deadlinesContainer"></div>
+      </div>
+    </section>
+
+    <!-- SECTION 2b: CALENDAR -->
+    <section class="section-block" id="calendar">
+      <div class="site-container">
+        <div class="section-header-centered">
+          <span class="section-eyebrow">Calendar</span>
+          <h2 class="section-headline">Plan the quarter.</h2>
+          <div class="cal-toolbar">
+            <div class="cal-nav-group">
+              <button class="pill-btn pill-btn-secondary pill-sm" id="btnCalPrev" aria-label="Previous month">
+                <svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 3L5 8l5 5"></path></svg>
+              </button>
+              <span class="cal-month-title" id="calMonthTitle">—</span>
+              <button class="pill-btn pill-btn-secondary pill-sm" id="btnCalNext" aria-label="Next month">
+                <svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3l5 5-5 5"></path></svg>
+              </button>
+              <button class="pill-btn pill-btn-secondary pill-sm" id="btnCalToday">Today</button>
+            </div>
+            <button class="pill-btn pill-btn-primary pill-sm" id="btnCalAdd">
+              <svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M8 3v10M3 8h10"></path>
+              </svg>
+              <span>New reminder</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="cal-layout">
+          <div class="cal-month-card">
+            <div class="cal-weekdays" aria-hidden="true">
+              <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
+            </div>
+            <div class="cal-grid" id="calGrid"></div>
+          </div>
+          <div class="cal-agenda-card">
+            <div class="card-caption-row">
+              <span class="card-title" id="calAgendaTitle">Today</span>
+              <span class="phase-badge" id="calAgendaCount">0 items</span>
+            </div>
+            <div class="cal-agenda-list" id="calAgenda"></div>
+            <p class="cal-agenda-hint">Deadlines appear automatically. Click any day to preview it, double-click to add a reminder.</p>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -500,31 +554,43 @@
     </div>
   </div>
 
-  <!-- MODAL: What-If Simulator -->
-  <div class="modal-backdrop" id="whatifModal">
+  <!-- MODAL: Add / Edit Calendar Reminder -->
+  <div class="modal-backdrop" id="calEventModal">
     <div class="modal-surface">
       <div class="modal-header">
-        <h3 class="modal-title" id="whatifTitle">What if?</h3>
-        <button class="modal-close-btn" id="btnCloseWhatifModal" aria-label="Close modal">
+        <h3 class="modal-title" id="calEventModalTitle">New reminder</h3>
+        <button class="modal-close-btn" id="btnCloseCalEventModal" aria-label="Close modal">
           <svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M3 3l10 10M13 3L3 13"></path>
           </svg>
         </button>
       </div>
-      <div class="modal-form">
-        <p class="modal-desc">Drag to simulate your score on the remaining work.</p>
+      <form id="calEventForm" class="modal-form">
+        <input type="hidden" id="calEventEditId" value="">
         <div class="form-field">
-          <label for="whatifRange">Hypothetical score <span id="whatifWeight"></span></label>
-          <input type="range" class="apple-slider" id="whatifRange" min="1" max="10" step="0.1" value="6">
+          <label for="calEventTitleInput">Title</label>
+          <input type="text" id="calEventTitleInput" placeholder="e.g. Review flashcards" maxlength="80" required>
         </div>
-        <div class="sim-output-badge">
-          <span class="sim-badge-label">Projected final:</span>
-          <span class="sim-badge-val" id="whatifResult">—</span>
+        <div class="form-dual-row">
+          <div class="form-field flex-1">
+            <label for="calEventDateInput">Date</label>
+            <input type="date" id="calEventDateInput" required>
+          </div>
+          <div class="form-field flex-1">
+            <label for="calEventTimeInput">Time</label>
+            <input type="time" id="calEventTimeInput" value="09:00" required>
+          </div>
+        </div>
+        <div class="form-field">
+          <label for="calEventNotesInput">Notes (optional)</label>
+          <textarea id="calEventNotesInput" class="apple-textarea notes-area" rows="3" placeholder="Details, links, location..."></textarea>
         </div>
         <div class="modal-actions-footer">
-          <button type="button" class="pill-btn pill-btn-primary" id="btnWhatifDone">Done</button>
+          <button type="button" class="pill-btn pill-btn-secondary" id="btnCalEventDelete" style="display:none;margin-right:auto;">Delete</button>
+          <button type="button" class="pill-btn pill-btn-secondary" id="btnCancelCalEventModal">Cancel</button>
+          <button type="submit" class="pill-btn pill-btn-primary">Save reminder</button>
         </div>
-      </div>
+      </form>
     </div>
   </div>
 
@@ -615,6 +681,7 @@ Final Project (60%) - 2026-10-28 23:59"></textarea>
   <div class="shortcut-bar" id="shortcutBar">
     <span><kbd>Cmd</kbd>+<kbd>K</kbd> Search</span>
     <span><kbd>N</kbd> New Deadline</span>
+    <span><kbd>E</kbd> New Reminder</span>
     <span><kbd>C</kbd> Add Course</span>
     <span><kbd>M</kbd> Mute</span>
     <span><kbd>T</kbd> Theme</span>
@@ -637,6 +704,13 @@ Final Project (60%) - 2026-10-28 23:59"></textarea>
         <path d="M8 4.5v3.5l2.5 1.5"></path>
       </svg>
       <span>Deadlines</span>
+    </a>
+    <a href="#calendar" class="mobile-nav-item" data-nav="calendar">
+      <svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
+        <rect x="2" y="3" width="12" height="11" rx="1.5"></rect>
+        <path d="M5 1.5v3M11 1.5v3M2 6.5h12"></path>
+      </svg>
+      <span>Cal</span>
     </a>
     <a href="#focus" class="mobile-nav-item" data-nav="focus">
       <svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
@@ -667,7 +741,7 @@ Final Project (60%) - 2026-10-28 23:59"></textarea>
     <div class="site-container footer-container">
       <div class="footer-left">
         <span class="footer-logo">SU</span>
-        <span class="footer-copy">Stanford University<span class="footer-sub">2026 · v34</span></span>
+        <span class="footer-copy">Stanford University<span class="footer-sub">2026 · v35</span></span>
       </div>
       <div class="footer-right">
         <button class="footer-link-btn" id="btnExportJsonData">Export JSON</button>
@@ -752,6 +826,6 @@ Final Project (60%) - 2026-10-28 23:59"></textarea>
     </div>
   </div>
 
-  <script src="app.js?v=34"></script>
+  <script src="app.js?v=35"></script>
 </body>
 </html>

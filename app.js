@@ -159,6 +159,10 @@
         case 'N':
           openDeadlineModal();
           break;
+        case 'e':
+        case 'E':
+          openCalEventModal(calSelected);
+          break;
         case 'c':
         case 'C':
           openCourseModal();
@@ -223,6 +227,7 @@
     var data = {
       courses: state.courses,
       deadlines: state.deadlines,
+      reminders: calEvents,
       settings: { scale: state.scale },
       exportedAt: new Date().toISOString()
     };
@@ -694,7 +699,6 @@
         '<span class="meta-chip">' + (course.quartile || 'Fall') + '</span>' +
         '</div></div>' +
         '<div class="card-icon-actions">' +
-        '<button class="btn-card-glyph btn-whatif-course" data-id="' + course.id + '" title="What-if simulator" aria-label="What-if simulator"><span style="font-size:13px;font-weight:700">?</span></button>' +
         '<button class="btn-card-glyph btn-edit-course" data-id="' + course.id + '" title="Edit Course" aria-label="Edit Course">' +
         '<svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M11 2l3 3-9 9H2v-3l9-9z"></path></svg></button>' +
         '<button class="btn-card-glyph btn-delete-course" data-id="' + course.id + '" title="Delete Course" aria-label="Delete Course">' +
@@ -733,13 +737,6 @@
       });
     });
 
-    if (!container.dataset.whatifBound) {
-      container.addEventListener('click', function (e) {
-        var btn = e.target.closest ? e.target.closest('.btn-whatif-course') : null;
-        if (btn && btn.dataset.id) openWhatifModal(btn.dataset.id);
-      });
-      container.dataset.whatifBound = '1';
-    }
     container.querySelectorAll('.btn-edit-course').forEach(function (btn) {
       btn.addEventListener('click', function () { openCourseModal(btn.dataset.id); });
     });
@@ -864,6 +861,7 @@
           saveState();
           renderDeadlines();
           updateOverallKPIs();
+          renderCalendar();
         }
       });
     });
@@ -875,6 +873,7 @@
         saveState();
         renderDeadlines();
         updateOverallKPIs();
+        renderCalendar();
         showToast('Deadline removed', 'info');
       });
     });
@@ -909,6 +908,16 @@
         try { new Notification('Deadline in ' + rem.text, { body: d.title }); } catch (e) {}
       }
     });
+    calEvents.forEach(function (c) {
+      var key = 'cal-' + c.id;
+      if (notifiedIds[key]) return;
+      var when = new Date(c.date + 'T' + (c.time || '09:00') + ':00');
+      var diff = when - now;
+      if (diff > 0 && diff <= 2 * 60 * 60 * 1000) {
+        notifiedIds[key] = true;
+        try { new Notification('Reminder: ' + c.title, { body: (c.time || '') + ' · ' + (c.notes || c.date) }); } catch (e) {}
+      }
+    });
   }
 
   // =========================================================================
@@ -930,9 +939,11 @@
     var cmds = [
       { label: 'Go to Grades', hint: 'jump', run: function () { scrollFlash('radar'); } },
       { label: 'Go to Deadlines', hint: 'jump', run: function () { scrollFlash('deadlines'); } },
+      { label: 'Go to Calendar', hint: 'jump', run: function () { scrollFlash('calendar'); } },
       { label: 'Go to Focus', hint: 'jump', run: function () { scrollFlash('focus'); } },
       { label: 'Back to top', hint: 'jump', run: function () { window.scrollTo({ top: 0, behavior: 'smooth' }); } },
       { label: 'New deadline', hint: 'N', run: function () { openDeadlineModal(); } },
+      { label: 'New calendar reminder', hint: 'E', run: function () { openCalEventModal(calSelected); } },
       { label: 'New course', hint: 'C', run: function () { openCourseModal(); } },
       { label: 'Go to Notes', hint: 'jump', run: function () { scrollFlash('notes'); } },
       { label: 'Start / pause sprint', hint: 'Space', run: function () { if (pomodoroState.isRunning) pausePomodoro(); else startPomodoro(); } },
@@ -1021,7 +1032,7 @@
   // =========================================================================
 
   function exportIcsCalendar() {
-    if (state.deadlines.length === 0) { showToast('No deadlines to export.', 'warn'); return; }
+    if (state.deadlines.length === 0 && calEvents.length === 0) { showToast('No deadlines to export.', 'warn'); return; }
 
     function fmtIcs(dateStr, timeStr) {
       return dateStr.replace(/-/g, '') + 'T' + (timeStr.replace(/:/g, '') || '2359') + '00';
@@ -1047,6 +1058,22 @@
       lines.push('BEGIN:VALARM');
       lines.push('ACTION:DISPLAY');
       lines.push('DESCRIPTION:Deadline reminder: ' + code);
+      lines.push('TRIGGER:-PT2H');
+      lines.push('END:VALARM');
+      lines.push('END:VEVENT');
+    });
+
+    calEvents.forEach(function (ev, idx) {
+      var hhmm = (ev.time || '09:00').replace(/:/g, '');
+      lines.push('BEGIN:VEVENT');
+      lines.push('UID:cal-' + ev.id + '-' + idx + '@tue.nl');
+      lines.push('SUMMARY:' + ev.title);
+      lines.push('DESCRIPTION:' + (ev.notes || 'Reminder'));
+      lines.push('DTSTART:' + ev.date.replace(/-/g, '') + 'T' + hhmm + '00');
+      lines.push('DTEND:' + ev.date.replace(/-/g, '') + 'T' + hhmm + '00');
+      lines.push('BEGIN:VALARM');
+      lines.push('ACTION:DISPLAY');
+      lines.push('DESCRIPTION:Reminder: ' + ev.title);
       lines.push('TRIGGER:-PT2H');
       lines.push('END:VALARM');
       lines.push('END:VEVENT');
@@ -1434,6 +1461,7 @@
     if (s) s.textContent = sprintsToday() + ' today';
     var k = document.getElementById('dashNotes');
     if (k) k.textContent = keepNotes.length + (keepNotes.length === 1 ? ' note' : ' notes');
+    updateCalDash();
   }
 
   function updatePanicMeter() {
@@ -1627,6 +1655,7 @@
     closeDeadlineModal();
     renderDeadlines();
     updateOverallKPIs();
+    renderCalendar();
     showToast('Deadline added', 'success');
   }
 
@@ -1690,8 +1719,291 @@
     closeImportModal();
     renderCourses();
     renderDeadlines();
+    renderCalendar();
     confetti.fire(0.5, 0.4);
     showToast('Course imported: ' + result.detectedCode, 'success');
+  }
+
+  // =========================================================================
+  // 19b. Calendar — Google-Calendar-style month grid + reminders
+  // =========================================================================
+
+  var CAL_KEY = 'horizon_calendar_v1';
+  var calEvents = [];
+  var calCursor = (function () { var n = new Date(); return { y: n.getFullYear(), m: n.getMonth() }; })();
+  var calSelected = todayKey(new Date());
+  var CAL_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+  function loadCal() {
+    try {
+      var raw = localStorage.getItem(CAL_KEY);
+      if (raw) {
+        var arr = JSON.parse(raw);
+        if (Array.isArray(arr)) {
+          calEvents = arr.filter(function (e) {
+            return e && e.id && /^\d{4}-\d{2}-\d{2}$/.test(e.date || '') && e.title;
+          });
+          return;
+        }
+      }
+    } catch (e) {}
+    calEvents = [];
+  }
+
+  function persistCal() {
+    try { localStorage.setItem(CAL_KEY, JSON.stringify(calEvents)); } catch (e) {}
+  }
+
+  function calPad(n) { return String(n).padStart(2, '0'); }
+
+  function getCalEventsOn(dateStr) {
+    return calEvents.filter(function (e) { return e.date === dateStr; })
+      .sort(function (a, b) { return (a.time || '') < (b.time || '') ? -1 : 1; });
+  }
+
+  function getCalDeadlinesOn(dateStr) {
+    return state.deadlines.filter(function (d) { return d.dueDate === dateStr; })
+      .sort(function (a, b) { return (a.dueTime || '') < (b.dueTime || '') ? -1 : 1; });
+  }
+
+  function calCourseCode(courseId) {
+    var c = state.courses.find(function (x) { return x.id === courseId; });
+    return c ? c.code : 'SU';
+  }
+
+  function renderCalendar() {
+    var grid = document.getElementById('calGrid');
+    if (!grid) return;
+    var title = document.getElementById('calMonthTitle');
+    if (title) title.textContent = CAL_MONTHS[calCursor.m] + ' ' + calCursor.y;
+
+    var todayStr = todayKey(new Date());
+    var firstDow = new Date(calCursor.y, calCursor.m, 1).getDay();
+    var daysInMonth = new Date(calCursor.y, calCursor.m + 1, 0).getDate();
+    var daysInPrev = new Date(calCursor.y, calCursor.m, 0).getDate();
+
+    grid.innerHTML = '';
+    for (var i = 0; i < 42; i++) {
+      var dayNum, dateStr, out = false;
+      if (i < firstDow) {
+        dayNum = daysInPrev - firstDow + 1 + i;
+        var pm = calCursor.m - 1, py = calCursor.y;
+        if (pm < 0) { pm = 11; py--; }
+        dateStr = py + '-' + calPad(pm + 1) + '-' + calPad(dayNum);
+        out = true;
+      } else if (i >= firstDow + daysInMonth) {
+        dayNum = i - firstDow - daysInMonth + 1;
+        var nm = calCursor.m + 1, ny = calCursor.y;
+        if (nm > 11) { nm = 0; ny++; }
+        dateStr = ny + '-' + calPad(nm + 1) + '-' + calPad(dayNum);
+        out = true;
+      } else {
+        dayNum = i - firstDow + 1;
+        dateStr = calCursor.y + '-' + calPad(calCursor.m + 1) + '-' + calPad(dayNum);
+      }
+
+      var cell = document.createElement('button');
+      cell.type = 'button';
+      cell.className = 'cal-day' + (out ? ' cal-day-out' : '') +
+        (dateStr === todayStr ? ' cal-day-today' : '') +
+        (dateStr === calSelected ? ' cal-day-selected' : '');
+      cell.dataset.date = dateStr;
+      cell.setAttribute('aria-label', dateStr);
+
+      var num = document.createElement('span');
+      num.className = 'cal-day-num';
+      num.textContent = dayNum;
+      cell.appendChild(num);
+
+      var chips = document.createElement('span');
+      chips.className = 'cal-chips';
+      var evs = getCalEventsOn(dateStr);
+      var dls = getCalDeadlinesOn(dateStr);
+      var combined = [];
+      evs.forEach(function (e) { combined.push({ kind: 'event', time: e.time || '09:00', title: e.title, ref: e }); });
+      dls.forEach(function (d) { combined.push({ kind: 'deadline', time: d.dueTime || '23:59', title: d.title, ref: d }); });
+      combined.sort(function (a, b) { return a.time < b.time ? -1 : 1; });
+
+      combined.slice(0, 3).forEach(function (item) {
+        var chip = document.createElement('span');
+        chip.className = 'cal-chip ' + (item.kind === 'event' ? 'cal-chip-event' : 'cal-chip-deadline' + (item.ref.completed ? ' done' : ''));
+        chip.textContent = item.title;
+        chip.title = (item.time || '') + ' — ' + item.title;
+        chip.dataset.kind = item.kind;
+        chip.dataset.date = dateStr;
+        chip.dataset.id = item.ref.id;
+        chips.appendChild(chip);
+      });
+      if (combined.length > 3) {
+        var more = document.createElement('span');
+        more.className = 'cal-more';
+        more.textContent = '+' + (combined.length - 3) + ' more';
+        more.dataset.date = dateStr;
+        chips.appendChild(more);
+      }
+      cell.appendChild(chips);
+      grid.appendChild(cell);
+    }
+
+    renderCalAgenda();
+    updateCalDash();
+  }
+
+  function calAgendaLabel(dateStr) {
+    var todayStr = todayKey(new Date());
+    var tom = new Date(); tom.setDate(tom.getDate() + 1);
+    var tomStr = todayKey(tom);
+    if (dateStr === todayStr) return 'Today';
+    if (dateStr === tomStr) return 'Tomorrow';
+    try {
+      var d = new Date(dateStr + 'T12:00:00');
+      return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    } catch (e) { return dateStr; }
+  }
+
+  function renderCalAgenda() {
+    var box = document.getElementById('calAgenda');
+    var titleEl = document.getElementById('calAgendaTitle');
+    var countEl = document.getElementById('calAgendaCount');
+    if (!box) return;
+    if (titleEl) titleEl.textContent = calAgendaLabel(calSelected) + ' · ' + calSelected;
+    box.innerHTML = '';
+
+    var items = [];
+    getCalEventsOn(calSelected).forEach(function (e) {
+      items.push({ kind: 'event', time: e.time || '09:00', title: e.title, sub: e.notes || 'Reminder', ref: e });
+    });
+    getCalDeadlinesOn(calSelected).forEach(function (d) {
+      var code = calCourseCode(d.courseId);
+      items.push({ kind: 'deadline', time: d.dueTime || '23:59', title: d.title, sub: code + ' · ' + (d.portal || 'Canvas') + ' · ' + (d.weight || 0) + '%', ref: d });
+    });
+    items.sort(function (a, b) { return a.time < b.time ? -1 : 1; });
+
+    if (countEl) countEl.textContent = items.length + (items.length === 1 ? ' item' : ' items');
+    if (!items.length) {
+      box.innerHTML = '<div class="cal-agenda-empty">Nothing scheduled. Enjoy the quiet — or add a reminder.</div>';
+      return;
+    }
+    items.forEach(function (item) {
+      var row = document.createElement('button');
+      row.type = 'button';
+      row.className = 'cal-agenda-row';
+      row.dataset.kind = item.kind;
+      row.dataset.id = item.ref.id;
+      row.dataset.date = calSelected;
+      var time = document.createElement('span');
+      time.className = 'cal-agenda-time';
+      time.textContent = item.time;
+      var body = document.createElement('span');
+      body.className = 'cal-agenda-body';
+      var t = document.createElement('span');
+      t.className = 'cal-agenda-title';
+      t.textContent = item.title;
+      if (item.kind === 'deadline' && item.ref.completed) t.style.textDecoration = 'line-through';
+      var s = document.createElement('span');
+      s.className = 'cal-agenda-sub';
+      s.textContent = item.sub;
+      body.appendChild(t);
+      body.appendChild(s);
+      var tag = document.createElement('span');
+      tag.className = 'cal-agenda-tag ' + item.kind;
+      tag.textContent = item.kind === 'event' ? 'Reminder' : 'Deadline';
+      row.appendChild(time);
+      row.appendChild(body);
+      row.appendChild(tag);
+      box.appendChild(row);
+    });
+  }
+
+  function updateCalDash() {
+    var el = document.getElementById('dashCal');
+    if (!el) return;
+    var now = new Date();
+    now.setHours(0, 0, 0, 0);
+    var soon = calEvents.filter(function (e) {
+      var d = new Date(e.date + 'T00:00:00');
+      if (isNaN(d)) return false;
+      var diff = (d - now) / 86400000;
+      return diff >= 0 && diff <= 7;
+    }).length;
+    el.textContent = calEvents.length === 0 ? 'no reminders' : soon + ' in 7 days';
+  }
+
+  function handleCalItemClick(kind, id) {
+    if (kind === 'event') {
+      var e = calEvents.find(function (x) { return x.id === id; });
+      if (e) openCalEventModal(e.date, e.id);
+    } else if (kind === 'deadline') {
+      scrollFlash('deadline-' + id);
+    }
+  }
+
+  function openCalEventModal(dateStr, eventId) {
+    var modal = document.getElementById('calEventModal');
+    if (!modal) return;
+    var form = document.getElementById('calEventForm');
+    if (form) form.reset();
+    document.getElementById('calEventEditId').value = eventId || '';
+    var delBtn = document.getElementById('btnCalEventDelete');
+    if (eventId) {
+      var e = calEvents.find(function (x) { return x.id === eventId; });
+      if (!e) return;
+      document.getElementById('calEventModalTitle').textContent = 'Edit reminder';
+      document.getElementById('calEventTitleInput').value = e.title || '';
+      document.getElementById('calEventDateInput').value = e.date || '';
+      document.getElementById('calEventTimeInput').value = e.time || '09:00';
+      document.getElementById('calEventNotesInput').value = e.notes || '';
+      if (delBtn) delBtn.style.display = '';
+    } else {
+      document.getElementById('calEventModalTitle').textContent = 'New reminder';
+      document.getElementById('calEventDateInput').value = dateStr || calSelected || todayKey(new Date());
+      document.getElementById('calEventTimeInput').value = '09:00';
+      if (delBtn) delBtn.style.display = 'none';
+    }
+    modal.classList.add('active');
+    setTimeout(function () {
+      var inp = document.getElementById('calEventTitleInput');
+      if (inp) inp.focus();
+    }, 60);
+  }
+
+  function closeCalEventModal() {
+    var modal = document.getElementById('calEventModal');
+    if (modal) modal.classList.remove('active');
+  }
+
+  function saveCalEventFromModal(e) {
+    e.preventDefault();
+    var editId = document.getElementById('calEventEditId').value;
+    var title = document.getElementById('calEventTitleInput').value.trim();
+    var date = document.getElementById('calEventDateInput').value;
+    var time = document.getElementById('calEventTimeInput').value || '09:00';
+    var notes = document.getElementById('calEventNotesInput').value.trim();
+    if (!title || !date) { showToast('Give the reminder a title and date', 'warn'); return; }
+    if (editId) {
+      var existing = calEvents.find(function (x) { return x.id === editId; });
+      if (existing) { existing.title = title; existing.date = date; existing.time = time; existing.notes = notes; }
+      showToast('Reminder updated', 'success');
+    } else {
+      calEvents.push({ id: 'cal-' + Date.now(), title: title, date: date, time: time, notes: notes });
+      showToast('Reminder added to ' + date, 'success');
+    }
+    persistCal();
+    closeCalEventModal();
+    calSelected = date;
+    var d = new Date(date + 'T12:00:00');
+    if (!isNaN(d)) calCursor = { y: d.getFullYear(), m: d.getMonth() };
+    renderCalendar();
+  }
+
+  function deleteCalEvent() {
+    var editId = document.getElementById('calEventEditId').value;
+    if (!editId) return;
+    calEvents = calEvents.filter(function (x) { return x.id !== editId; });
+    persistCal();
+    closeCalEventModal();
+    renderCalendar();
+    showToast('Reminder removed', 'info');
   }
 
   // =========================================================================
@@ -1856,6 +2168,9 @@
     card.draggable = true;
     card.addEventListener('dragstart', function (e) {
       card.classList.add('dragging');
+      card.classList.remove('fresh');
+      var list = document.getElementById('keepList');
+      if (list) list.classList.add('is-reordering');
       try {
         e.dataTransfer.effectAllowed = 'move';
         e.dataTransfer.setData('text/plain', id);
@@ -1863,22 +2178,54 @@
     });
     card.addEventListener('dragend', function () {
       card.classList.remove('dragging');
+      var list = document.getElementById('keepList');
+      if (list) list.classList.remove('is-reordering');
       persistKeepOrder();
     });
   }
 
+  // Stable insertion-point lookup: first element whose vertical midpoint is
+  // below the pointer (or same row, horizontal midpoint to the right).
+  // Deterministic — no distance scoring, so it can't oscillate / flicker.
   function gridDragAfter(container, x, y, sel) {
     var els = Array.prototype.slice.call(container.querySelectorAll((sel || '.keep-card') + ':not(.dragging)'));
-    var best = null, bestScore = Infinity;
-    els.forEach(function (el) {
-      var r = el.getBoundingClientRect();
-      var cx = r.left + r.width / 2, cy = r.top + r.height / 2;
-      var after = (cy > y + 8) || (Math.abs(cy - y) <= r.height / 2 + 8 && cx > x);
-      if (!after) return;
-      var score = Math.hypot(cx - x, cy - y);
-      if (score < bestScore) { bestScore = score; best = el; }
-    });
-    return best;
+    for (var i = 0; i < els.length; i++) {
+      var r = els[i].getBoundingClientRect();
+      if (y < r.top + r.height / 2) return els[i];
+      if (y <= r.bottom && x < r.left + r.width / 2) return els[i];
+    }
+    return null;
+  }
+
+  // Move only when the DOM would actually change — the old code called
+  // insertBefore/appendChild on every dragover tick, which thrashed layout
+  // and made cards flicker. Also coalesced via rAF in the dragover handlers.
+  function moveDraggedTo(container, dragging, after) {
+    if (!container || !dragging) return;
+    if (after && (after === dragging || after === dragging.nextSibling)) return;
+    if (!after && container.lastElementChild === dragging) return;
+    if (after) container.insertBefore(dragging, after);
+    else container.appendChild(dragging);
+  }
+
+  function makeThrottledReorder(container, sel) {
+    var queued = null;
+    var scheduled = false;
+    function flush() {
+      scheduled = false;
+      if (!queued || !container.isConnected) { queued = null; return; }
+      var dragging = container.querySelector('.dragging');
+      if (!dragging) { queued = null; return; }
+      var after = gridDragAfter(container, queued.x, queued.y, sel);
+      moveDraggedTo(container, dragging, after);
+      queued = null;
+    }
+    return function (e) {
+      e.preventDefault();
+      try { e.dataTransfer.dropEffect = 'move'; } catch (err) {}
+      queued = { x: e.clientX, y: e.clientY };
+      if (!scheduled) { scheduled = true; requestAnimationFrame(flush); }
+    };
   }
 
   function persistKeepOrder() {
@@ -2011,6 +2358,8 @@
         row.draggable = true;
         row.addEventListener('dragstart', function (e) {
           row.classList.add('dragging');
+          var box = document.getElementById('todoList');
+          if (box) box.classList.add('is-reordering');
           try {
             e.dataTransfer.effectAllowed = 'move';
             e.dataTransfer.setData('text/plain', entry.it.id);
@@ -2018,6 +2367,8 @@
         });
         row.addEventListener('dragend', function () {
           row.classList.remove('dragging');
+          var box = document.getElementById('todoList');
+          if (box) box.classList.remove('is-reordering');
           persistTodoOrder();
         });
         var circle = document.createElement('button');
@@ -2082,41 +2433,6 @@
     inp.focus();
     renderTodoPane();
   }
-  var whatifCourseId = null;
-  function openWhatifModal(courseId) {
-    var course = state.courses.find(function (c) { return c.id === courseId; });
-    if (!course) return;
-    whatifCourseId = courseId;
-    var m = calculateCourseGradeMetrics(course);
-    var isGpa = state.scale === 'gpa';
-    document.getElementById('whatifTitle').textContent = 'What if? (' + course.code + ')';
-    document.getElementById('whatifWeight').textContent = '(' + m.pendingWeight + '% pending)';
-    var range = document.getElementById('whatifRange');
-    range.min = 0;
-    range.max = isGpa ? 4 : 100;
-    range.step = isGpa ? 0.1 : 1;
-    range.value = isGpa ? 3.0 : 60;
-    updateWhatifResult();
-    document.getElementById('whatifModal').classList.add('active');
-  }
-  function closeWhatifModal() { document.getElementById('whatifModal').classList.remove('active'); }
-  function updateWhatifResult() {
-    var course = state.courses.find(function (c) { return c.id === whatifCourseId; });
-    var el = document.getElementById('whatifResult');
-    if (!course || !el) return;
-    var m = calculateCourseGradeMetrics(course);
-    var isGpa = state.scale === 'gpa';
-    if (m.pendingWeight === 0) {
-      el.textContent = 'Locked at ' + m.securedPoints.toFixed(1);
-      el.className = 'sim-badge-val grade-secured';
-      return;
-    }
-    var hypo = parseFloat(document.getElementById('whatifRange').value) || 0;
-    var proj = m.securedPoints + hypo * (m.pendingWeight / 100);
-    var pass = isGpa ? 2.0 : 55;
-    el.textContent = proj.toFixed(1);
-    el.className = 'sim-badge-val ' + (proj >= (isGpa ? 3.7 : 80) ? 'grade-secured' : proj >= pass ? 'grade-pass' : 'grade-fail');
-  }
   function closeCreditsModal() { document.getElementById('creditsModal').classList.remove('active'); }
 
   function resetAllData() {
@@ -2126,6 +2442,7 @@
       loadState();
       renderCourses();
       renderDeadlines();
+      renderCalendar();
       updateOverallKPIs();
       showToast('Demo data restored', 'info');
     }
@@ -2138,9 +2455,11 @@
   document.addEventListener('DOMContentLoaded', function () {
     initTheme();
     loadState();
+    loadCal();
     setScale(state.scale);
     renderCourses();
     renderDeadlines();
+    renderCalendar();
     updateOverallKPIs();
     updateTimerDisplay();
     renderSprintCount();
@@ -2235,25 +2554,13 @@
     });
     document.getElementById('btnOpenCredits').addEventListener('click', openCreditsModal);
     var keepListEl = document.getElementById('keepList');
-    keepListEl.addEventListener('dragover', function (e) {
-      e.preventDefault();
-      var dragging = keepListEl.querySelector('.dragging');
-      if (!dragging) return;
-      var after = gridDragAfter(keepListEl, e.clientX, e.clientY, '.keep-card');
-      if (!after) keepListEl.appendChild(dragging);
-      else keepListEl.insertBefore(dragging, after);
-    });
-    keepListEl.addEventListener('drop', function (e) { e.preventDefault(); persistKeepOrder(); });
+    keepListEl.addEventListener('dragover', makeThrottledReorder(keepListEl, '.keep-card'));
+    keepListEl.addEventListener('drop', function (e) { e.preventDefault(); keepListEl.classList.remove('is-reordering'); persistKeepOrder(); });
+    keepListEl.addEventListener('dragleave', function () { keepListEl.classList.remove('is-reordering'); });
     var todoListEl = document.getElementById('todoList');
-    todoListEl.addEventListener('dragover', function (e) {
-      e.preventDefault();
-      var dragging = todoListEl.querySelector('.dragging');
-      if (!dragging) return;
-      var after = gridDragAfter(todoListEl, e.clientX, e.clientY, '.todo-row');
-      if (!after) todoListEl.appendChild(dragging);
-      else todoListEl.insertBefore(dragging, after);
-    });
-    todoListEl.addEventListener('drop', function (e) { e.preventDefault(); persistTodoOrder(); });
+    todoListEl.addEventListener('dragover', makeThrottledReorder(todoListEl, '.todo-row'));
+    todoListEl.addEventListener('drop', function (e) { e.preventDefault(); todoListEl.classList.remove('is-reordering'); persistTodoOrder(); });
+    todoListEl.addEventListener('dragleave', function () { todoListEl.classList.remove('is-reordering'); });
     document.getElementById('keepTabNotes').addEventListener('click', function () { switchKeepTab('notes'); });
     document.getElementById('keepTabTodo').addEventListener('click', function () { switchKeepTab('todo'); });
     document.getElementById('btnKeepSave').addEventListener('click', saveKeepComposer);
@@ -2262,9 +2569,6 @@
       if (e.key === 'Enter') { e.preventDefault(); addTodoQuick(); }
     });
 
-    document.getElementById('btnCloseWhatifModal').addEventListener('click', closeWhatifModal);
-    document.getElementById('btnWhatifDone').addEventListener('click', closeWhatifModal);
-    document.getElementById('whatifRange').addEventListener('input', updateWhatifResult);
     document.getElementById('btnCopyDiscord').addEventListener('click', function () {
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText('itzjacksparrow').then(function () {
@@ -2277,6 +2581,59 @@
     document.getElementById('btnCloseCreditsModal').addEventListener('click', closeCreditsModal);
     document.getElementById('btnCreditsDone').addEventListener('click', closeCreditsModal);
 
+
+    // Calendar
+    document.getElementById('btnCalPrev').addEventListener('click', function () {
+      calCursor.m--;
+      if (calCursor.m < 0) { calCursor.m = 11; calCursor.y--; }
+      renderCalendar();
+    });
+    document.getElementById('btnCalNext').addEventListener('click', function () {
+      calCursor.m++;
+      if (calCursor.m > 11) { calCursor.m = 0; calCursor.y++; }
+      renderCalendar();
+    });
+    document.getElementById('btnCalToday').addEventListener('click', function () {
+      var n = new Date();
+      calCursor = { y: n.getFullYear(), m: n.getMonth() };
+      calSelected = todayKey(n);
+      renderCalendar();
+      scrollFlash('calendar');
+    });
+    document.getElementById('btnCalAdd').addEventListener('click', function () { openCalEventModal(calSelected); });
+    var calGrid = document.getElementById('calGrid');
+    calGrid.addEventListener('click', function (e) {
+      var chip = e.target.closest ? e.target.closest('.cal-chip') : null;
+      if (chip && chip.dataset.id) {
+        e.stopPropagation();
+        if (chip.dataset.kind === 'event') openCalEventModal(chip.dataset.date, chip.dataset.id);
+        else scrollFlash('deadline-' + chip.dataset.id);
+        return;
+      }
+      var more = e.target.closest ? e.target.closest('.cal-more') : null;
+      if (more && more.dataset.date) {
+        calSelected = more.dataset.date;
+        renderCalendar();
+        return;
+      }
+      var day = e.target.closest ? e.target.closest('.cal-day') : null;
+      if (day && day.dataset.date) {
+        calSelected = day.dataset.date;
+        renderCalendar();
+      }
+    });
+    calGrid.addEventListener('dblclick', function (e) {
+      var day = e.target.closest ? e.target.closest('.cal-day') : null;
+      if (day && day.dataset.date) openCalEventModal(day.dataset.date);
+    });
+    document.getElementById('calAgenda').addEventListener('click', function (e) {
+      var row = e.target.closest ? e.target.closest('.cal-agenda-row') : null;
+      if (row && row.dataset.id) handleCalItemClick(row.dataset.kind, row.dataset.id);
+    });
+    document.getElementById('calEventForm').addEventListener('submit', saveCalEventFromModal);
+    document.getElementById('btnCloseCalEventModal').addEventListener('click', closeCalEventModal);
+    document.getElementById('btnCancelCalEventModal').addEventListener('click', closeCalEventModal);
+    document.getElementById('btnCalEventDelete').addEventListener('click', deleteCalEvent);
 
     // Modals
     document.getElementById('btnCloseCourseModal').addEventListener('click', closeCourseModal);
@@ -2367,7 +2724,7 @@
         });
       }, { threshold: 0.3 });
 
-      ['radar', 'deadlines', 'focus', 'notes'].forEach(function (id) {
+      ['radar', 'deadlines', 'calendar', 'focus', 'notes'].forEach(function (id) {
         var section = document.getElementById(id);
         if (section) navObserver.observe(section);
       });
