@@ -199,7 +199,7 @@
 
     if (uncompleted.length > 0) {
       uncompleted.sort(function (a, b) {
-        return new Date(a.dueDate + 'T' + a.dueTime) - new Date(b.dueDate + 'T' + b.dueTime);
+        return deadlineInstant(a.dueDate, a.dueTime) - deadlineInstant(b.dueDate, b.dueTime);
       });
       var rem = getDeadlineTimeRemaining(uncompleted[0].dueDate, uncompleted[0].dueTime);
       nextText = uncompleted[0].title + ' in ' + rem.text;
@@ -269,7 +269,7 @@
   var ICON_SUN = '<svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="8" cy="8" r="3.2"/><path d="M8 1.5v1.6M8 12.9v1.6M1.5 8h1.6M12.9 8h1.6M3.4 3.4l1.1 1.1M11.5 11.5l1.1 1.1M12.6 3.4l-1.1 1.1M4.5 11.5l-1.1 1.1"/></svg>';
   var ICON_MOON = '<svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M13.5 9.5A5.5 5.5 0 0 1 6.5 2.5a5.5 5.5 0 1 0 7 7z"/></svg>';
 
-  var THEMES = ['dark', 'light', 'indie', 'moss', 'ghost'];
+  var THEMES = ['dark', 'light', 'indie', 'moss', 'ghost', 'colorblind'];
 
   function currentTheme() {
     var t = document.documentElement.getAttribute('data-theme');
@@ -754,8 +754,34 @@
   // 12. Deadline Rendering (with Urgency Progress Bars)
   // =========================================================================
 
+  var PT_TZ = 'America/Los_Angeles';
+
+  // Interpret a deadline's wall-clock date+time in Stanford (PT) instead of
+  // browser-local time, so cutoffs don't shift when the site is opened
+  // outside California (or during DST transitions).
+  function deadlineInstant(dueDateStr, dueTimeStr) {
+    var asUtc = new Date(dueDateStr + 'T' + (dueTimeStr || '23:59') + ':00Z');
+    if (isNaN(asUtc)) return new Date(NaN);
+    try {
+      var fmt = new Intl.DateTimeFormat('en-US', {
+        timeZone: PT_TZ, hourCycle: 'h23',
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit'
+      });
+      var parts = {};
+      fmt.formatToParts(asUtc).forEach(function (p) { parts[p.type] = p.value; });
+      var asTz = Date.UTC(
+        parseInt(parts.year, 10), parseInt(parts.month, 10) - 1, parseInt(parts.day, 10),
+        parseInt(parts.hour, 10), parseInt(parts.minute, 10), parseInt(parts.second, 10)
+      );
+      return new Date(asUtc.getTime() - (asTz - asUtc.getTime()));
+    } catch (e) {
+      return new Date(dueDateStr + 'T' + (dueTimeStr || '23:59') + ':00');
+    }
+  }
+
   function getDeadlineTimeRemaining(dueDateStr, dueTimeStr) {
-    var target = new Date(dueDateStr + 'T' + dueTimeStr + ':00');
+    var target = deadlineInstant(dueDateStr, dueTimeStr);
     var now = new Date();
     var diffMs = target - now;
 
@@ -776,6 +802,38 @@
     return { expired: false, diffMs: diffMs, text: text, totalHours: totalHours, urgency: urgency, vibe: vibe };
   }
 
+  // Live tick: refresh visible countdown digits/vibes/bars every second
+  // without a full list re-render (cheap textContent-only updates).
+  function tickDeadlineTimers() {
+    var container = document.getElementById('deadlinesContainer');
+    if (!container) return;
+    var digits = container.querySelectorAll('.timer-digits-main');
+    if (!digits.length) return;
+    var windowMs = 14 * 24 * 60 * 60 * 1000;
+    digits.forEach(function (el) {
+      if (el.dataset.done) return;
+      var rem = getDeadlineTimeRemaining(el.dataset.dueDate, el.dataset.dueTime);
+      var txt = rem.expired ? 'Passed' : rem.text;
+      if (el.textContent !== txt) el.textContent = txt;
+      el.classList.toggle('timer-digits-urgent', !rem.expired && rem.urgency === 'danger');
+      var vibe = el.parentElement ? el.parentElement.querySelector('.timer-vibe-sub') : null;
+      if (vibe) {
+        var vibeTxt = rem.expired ? 'Passed' : rem.vibe;
+        if (vibe.textContent !== vibeTxt) vibe.textContent = vibeTxt;
+      }
+      var row = el.closest ? el.closest('.deadline-row-item') : null;
+      var bar = row ? row.querySelector('.deadline-urgency-bar') : null;
+      if (bar) {
+        if (rem.expired) {
+          bar.className = 'deadline-urgency-bar expired';
+        } else {
+          bar.className = 'deadline-urgency-bar ' + rem.urgency;
+          bar.style.width = Math.min(100, Math.max(0, (rem.diffMs / windowMs) * 100)) + '%';
+        }
+      }
+    });
+  }
+
   function renderDeadlines() {
     var container = document.getElementById('deadlinesContainer');
     if (!container) return;
@@ -794,7 +852,7 @@
     });
 
     filtered.sort(function (a, b) {
-      return new Date(a.dueDate + 'T' + a.dueTime + ':00') - new Date(b.dueDate + 'T' + b.dueTime + ':00');
+      return deadlineInstant(a.dueDate, a.dueTime) - deadlineInstant(b.dueDate, b.dueTime);
     });
 
     if (filtered.length === 0) {
@@ -833,7 +891,8 @@
         '</div></div>' +
         '<div class="deadline-right-col">' +
         '<div class="deadline-timer-stack">' +
-        '<span class="timer-digits-main ' + (rem.urgency === 'danger' && !item.completed ? 'timer-digits-urgent' : '') + '">' +
+        '<span class="timer-digits-main ' + (rem.urgency === 'danger' && !item.completed ? 'timer-digits-urgent' : '') + '"' +
+        ' data-due-date="' + item.dueDate + '" data-due-time="' + item.dueTime + '"' + (item.completed ? ' data-done="1"' : '') + '>' +
         (item.completed ? 'Submitted' : rem.text) + '</span>' +
         '<span class="timer-vibe-sub">' + (item.completed ? 'Done' : rem.vibe) + '</span>' +
         '</div>' +
@@ -901,7 +960,7 @@
     var now = new Date();
     state.deadlines.forEach(function (d) {
       if (d.completed || notifiedIds[d.id]) return;
-      var diff = new Date(d.dueDate + 'T' + d.dueTime + ':00') - now;
+      var diff = deadlineInstant(d.dueDate, d.dueTime) - now;
       if (diff > 0 && diff <= 2 * 60 * 60 * 1000) {
         notifiedIds[d.id] = true;
         var rem = getDeadlineTimeRemaining(d.dueDate, d.dueTime);
@@ -954,7 +1013,7 @@
       { label: 'Open credits', hint: 'modal', run: function () { openCreditsModal(); } },
       { label: 'Theme: Dark', hint: 'theme', run: function () { setTheme('dark'); } },
       { label: 'Theme: Light', hint: 'theme', run: function () { setTheme('light'); } },
-      { label: 'Theme: NYC', hint: 'theme', run: function () { setTheme('nyc'); } },
+      { label: 'Theme: Colorblind', hint: 'theme', run: function () { setTheme('colorblind'); } },
       { label: 'Theme: Indie', hint: 'theme', run: function () { setTheme('indie'); } }
     ];
     state.courses.forEach(function (c) {
@@ -1053,8 +1112,8 @@
       lines.push('SUMMARY:[' + code + '] ' + dl.title);
       lines.push('DESCRIPTION:Course: ' + code + '\\nPortal: ' + (dl.portal || 'Canvas') + '\\nWeight: ' + (dl.weight || 0) + '%');
       lines.push('LOCATION:' + (dl.portal || 'Canvas'));
-      lines.push('DTSTART:' + fmtIcs(dl.dueDate, '23:00'));
-      lines.push('DTEND:' + fmtIcs(dl.dueDate, dl.dueTime));
+      lines.push('DTSTART;TZID=' + PT_TZ + ':' + fmtIcs(dl.dueDate, '23:00'));
+      lines.push('DTEND;TZID=' + PT_TZ + ':' + fmtIcs(dl.dueDate, dl.dueTime));
       lines.push('BEGIN:VALARM');
       lines.push('ACTION:DISPLAY');
       lines.push('DESCRIPTION:Deadline reminder: ' + code);
@@ -1320,7 +1379,6 @@
     });
   }
 
-  var SPRINT_KEY = 'tue_pass_sprints_v1';
   var SPRINT_HIST_KEY = 'tue_pass_sprint_hist_v1';
   function todayKey(d) {
     var x = d || new Date();
@@ -1344,31 +1402,13 @@
     var k = todayKey();
     h[k] = (h[k] || 0) + 1;
     saveSprintHist(h);
-    try { localStorage.setItem(SPRINT_KEY, JSON.stringify({ date: k, count: h[k] })); } catch (e) {}
     renderSprintCount();
-    renderHeatmap();
   }
   function renderSprintCount() {
     var el = document.getElementById('sprintCount');
     if (!el) return;
     var n = sprintsToday();
     el.textContent = n === 0 ? 'No sprints yet today' : n + (n === 1 ? ' sprint' : ' sprints') + ' today';
-    updateDash();
-  }
-  function renderHeatmap() {
-    var grid = document.getElementById('heatGrid');
-    if (!grid) return;
-    var h = getSprintHist();
-    grid.innerHTML = '';
-    var today = new Date();
-    for (var i = 83; i >= 0; i--) {
-      var d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - i);
-      var c = h[todayKey(d)] || 0;
-      var cell = document.createElement('div');
-      cell.className = 'heat-cell' + (c >= 4 ? ' lv4' : c === 3 ? ' lv3' : c === 2 ? ' lv2' : c === 1 ? ' lv1' : '');
-      cell.title = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' — ' + c + (c === 1 ? ' sprint' : ' sprints');
-      grid.appendChild(cell);
-    }
   }
 
   // =========================================================================
@@ -1400,37 +1440,12 @@
     });
 
     var avgEl = document.getElementById('kpiAvgGrade');
-    var avgStatus = document.getElementById('kpiGradeStatus');
     if (avgEl && totalScoreWeight > 0) {
       var avg = totalWeightedScore / totalScoreWeight;
       avgEl.textContent = avg.toFixed(1);
-      if (avgStatus) {
-        if (state.scale === 'gpa') {
-          if (avg >= 3.7) avgStatus.textContent = 'Excellent';
-          else if (avg >= 2.0) avgStatus.textContent = 'Passing';
-          else avgStatus.textContent = 'Below passing';
-        } else {
-          avgStatus.textContent = avg >= 60 ? 'Passing' : 'Action Required';
-        }
-      }
     }
 
-    var uncompleted = state.deadlines.filter(function (d) { return !d.completed; });
-    var nextDlEl = document.getElementById('kpiNextDeadline');
-    var pillEl = document.getElementById('kpiUrgencyPill');
-
-    if (uncompleted.length === 0) {
-      if (nextDlEl) nextDlEl.textContent = 'All Done';
-      if (pillEl) pillEl.textContent = 'Free Time';
-      return;
-    }
-
-    uncompleted.sort(function (a, b) { return new Date(a.dueDate + 'T' + a.dueTime + ':00') - new Date(b.dueDate + 'T' + b.dueTime + ':00'); });
-    var rem = getDeadlineTimeRemaining(uncompleted[0].dueDate, uncompleted[0].dueTime);
-    if (nextDlEl) nextDlEl.textContent = rem.text;
-    if (pillEl) pillEl.textContent = rem.urgency === 'danger' ? 'Urgent (< 24h)' : rem.urgency === 'warning' ? 'Approaching' : 'On Track';
     updateGradeInsights();
-    updateDash();
   }
 
   function updateGradeInsights() {
@@ -1449,21 +1464,6 @@
     el.style.display = bits.length ? '' : 'none';
   }
 
-  function updateDash() {
-    var c = document.getElementById('dashCourses');
-    if (c) c.textContent = state.courses.length + (state.courses.length === 1 ? ' course' : ' courses');
-    var d = document.getElementById('dashDeadlines');
-    if (d) {
-      var n = state.deadlines.filter(function (x) { return !x.completed; }).length;
-      d.textContent = n === 0 ? 'all clear' : n + ' due';
-    }
-    var s = document.getElementById('dashSprints');
-    if (s) s.textContent = sprintsToday() + ' today';
-    var k = document.getElementById('dashNotes');
-    if (k) k.textContent = keepNotes.length + (keepNotes.length === 1 ? ' note' : ' notes');
-    updateCalDash();
-  }
-
   function updatePanicMeter() {
     var digits = document.getElementById('panicDigits');
     if (!digits) return;
@@ -1479,16 +1479,21 @@
       if (wrap) wrap.className = 'panic-widget calm';
       return;
     }
-    open.sort(function (a, b) { return new Date(a.dueDate + 'T' + a.dueTime + ':00') - new Date(b.dueDate + 'T' + b.dueTime + ':00'); });
-    var next = open[0];
-    var diff = new Date(next.dueDate + 'T' + next.dueTime + ':00') - now;
-    if (titleEl) titleEl.textContent = next.title;
-    if (diff <= 0) {
-      digits.textContent = '00:00:00';
-      if (subEl) subEl.textContent = 'Cutoff passed — submit now if the portal still allows it.';
+    open.sort(function (a, b) { return deadlineInstant(a.dueDate, a.dueTime) - deadlineInstant(b.dueDate, b.dueTime); });
+    var future = open.filter(function (d) { return deadlineInstant(d.dueDate, d.dueTime) - now > 0; });
+    var past = open.filter(function (d) { return deadlineInstant(d.dueDate, d.dueTime) - now <= 0; });
+    if (!future.length) {
+      // Every open cutoff has passed — say so, point at the most recent one.
+      var last = past[past.length - 1];
+      if (titleEl) titleEl.textContent = last.title;
+      digits.textContent = 'Passed';
+      if (subEl) subEl.textContent = past.length === 1 ? 'That cutoff passed — tick it off or add the next one.' : past.length + ' cutoffs passed — tick them off or add the next one.';
       if (wrap) wrap.className = 'panic-widget danger';
       return;
     }
+    var next = future[0];
+    var diff = deadlineInstant(next.dueDate, next.dueTime) - now;
+    if (titleEl) titleEl.textContent = next.title;
     var s = Math.floor(diff / 1000);
     var dd = Math.floor(s / 86400);
     var hh = String(Math.floor((s % 86400) / 3600)).padStart(2, '0');
@@ -1497,8 +1502,9 @@
     digits.textContent = (dd > 0 ? dd + 'd ' : '') + hh + ':' + mm + ':' + ss;
     var hours = diff / 3600000;
     if (wrap) wrap.className = 'panic-widget ' + (hours < 24 ? 'danger' : hours < 48 ? 'warn' : 'calm');
-    var crunch = open.filter(function (x) { return new Date(x.dueDate + 'T' + x.dueTime + ':00') - now < 48 * 3600000; }).length;
+    var crunch = future.filter(function (x) { return deadlineInstant(x.dueDate, x.dueTime) - now < 48 * 3600000; }).length;
     var parts = [];
+    if (past.length) parts.push(past.length === 1 ? 'Last cutoff passed — next up' : past.length + ' cutoffs passed — next up');
     if (crunch >= 2) parts.push(crunch + ' cutoffs land within 48h — heaviest stretch');
     if (!sprintsToday() && open.length) parts.push('No sprints yet today — start one below');
     if (subEl) subEl.textContent = parts.join(' · ') || 'On track. Keep it that way.';
@@ -1544,7 +1550,7 @@
     var row = document.createElement('div');
     row.className = 'component-edit-row';
     row.innerHTML =
-      '<input type="text" class="comp-name-input" placeholder="Component Name" value="' + escapeHtml(name || '') + '" required>' +
+      '<input type="text" class="comp-name-input" placeholder="Component Name" maxlength="40" value="' + escapeHtml(name || '') + '" required>' +
       '<input type="number" class="comp-weight-input" placeholder="Weight %" min="1" max="100" value="' + (weight || 20) + '" required>' +
       '<input type="number" class="comp-score-input" placeholder="Score" step="0.1" min="0" max="' + (state.scale === 'gpa' ? '4' : '100') + '" value="' + (score !== null && score !== undefined ? score : '') + '">' +
       '<button type="button" class="btn-remove-row" title="Remove" aria-label="Remove">&times;</button>';
@@ -1566,15 +1572,15 @@
   function saveCourseFromModal(e) {
     e.preventDefault();
     var editId = document.getElementById('courseEditId').value;
-    var code = document.getElementById('courseCodeInput').value.trim().toUpperCase();
-    var name = document.getElementById('courseNameInput').value.trim();
+    var code = document.getElementById('courseCodeInput').value.trim().toUpperCase().slice(0, 12).replace(/[<>&"']/g, '');
+    var name = document.getElementById('courseNameInput').value.trim().slice(0, 60);
     var ects = parseFloat(document.getElementById('courseEctsInput').value) || 5;
     var quartile = document.getElementById('courseQuartileInput').value;
     var compRows = document.querySelectorAll('.component-edit-row');
     var components = [], totalWeight = 0;
 
     compRows.forEach(function (row) {
-      var cName = row.querySelector('.comp-name-input').value.trim();
+      var cName = row.querySelector('.comp-name-input').value.trim().slice(0, 40);
       var cWeight = parseFloat(row.querySelector('.comp-weight-input').value) || 0;
       var cScoreVal = row.querySelector('.comp-score-input').value.trim();
       var cScore = cScoreVal !== '' && !isNaN(cScoreVal) ? parseFloat(cScoreVal) : null;
@@ -1616,10 +1622,10 @@
   function populateCourseDropdowns() {
     var selectDeadline = document.getElementById('deadlineCourseSelect');
     var filterCourse = document.getElementById('filterCourseSelect');
-    if (selectDeadline) selectDeadline.innerHTML = state.courses.map(function (c) { return '<option value="' + c.id + '">[' + c.code + '] ' + escapeHtml(c.name) + '</option>'; }).join('');
+    if (selectDeadline) selectDeadline.innerHTML = state.courses.map(function (c) { return '<option value="' + escapeHtml(c.id) + '">[' + escapeHtml(c.code) + '] ' + escapeHtml(c.name) + '</option>'; }).join('');
     if (filterCourse) {
       var cur = state.filterCourse;
-      filterCourse.innerHTML = '<option value="all">All Enrolled Courses</option>' + state.courses.map(function (c) { return '<option value="' + c.id + '" ' + (c.id === cur ? 'selected' : '') + '>' + c.code + ' - ' + escapeHtml(c.name) + '</option>'; }).join('');
+      filterCourse.innerHTML = '<option value="all">All Enrolled Courses</option>' + state.courses.map(function (c) { return '<option value="' + escapeHtml(c.id) + '" ' + (c.id === cur ? 'selected' : '') + '>' + escapeHtml(c.code) + ' - ' + escapeHtml(c.name) + '</option>'; }).join('');
     }
   }
 
@@ -1633,7 +1639,6 @@
     document.getElementById('deadlineDateInput').min = new Date().toISOString().split('T')[0];
     document.getElementById('deadlineDateInput').value = tomorrow.toISOString().split('T')[0];
     document.getElementById('deadlineTimeInput').value = '23:59';
-    document.getElementById('deadlineEditId').value = '';
     modal.classList.add('active');
   }
 
@@ -1644,11 +1649,11 @@
     state.deadlines.push({
       id: 'dl-' + Date.now(),
       courseId: document.getElementById('deadlineCourseSelect').value,
-      title: document.getElementById('deadlineTitleInput').value.trim(),
+      title: document.getElementById('deadlineTitleInput').value.trim().slice(0, 80),
       dueDate: document.getElementById('deadlineDateInput').value,
       dueTime: document.getElementById('deadlineTimeInput').value || '23:59',
       weight: parseFloat(document.getElementById('deadlineWeightInput').value) || 0,
-      portal: document.getElementById('deadlineLocationInput').value.trim() || 'Canvas',
+      portal: document.getElementById('deadlineLocationInput').value.trim().slice(0, 24) || 'Canvas',
       completed: false
     });
     saveState();
@@ -1699,7 +1704,7 @@
     var previewList = document.getElementById('importPreviewList');
     if (components.length > 0) {
       previewBox.style.display = 'block';
-      previewList.innerHTML = '<p><strong>Code:</strong> ' + detectedCode + ' (' + escapeHtml(detectedName) + ')</p><p><strong>Modules:</strong> ' + components.map(function (c) { return c.name + ' [' + c.weight + '%]'; }).join(', ') + '</p><p><strong>Deadlines:</strong> ' + deadlines.length + ' items</p>';
+      previewList.innerHTML = '<p><strong>Code:</strong> ' + escapeHtml(detectedCode) + ' (' + escapeHtml(detectedName) + ')</p><p><strong>Modules:</strong> ' + components.map(function (c) { return escapeHtml(c.name) + ' [' + (parseInt(c.weight, 10) || 0) + '%]'; }).join(', ') + '</p><p><strong>Deadlines:</strong> ' + deadlines.length + ' items</p>';
     }
     return { detectedCode: detectedCode, detectedName: detectedName, components: components, deadlines: deadlines };
   }
@@ -1710,9 +1715,9 @@
     if (!result || result.components.length === 0) { showToast('No valid syllabus modules detected.', 'warn'); return; }
 
     var newCourseId = 'c-' + Date.now();
-    state.courses.push({ id: newCourseId, code: result.detectedCode, name: result.detectedName, ects: 5, quartile: 'Fall', components: result.components, targetGrade: state.scale === 'gpa' ? 3.0 : 60 });
+    state.courses.push({ id: newCourseId, code: String(result.detectedCode).slice(0, 12), name: String(result.detectedName).slice(0, 60), ects: 5, quartile: 'Fall', components: result.components.map(function (c) { return { name: String(c.name).slice(0, 40), weight: c.weight, score: null }; }), targetGrade: state.scale === 'gpa' ? 3.0 : 60 });
     result.deadlines.forEach(function (dl, idx) {
-      state.deadlines.push({ id: 'dl-import-' + Date.now() + '-' + idx, courseId: newCourseId, title: dl.title, dueDate: dl.dueDate, dueTime: dl.dueTime, weight: dl.weight,         portal: 'Canvas', completed: false });
+      state.deadlines.push({ id: 'dl-import-' + Date.now() + '-' + idx, courseId: newCourseId, title: String(dl.title).slice(0, 80), dueDate: dl.dueDate, dueTime: dl.dueTime, weight: dl.weight,         portal: 'Canvas', completed: false });
     });
 
     saveState();
@@ -1846,7 +1851,6 @@
     }
 
     renderCalAgenda();
-    updateCalDash();
   }
 
   function calAgendaLabel(dateStr) {
@@ -1915,20 +1919,6 @@
     });
   }
 
-  function updateCalDash() {
-    var el = document.getElementById('dashCal');
-    if (!el) return;
-    var now = new Date();
-    now.setHours(0, 0, 0, 0);
-    var soon = calEvents.filter(function (e) {
-      var d = new Date(e.date + 'T00:00:00');
-      if (isNaN(d)) return false;
-      var diff = (d - now) / 86400000;
-      return diff >= 0 && diff <= 7;
-    }).length;
-    el.textContent = calEvents.length === 0 ? 'no reminders' : soon + ' in 7 days';
-  }
-
   function handleCalItemClick(kind, id) {
     if (kind === 'event') {
       var e = calEvents.find(function (x) { return x.id === id; });
@@ -1975,10 +1965,10 @@
   function saveCalEventFromModal(e) {
     e.preventDefault();
     var editId = document.getElementById('calEventEditId').value;
-    var title = document.getElementById('calEventTitleInput').value.trim();
+    var title = document.getElementById('calEventTitleInput').value.trim().slice(0, 80);
     var date = document.getElementById('calEventDateInput').value;
     var time = document.getElementById('calEventTimeInput').value || '09:00';
-    var notes = document.getElementById('calEventNotesInput').value.trim();
+    var notes = document.getElementById('calEventNotesInput').value.trim().slice(0, 500);
     if (!title || !date) { showToast('Give the reminder a title and date', 'warn'); return; }
     if (editId) {
       var existing = calEvents.find(function (x) { return x.id === editId; });
@@ -2161,7 +2151,6 @@
       list.appendChild(card);
     });
     keepFreshId = null;
-    updateDash();
   }
 
   function enableCardDrag(card, id) {
@@ -2257,9 +2246,9 @@
   }
 
   function saveKeepComposer() {
-    var title = document.getElementById('keepTitle').value.trim();
+    var title = document.getElementById('keepTitle').value.trim().slice(0, 80);
     var scope = 'general';
-    var body = document.getElementById('keepBody').value.trim();
+    var body = document.getElementById('keepBody').value.trim().slice(0, 2000);
     if (!title && !body) {
       showToast('Write something first', 'warn');
       return;
@@ -2465,7 +2454,7 @@
     renderSprintCount();
     renderKeepList();
 
-    setInterval(function () { updateStanfordClock(); updateOverallKPIs(); updatePanicMeter(); }, 1000);
+    setInterval(function () { updateStanfordClock(); updateOverallKPIs(); updatePanicMeter(); tickDeadlineTimers(); }, 1000);
     updateStanfordClock();
     updatePanicMeter();
 

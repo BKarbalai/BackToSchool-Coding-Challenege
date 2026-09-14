@@ -302,11 +302,6 @@ body > * {
   font-size: 12px;
 }
 
-.nav-cta-btn {
-  padding: 6px 14px;
-  font-size: 12px;
-}
-
 /* Icons */
 .icon-svg {
   width: 14px;
@@ -365,56 +360,6 @@ body > * {
   margin-bottom: 24px;
 }
 
-/* Dashboard button grid — the five doors of the site */
-.dash-grid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 12px;
-  width: 100%;
-  margin-bottom: 22px;
-}
-
-.dash-btn {
-  background: var(--bg-surface);
-  border: var(--hairline-border);
-  border-radius: var(--radius-card);
-  padding: 18px 14px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  text-decoration: none;
-  color: var(--text-primary);
-  font-family: inherit;
-  cursor: pointer;
-  transition: transform var(--transition-normal), border-color var(--transition-normal), box-shadow var(--transition-normal);
-}
-
-.dash-btn:hover {
-  transform: translateY(-2px);
-  border-color: var(--text-tertiary);
-  box-shadow: 0 4px 24px rgba(0, 113, 227, 0.06);
-}
-
-.dash-btn .icon-svg {
-  width: 20px;
-  height: 20px;
-  color: var(--accent-blue);
-}
-
-.dash-label {
-  font-family: var(--font-display);
-  font-size: 15px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
-
-.dash-meta {
-  font-size: 11px;
-  color: var(--text-tertiary);
-  font-family: var(--font-mono);
-}
-
 /* Hero Stats Line */
 .hero-stats-line {
   display: flex;
@@ -427,10 +372,6 @@ body > * {
   margin: 0;
 }
 
-.hero-stats-line .spec-sub {
-  font-size: 12px;
-}
-
 .hero-stats-sep {
   color: var(--text-tertiary);
 }
@@ -440,33 +381,6 @@ body > * {
   font-weight: 500;
   color: var(--text-tertiary);
   letter-spacing: -0.01em;
-}
-
-.spec-value {
-  font-size: 26px;
-  font-weight: 600;
-  letter-spacing: -0.025em;
-  color: var(--text-primary);
-  font-family: var(--font-mono);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.spec-highlight {
-  color: var(--accent-blue);
-}
-
-.spec-sub {
-  font-size: 12px;
-  color: var(--text-secondary);
-}
-
-/* Sparkline mini-charts */
-.sparkline-svg {
-  display: inline-block;
-  vertical-align: middle;
-  opacity: 0.7;
 }
 
 /* ==========================================================================
@@ -580,6 +494,12 @@ body > * {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  gap: 12px;
+}
+
+.course-card-top > div:first-child {
+  min-width: 0;
+  flex: 1;
 }
 
 .course-code-tag {
@@ -588,6 +508,10 @@ body > * {
   font-weight: 600;
   color: var(--accent-blue);
   letter-spacing: 0.3px;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .course-meta-tags {
@@ -611,6 +535,9 @@ body > * {
   font-weight: 600;
   letter-spacing: -0.015em;
   margin-top: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .card-icon-actions {
@@ -653,12 +580,6 @@ body > * {
   transition: width 0.4s var(--ease-apple);
 }
 
-.course-progress-pending {
-  height: 100%;
-  background: #27272a;
-  flex: 1;
-}
-
 /* Graded Breakdown */
 .components-overview {
   border-top: var(--hairline-divider);
@@ -673,11 +594,16 @@ body > * {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 8px;
   font-size: 13px;
 }
 
 .comp-name-label {
   color: var(--text-secondary);
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .comp-weight-label {
@@ -690,6 +616,7 @@ body > * {
 .comp-score-label {
   font-family: var(--font-mono);
   font-weight: 600;
+  flex-shrink: 0;
 }
 
 .comp-score-label.scored {
@@ -914,6 +841,7 @@ body > * {
   align-items: center;
   gap: 16px;
   flex: 1;
+  min-width: 0;
 }
 
 .apple-checkbox {
@@ -955,6 +883,8 @@ body > * {
   display: flex;
   flex-direction: column;
   gap: 3px;
+  min-width: 0;
+  flex: 1;
 }
 
 .deadline-eyebrow-tag {
@@ -963,12 +893,18 @@ body > * {
   font-weight: 600;
   color: var(--accent-blue);
   letter-spacing: 0.3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .deadline-title-text {
   font-size: 15px;
   font-weight: 500;
   color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .deadline-meta-text {
@@ -976,12 +912,16 @@ body > * {
   color: var(--text-tertiary);
   display: flex;
   gap: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .deadline-right-col {
   display: flex;
   align-items: center;
   gap: 24px;
+  flex-shrink: 0;
 }
 
 .deadline-timer-stack {
@@ -1115,15 +1055,6 @@ body > * {
   color: var(--text-primary);
 }
 
-.timer-status-caption {
-  display: block;
-  font-size: 11px;
-  color: var(--text-tertiary);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-top: 2px;
-}
-
 .timer-button-row {
   display: flex;
   justify-content: center;
@@ -1173,22 +1104,6 @@ body > * {
 .card-title {
   font-size: 15px;
   font-weight: 600;
-}
-
-.audio-tech-badge {
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--accent-blue);
-  background: var(--accent-blue-subtle);
-  padding: 2px 8px;
-  border-radius: var(--radius-pill);
-  font-family: var(--font-mono);
-}
-
-.card-description {
-  font-size: 13px;
-  color: var(--text-secondary);
-  line-height: 1.45;
 }
 
 .sound-tracks-list {
@@ -1255,12 +1170,6 @@ body > * {
   justify-content: space-between;
   gap: 14px;
   flex-wrap: wrap;
-}
-
-.campus-quote-text {
-  font-size: 11px;
-  color: var(--text-tertiary);
-  font-style: italic;
 }
 
 /* ==========================================================================
@@ -1553,11 +1462,6 @@ body > * {
   color: var(--text-tertiary);
 }
 
-.empty-state-hint {
-  font-size: 12px;
-  color: #4a4a4e;
-}
-
 /* ==========================================================================
    Keyboard Shortcut Hint Bar
    ========================================================================== */
@@ -1758,12 +1662,6 @@ body > * {
   }
   .courses-grid {
     grid-template-columns: 1fr;
-  }
-  .dash-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  .dash-grid .dash-btn:last-child:nth-child(odd) {
-    grid-column: 1 / -1;
   }
   .mobile-nav-item {
     padding: 6px 6px;
@@ -2045,9 +1943,6 @@ body > * {
 [data-theme="indie"] .course-progress-bar {
   background: #ddd3bd;
 }
-[data-theme="indie"] .course-progress-pending {
-  background: #ddd3bd;
-}
 [data-theme="indie"] .apple-slider::-webkit-slider-thumb {
   border-color: rgba(33, 29, 22, 0.12);
   box-shadow: 0 1px 4px rgba(33, 29, 22, 0.2);
@@ -2218,9 +2113,6 @@ body > * {
 [data-theme="moss"] .course-progress-bar {
   background: #d5cbaa;
 }
-[data-theme="moss"] .course-progress-pending {
-  background: #d5cbaa;
-}
 [data-theme="moss"] .apple-slider::-webkit-slider-thumb {
   border-color: rgba(34, 36, 27, 0.12);
   box-shadow: 0 1px 4px rgba(34, 36, 27, 0.2);
@@ -2325,6 +2217,123 @@ body > * {
 }
 
 /* ==========================================================================
+   Colorblind Theme — high-contrast dark, Okabe-Ito safe palette
+   (blue / orange / vermillion / bluish-green: no red-vs-green signalling,
+   plus underlines + striped bars so urgency never relies on hue alone)
+   ========================================================================== */
+[data-theme="colorblind"] {
+  color-scheme: dark;
+  --bg-primary: #000000;
+  --bg-secondary: #0b0b0e;
+  --bg-surface: #141419;
+  --bg-surface-subtle: #1d1d24;
+  --bg-translucent: rgba(0, 0, 0, 0.88);
+
+  --text-primary: #ffffff;
+  --text-secondary: #d8d8de;
+  --text-tertiary: #b3b3bb;
+
+  --accent-blue: #66aaff;
+  --accent-blue-hover: #85bbff;
+  --accent-blue-subtle: rgba(102, 170, 255, 0.16);
+
+  --hairline-border: 1px solid rgba(255, 255, 255, 0.22);
+  --hairline-border-hover: 1px solid rgba(255, 255, 255, 0.4);
+  --hairline-divider: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+/* Solid interactive blue that keeps white text readable */
+[data-theme="colorblind"] .pill-btn-primary {
+  background-color: #005fcc;
+  color: #ffffff;
+}
+[data-theme="colorblind"] .pill-btn-primary:hover {
+  background-color: #006fe6;
+}
+[data-theme="colorblind"] .apple-checkbox:checked {
+  background: #005fcc;
+  border-color: #005fcc;
+}
+[data-theme="colorblind"] .todo-circle.done {
+  background: #005fcc;
+  border-color: #005fcc;
+}
+[data-theme="colorblind"] .cal-day-today .cal-day-num {
+  background: #005fcc;
+  color: #ffffff;
+}
+
+/* Warning = orange (never yellow-green ambiguity) */
+[data-theme="colorblind"] .grade-warn,
+[data-theme="colorblind"] .panic-widget.warn .panic-digits {
+  color: #E69F00;
+  background: rgba(230, 159, 0, 0.14);
+}
+[data-theme="colorblind"] .panic-widget.warn .panic-digits {
+  background: transparent;
+}
+[data-theme="colorblind"] .deadline-urgency-bar.warning {
+  background: #E69F00;
+}
+[data-theme="colorblind"] .toast-icon.warn {
+  background: rgba(230, 159, 0, 0.16);
+  color: #E69F00;
+}
+
+/* Danger = vermillion (never pure red) + underline cue */
+[data-theme="colorblind"] .grade-fail,
+[data-theme="colorblind"] .timer-digits-urgent,
+[data-theme="colorblind"] .panic-widget.danger .panic-digits {
+  color: #E8702A;
+}
+[data-theme="colorblind"] .grade-fail {
+  background: rgba(232, 112, 42, 0.14);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+[data-theme="colorblind"] .timer-digits-urgent {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+[data-theme="colorblind"] .panic-widget.danger .panic-digits {
+  background: transparent;
+}
+[data-theme="colorblind"] .deadline-urgency-bar.danger {
+  background: repeating-linear-gradient(45deg, #E8702A 0 6px, rgba(232, 112, 42, 0.25) 6px 12px);
+}
+[data-theme="colorblind"] .cal-chip-deadline {
+  color: #E8702A;
+  background: rgba(232, 112, 42, 0.14);
+}
+[data-theme="colorblind"] .cal-agenda-tag.deadline {
+  color: #E8702A;
+  background: rgba(232, 112, 42, 0.14);
+}
+[data-theme="colorblind"] .btn-remove-row:hover {
+  color: #E8702A;
+}
+
+/* Success = bluish-green (distinct from vermillion for deuteranopia) */
+[data-theme="colorblind"] .grade-secured,
+[data-theme="colorblind"] .grade-pass {
+  color: #00c389;
+  background: rgba(0, 195, 137, 0.12);
+}
+[data-theme="colorblind"] .toast-icon.success {
+  background: rgba(0, 195, 137, 0.14);
+  color: #00c389;
+}
+[data-theme="colorblind"] .todo-circle.done svg {
+  stroke: #ffffff;
+}
+
+/* Stronger focus ring for low vision */
+[data-theme="colorblind"] :focus-visible {
+  outline: 3px solid var(--accent-blue);
+  outline-offset: 3px;
+}
+
+/* ==========================================================================
    Light Theme (toggled via [data-theme="light"] on <html>)
    ========================================================================== */
 [data-theme="light"] {
@@ -2424,9 +2433,6 @@ body > * {
 }
 [data-theme="light"] .apple-slider,
 [data-theme="light"] .course-progress-bar {
-  background: #e5e5ea;
-}
-[data-theme="light"] .course-progress-pending {
   background: #e5e5ea;
 }
 [data-theme="light"] .apple-slider::-webkit-slider-thumb {
@@ -2864,37 +2870,6 @@ body > * {
   font-weight: 400;
 }
 
-.keep-composer-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.keep-composer-row .apple-select {
-  font-size: 12px;
-  padding: 6px 10px;
-}
-
-.keep-todo-rows {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.keep-todo-edit-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: var(--text-secondary);
-}
-
-.keep-todo-edit-row span {
-  flex: 1;
-}
-
 .keep-add-row {
   display: flex;
   gap: 8px;
@@ -2978,34 +2953,6 @@ body > * {
   white-space: pre-line;
 }
 
-.keep-card-items {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.keep-check {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  color: var(--text-secondary);
-  cursor: pointer;
-}
-
-.keep-check input {
-  accent-color: var(--accent-blue);
-  width: 14px;
-  height: 14px;
-  cursor: pointer;
-  flex-shrink: 0;
-}
-
-.keep-check.done span {
-  text-decoration: line-through;
-  opacity: 0.55;
-}
-
 .keep-empty {
   grid-column: 1 / -1;
   text-align: center;
@@ -3065,10 +3012,6 @@ section[id] {
   gap: 16px;
 }
 
-.notes-filter {
-  max-width: 320px;
-}
-
 .notes-board .keep-tabs {
   align-self: center;
 }
@@ -3106,10 +3049,6 @@ section[id] {
 
 .todo-row {
   cursor: grab;
-}
-
-.keep-tabs {
-  align-self: center;
 }
 
 .todo-quick-add {
