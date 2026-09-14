@@ -269,7 +269,7 @@
   var ICON_SUN = '<svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="8" cy="8" r="3.2"/><path d="M8 1.5v1.6M8 12.9v1.6M1.5 8h1.6M12.9 8h1.6M3.4 3.4l1.1 1.1M11.5 11.5l1.1 1.1M12.6 3.4l-1.1 1.1M4.5 11.5l-1.1 1.1"/></svg>';
   var ICON_MOON = '<svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M13.5 9.5A5.5 5.5 0 0 1 6.5 2.5a5.5 5.5 0 1 0 7 7z"/></svg>';
 
-  var THEMES = ['dark', 'light', 'indie', 'moss', 'ghost', 'colorblind'];
+  var THEMES = ['dark', 'light', 'indie', 'moss', 'ghost', 'colorblind', 'colorblind-light', 'tritan'];
 
   function currentTheme() {
     var t = document.documentElement.getAttribute('data-theme');
@@ -280,7 +280,7 @@
     var btn = document.getElementById('btnThemeToggle');
     if (!btn) return;
     var t = currentTheme();
-    btn.innerHTML = (t === 'light' || t === 'indie' || t === 'moss') ? ICON_MOON : ICON_SUN;
+    btn.innerHTML = (t === 'light' || t === 'indie' || t === 'moss' || t === 'colorblind-light') ? ICON_MOON : ICON_SUN;
   }
 
   function syncThemeMenu() {
@@ -1014,6 +1014,8 @@
       { label: 'Theme: Dark', hint: 'theme', run: function () { setTheme('dark'); } },
       { label: 'Theme: Light', hint: 'theme', run: function () { setTheme('light'); } },
       { label: 'Theme: Colorblind', hint: 'theme', run: function () { setTheme('colorblind'); } },
+      { label: 'Theme: Colorblind Light', hint: 'theme', run: function () { setTheme('colorblind-light'); } },
+      { label: 'Theme: Tritan', hint: 'theme', run: function () { setTheme('tritan'); } },
       { label: 'Theme: Indie', hint: 'theme', run: function () { setTheme('indie'); } }
     ];
     state.courses.forEach(function (c) {

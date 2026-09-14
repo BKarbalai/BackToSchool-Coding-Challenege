@@ -73,10 +73,10 @@
   <script>
     try {
       var t = localStorage.getItem('tue_radar_theme_v1');
-      if (t !== 'light' && t !== 'indie' && t !== 'moss' && t !== 'dark' && t !== 'colorblind' && t !== 'ghost') {
+      if (t !== 'light' && t !== 'indie' && t !== 'moss' && t !== 'dark' && t !== 'colorblind' && t !== 'colorblind-light' && t !== 'tritan' && t !== 'ghost') {
         t = 'light';
       }
-      if (t === 'light' || t === 'indie' || t === 'moss') {
+      if (t === 'light' || t === 'indie' || t === 'moss' || t === 'colorblind-light') {
         document.documentElement.setAttribute('data-theme', 'light');
       }
     } catch (e) {

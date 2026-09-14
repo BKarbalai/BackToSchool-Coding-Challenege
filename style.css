@@ -217,7 +217,7 @@ body > * {
   background: var(--bg-surface-subtle);
 }
 
-[data-theme="light"] .nav-link:hover {
+:is([data-theme="light"], [data-theme="colorblind-light"]) .nav-link:hover {
   border-color: rgba(0, 0, 0, 0.25);
 }
 
@@ -1687,7 +1687,7 @@ body > * {
 }
 
 /* Dark amber warning badges on light themes (yellow is unreadable on cream) */
-[data-theme="light"] .grade-warn,
+:is([data-theme="light"], [data-theme="colorblind-light"]) .grade-warn,
 [data-theme="indie"] .grade-warn,
 [data-theme="moss"] .grade-warn {
   color: #9a6b0f;
@@ -2334,9 +2334,9 @@ body > * {
 }
 
 /* ==========================================================================
-   Light Theme (toggled via [data-theme="light"] on <html>)
+   Light Theme (toggled via :is([data-theme="light"], [data-theme="colorblind-light"]) on <html>)
    ========================================================================== */
-[data-theme="light"] {
+:is([data-theme="light"], [data-theme="colorblind-light"]) {
   color-scheme: light;
   --bg-primary: #f5f5f7;
   --bg-secondary: #ececee;
@@ -2353,127 +2353,333 @@ body > * {
   --hairline-divider: 1px solid rgba(0, 0, 0, 0.06);
 }
 
-[data-theme="light"] body {
+:is([data-theme="light"], [data-theme="colorblind-light"]) body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* Scrollbar */
-[data-theme="light"] ::-webkit-scrollbar-track {
+:is([data-theme="light"], [data-theme="colorblind-light"]) ::-webkit-scrollbar-track {
   background: #ececee;
 }
-[data-theme="light"] ::-webkit-scrollbar-thumb {
+:is([data-theme="light"], [data-theme="colorblind-light"]) ::-webkit-scrollbar-thumb {
   background: #c7c7cc;
 }
-[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+:is([data-theme="light"], [data-theme="colorblind-light"]) ::-webkit-scrollbar-thumb:hover {
   background: #aeaeb2;
 }
-[data-theme="light"] * {
+:is([data-theme="light"], [data-theme="colorblind-light"]) * {
   scrollbar-color: #c7c7cc #ececee;
 }
 
 /* Surfaces that use hardcoded dark fills */
-[data-theme="light"] .segmented-control {
+:is([data-theme="light"], [data-theme="colorblind-light"]) .segmented-control {
   background: #e8e8ed;
 }
-[data-theme="light"] .seg-btn.active {
+:is([data-theme="light"], [data-theme="colorblind-light"]) .seg-btn.active {
   background: #ffffff;
   color: var(--text-primary);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
 }
-[data-theme="light"] .meta-chip {
+:is([data-theme="light"], [data-theme="colorblind-light"]) .meta-chip {
   background: rgba(0, 0, 0, 0.05);
 }
-[data-theme="light"] .sim-output-badge {
+:is([data-theme="light"], [data-theme="colorblind-light"]) .sim-output-badge {
   background: rgba(0, 0, 0, 0.04);
 }
-[data-theme="light"] .apple-select,
-[data-theme="light"] .modal-form input[type="text"],
-[data-theme="light"] .modal-form input[type="number"],
-[data-theme="light"] .modal-form input[type="date"],
-[data-theme="light"] .modal-form input[type="time"],
-[data-theme="light"] .apple-textarea {
+:is([data-theme="light"], [data-theme="colorblind-light"]) .apple-select,
+:is([data-theme="light"], [data-theme="colorblind-light"]) .modal-form input[type="text"],
+:is([data-theme="light"], [data-theme="colorblind-light"]) .modal-form input[type="number"],
+:is([data-theme="light"], [data-theme="colorblind-light"]) .modal-form input[type="date"],
+:is([data-theme="light"], [data-theme="colorblind-light"]) .modal-form input[type="time"],
+:is([data-theme="light"], [data-theme="colorblind-light"]) .apple-textarea {
   background: #ffffff;
 }
-[data-theme="light"] .modal-surface .apple-select,
-[data-theme="light"] .modal-form input[type="text"],
-[data-theme="light"] .modal-form input[type="number"],
-[data-theme="light"] .modal-form input[type="date"],
-[data-theme="light"] .modal-form input[type="time"],
-[data-theme="light"] .apple-textarea,
-[data-theme="light"] .components-config-block,
-[data-theme="light"] .import-preview-box {
+:is([data-theme="light"], [data-theme="colorblind-light"]) .modal-surface .apple-select,
+:is([data-theme="light"], [data-theme="colorblind-light"]) .modal-form input[type="text"],
+:is([data-theme="light"], [data-theme="colorblind-light"]) .modal-form input[type="number"],
+:is([data-theme="light"], [data-theme="colorblind-light"]) .modal-form input[type="date"],
+:is([data-theme="light"], [data-theme="colorblind-light"]) .modal-form input[type="time"],
+:is([data-theme="light"], [data-theme="colorblind-light"]) .apple-textarea,
+:is([data-theme="light"], [data-theme="colorblind-light"]) .components-config-block,
+:is([data-theme="light"], [data-theme="colorblind-light"]) .import-preview-box {
   background: #f5f5f7;
 }
-[data-theme="light"] .modal-surface {
+:is([data-theme="light"], [data-theme="colorblind-light"]) .modal-surface {
   background: #ffffff;
 }
-[data-theme="light"] .sound-track-row {
+:is([data-theme="light"], [data-theme="colorblind-light"]) .sound-track-row {
   background: #f5f5f7;
 }
-[data-theme="light"] .sound-track-row:hover {
+:is([data-theme="light"], [data-theme="colorblind-light"]) .sound-track-row:hover {
   border-color: rgba(0, 0, 0, 0.16);
 }
-[data-theme="light"] .toast-item {
+:is([data-theme="light"], [data-theme="colorblind-light"]) .toast-item {
   background: #ffffff;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
 }
-[data-theme="light"] .shortcut-bar {
+:is([data-theme="light"], [data-theme="colorblind-light"]) .shortcut-bar {
   background: rgba(251, 251, 253, 0.92);
 }
-[data-theme="light"] .shortcut-bar kbd {
+:is([data-theme="light"], [data-theme="colorblind-light"]) .shortcut-bar kbd {
   background: #e8e8ed;
 }
-[data-theme="light"] .mobile-nav {
+:is([data-theme="light"], [data-theme="colorblind-light"]) .mobile-nav {
   background: rgba(251, 251, 253, 0.92);
 }
 
 /* Tracks, sliders, progress */
-[data-theme="light"] .timer-circle-track {
+:is([data-theme="light"], [data-theme="colorblind-light"]) .timer-circle-track {
   stroke: #e5e5ea;
 }
-[data-theme="light"] .apple-slider,
-[data-theme="light"] .course-progress-bar {
+:is([data-theme="light"], [data-theme="colorblind-light"]) .apple-slider,
+:is([data-theme="light"], [data-theme="colorblind-light"]) .course-progress-bar {
   background: #e5e5ea;
 }
-[data-theme="light"] .apple-slider::-webkit-slider-thumb {
+:is([data-theme="light"], [data-theme="colorblind-light"]) .apple-slider::-webkit-slider-thumb {
   border-color: rgba(0, 0, 0, 0.12);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
 }
-[data-theme="light"] .apple-slider::-moz-range-thumb {
+:is([data-theme="light"], [data-theme="colorblind-light"]) .apple-slider::-moz-range-thumb {
   border-color: rgba(0, 0, 0, 0.12);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
 }
 
 /* Buttons & interactive hovers */
-[data-theme="light"] .pill-btn-secondary {
+:is([data-theme="light"], [data-theme="colorblind-light"]) .pill-btn-secondary {
   background-color: rgba(0, 0, 0, 0.05);
 }
-[data-theme="light"] .pill-btn-secondary:hover {
+:is([data-theme="light"], [data-theme="colorblind-light"]) .pill-btn-secondary:hover {
   background-color: rgba(0, 0, 0, 0.09);
   border-color: rgba(0, 0, 0, 0.2);
 }
-[data-theme="light"] .chip-btn:hover {
+:is([data-theme="light"], [data-theme="colorblind-light"]) .chip-btn:hover {
   border-color: rgba(0, 0, 0, 0.25);
 }
-[data-theme="light"] .chip-btn.active {
+:is([data-theme="light"], [data-theme="colorblind-light"]) .chip-btn.active {
   background: #1d1d1f;
   color: #ffffff;
   border-color: #1d1d1f;
 }
-[data-theme="light"] .btn-card-glyph:hover {
+:is([data-theme="light"], [data-theme="colorblind-light"]) .btn-card-glyph:hover {
   background: rgba(0, 0, 0, 0.06);
 }
-[data-theme="light"] .modal-close-btn:hover {
+:is([data-theme="light"], [data-theme="colorblind-light"]) .modal-close-btn:hover {
   background: rgba(0, 0, 0, 0.06);
 }
-[data-theme="light"] .apple-course-card:hover {
+:is([data-theme="light"], [data-theme="colorblind-light"]) .apple-course-card:hover {
   border-color: rgba(0, 0, 0, 0.2);
 }
-[data-theme="light"] .deadline-row-item:hover {
+:is([data-theme="light"], [data-theme="colorblind-light"]) .deadline-row-item:hover {
   background: rgba(0, 0, 0, 0.02);
 }
-[data-theme="light"] .apple-checkbox {
+:is([data-theme="light"], [data-theme="colorblind-light"]) .apple-checkbox {
   border-color: rgba(0, 0, 0, 0.3);
+}
+
+/* ==========================================================================
+   Colorblind Light — same red-green-safe logic on a bright base
+   (surfaces inherited from the Light rules above via :is(); colors below
+   are darkened for contrast on white)
+   ========================================================================== */
+[data-theme="colorblind-light"] {
+  color-scheme: light;
+  --bg-primary: #f5f5f7;
+  --bg-secondary: #ececee;
+  --bg-surface: #ffffff;
+  --bg-surface-subtle: #f5f5f7;
+  --bg-translucent: rgba(251, 251, 253, 0.82);
+
+  --text-primary: #111114;
+  --text-secondary: #3d3d45;
+  --text-tertiary: #5a5a63;
+
+  --accent-blue: #005fcc;
+  --accent-blue-hover: #004fb3;
+  --accent-blue-subtle: rgba(0, 95, 204, 0.1);
+
+  --hairline-border: 1px solid rgba(0, 0, 0, 0.16);
+  --hairline-border-hover: 1px solid rgba(0, 0, 0, 0.32);
+  --hairline-divider: 1px solid rgba(0, 0, 0, 0.09);
+}
+
+[data-theme="colorblind-light"] .grade-warn,
+[data-theme="colorblind-light"] .panic-widget.warn .panic-digits {
+  color: #8a5a00;
+  background: rgba(138, 90, 0, 0.1);
+}
+[data-theme="colorblind-light"] .panic-widget.warn .panic-digits {
+  background: transparent;
+}
+[data-theme="colorblind-light"] .deadline-urgency-bar.warning {
+  background: #b87a00;
+}
+[data-theme="colorblind-light"] .toast-icon.warn {
+  background: rgba(138, 90, 0, 0.12);
+  color: #8a5a00;
+}
+
+[data-theme="colorblind-light"] .grade-fail,
+[data-theme="colorblind-light"] .timer-digits-urgent,
+[data-theme="colorblind-light"] .panic-widget.danger .panic-digits {
+  color: #b33a00;
+}
+[data-theme="colorblind-light"] .grade-fail {
+  background: rgba(179, 58, 0, 0.08);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+[data-theme="colorblind-light"] .timer-digits-urgent {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+[data-theme="colorblind-light"] .panic-widget.danger .panic-digits {
+  background: transparent;
+}
+[data-theme="colorblind-light"] .deadline-urgency-bar.danger {
+  background: repeating-linear-gradient(45deg, #c1440e 0 6px, rgba(193, 68, 14, 0.25) 6px 12px);
+}
+[data-theme="colorblind-light"] .cal-chip-deadline {
+  color: #b33a00;
+  background: rgba(179, 58, 0, 0.08);
+}
+[data-theme="colorblind-light"] .cal-agenda-tag.deadline {
+  color: #b33a00;
+  background: rgba(179, 58, 0, 0.08);
+}
+[data-theme="colorblind-light"] .btn-remove-row:hover {
+  color: #b33a00;
+}
+
+[data-theme="colorblind-light"] .grade-secured,
+[data-theme="colorblind-light"] .grade-pass {
+  color: #00755a;
+  background: rgba(0, 117, 90, 0.08);
+}
+[data-theme="colorblind-light"] .toast-icon.success {
+  background: rgba(0, 117, 90, 0.1);
+  color: #00755a;
+}
+
+[data-theme="colorblind-light"] :focus-visible {
+  outline: 3px solid var(--accent-blue);
+  outline-offset: 3px;
+}
+
+/* ==========================================================================
+   Tritan — blue-yellow safe (tritanopia): no blue/yellow signalling at all.
+   Neutrals + red/orange/green (all intact channels) + shape cues.
+   ========================================================================== */
+[data-theme="tritan"] {
+  color-scheme: dark;
+  --bg-primary: #000000;
+  --bg-secondary: #0c0c0e;
+  --bg-surface: #151518;
+  --bg-surface-subtle: #1e1e23;
+  --bg-translucent: rgba(0, 0, 0, 0.88);
+
+  --text-primary: #ffffff;
+  --text-secondary: #d9d9de;
+  --text-tertiary: #b4b4bc;
+
+  --accent-blue: #ededf0;
+  --accent-blue-hover: #ffffff;
+  --accent-blue-subtle: rgba(237, 237, 240, 0.12);
+
+  --hairline-border: 1px solid rgba(255, 255, 255, 0.22);
+  --hairline-border-hover: 1px solid rgba(255, 255, 255, 0.4);
+  --hairline-divider: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+[data-theme="tritan"] .pill-btn-primary {
+  background-color: #ededf0;
+  color: #000000;
+}
+[data-theme="tritan"] .pill-btn-primary:hover {
+  background-color: #ffffff;
+}
+[data-theme="tritan"] .apple-checkbox:checked {
+  background: #ededf0;
+  border-color: #ededf0;
+}
+[data-theme="tritan"] .apple-checkbox:checked::after {
+  border-color: #000000;
+}
+[data-theme="tritan"] .todo-circle.done {
+  background: #ededf0;
+  border-color: #ededf0;
+}
+[data-theme="tritan"] .todo-circle.done svg {
+  stroke: #000000;
+}
+[data-theme="tritan"] .cal-day-today .cal-day-num {
+  background: #ededf0;
+  color: #000000;
+}
+
+/* Warning = orange (yellow is the tritan confusion color) */
+[data-theme="tritan"] .grade-warn,
+[data-theme="tritan"] .panic-widget.warn .panic-digits {
+  color: #ffa726;
+  background: rgba(255, 167, 38, 0.14);
+}
+[data-theme="tritan"] .panic-widget.warn .panic-digits {
+  background: transparent;
+}
+[data-theme="tritan"] .deadline-urgency-bar.warning {
+  background: #ffa726;
+}
+[data-theme="tritan"] .toast-icon.warn {
+  background: rgba(255, 167, 38, 0.16);
+  color: #ffa726;
+}
+
+/* Danger = bright red (fully visible to tritans) + underline cue */
+[data-theme="tritan"] .grade-fail,
+[data-theme="tritan"] .timer-digits-urgent,
+[data-theme="tritan"] .panic-widget.danger .panic-digits {
+  color: #ff6b61;
+}
+[data-theme="tritan"] .grade-fail {
+  background: rgba(255, 107, 97, 0.14);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+[data-theme="tritan"] .timer-digits-urgent {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+[data-theme="tritan"] .panic-widget.danger .panic-digits {
+  background: transparent;
+}
+[data-theme="tritan"] .deadline-urgency-bar.danger {
+  background: repeating-linear-gradient(45deg, #ff6b61 0 6px, rgba(255, 107, 97, 0.25) 6px 12px);
+}
+[data-theme="tritan"] .cal-chip-deadline {
+  color: #ff6b61;
+  background: rgba(255, 107, 97, 0.14);
+}
+[data-theme="tritan"] .cal-agenda-tag.deadline {
+  color: #ff6b61;
+  background: rgba(255, 107, 97, 0.14);
+}
+[data-theme="tritan"] .btn-remove-row:hover {
+  color: #ff6b61;
+}
+
+/* Success = green (intact channel for tritans) */
+[data-theme="tritan"] .grade-secured,
+[data-theme="tritan"] .grade-pass {
+  color: #30d158;
+  background: rgba(48, 209, 88, 0.12);
+}
+[data-theme="tritan"] .toast-icon.success {
+  background: rgba(48, 209, 88, 0.14);
+  color: #30d158;
+}
+
+[data-theme="tritan"] :focus-visible {
+  outline: 3px solid #ffffff;
+  outline-offset: 3px;
 }
 
 /* Smooth crossfade when switching themes */
@@ -2648,7 +2854,7 @@ body > * {
   height: 14px;
 }
 
-[data-theme="light"] .shuffle-btn:hover {
+:is([data-theme="light"], [data-theme="colorblind-light"]) .shuffle-btn:hover {
   border-color: rgba(0, 0, 0, 0.25);
 }
 
@@ -2783,7 +2989,7 @@ body > * {
   overflow: hidden;
 }
 
-[data-theme="light"] .footer-year-track {
+:is([data-theme="light"], [data-theme="colorblind-light"]) .footer-year-track {
   background: #e5e5ea;
 }
 
@@ -2850,7 +3056,7 @@ body > * {
   padding: 14px;
 }
 
-[data-theme="light"] .keep-composer {
+:is([data-theme="light"], [data-theme="colorblind-light"]) .keep-composer {
   background: #f5f5f7;
 }
 
@@ -2918,11 +3124,11 @@ body > * {
   border-color: rgba(255, 255, 255, 0.2);
 }
 
-[data-theme="light"] .keep-card {
+:is([data-theme="light"], [data-theme="colorblind-light"]) .keep-card {
   background: #f5f5f7;
 }
 
-[data-theme="light"] .keep-card:hover {
+:is([data-theme="light"], [data-theme="colorblind-light"]) .keep-card:hover {
   border-color: rgba(0, 0, 0, 0.2);
 }
 
@@ -3078,7 +3284,7 @@ section[id] {
   padding: 11px 12px;
 }
 
-[data-theme="light"] .todo-row {
+:is([data-theme="light"], [data-theme="colorblind-light"]) .todo-row {
   background: #f5f5f7;
 }
 
@@ -3097,7 +3303,7 @@ section[id] {
   transition: border-color var(--transition-fast), background-color var(--transition-fast), transform var(--transition-fast);
 }
 
-[data-theme="light"] .todo-circle {
+:is([data-theme="light"], [data-theme="colorblind-light"]) .todo-circle {
   border-color: rgba(0, 0, 0, 0.3);
 }
 
@@ -3170,11 +3376,11 @@ section[id] {
   border-color: rgba(255, 255, 255, 0.2);
 }
 
-[data-theme="light"] .credit-link {
+:is([data-theme="light"], [data-theme="colorblind-light"]) .credit-link {
   background: #f5f5f7;
 }
 
-[data-theme="light"] .credit-link:hover {
+:is([data-theme="light"], [data-theme="colorblind-light"]) .credit-link:hover {
   border-color: rgba(0, 0, 0, 0.2);
 }
 
@@ -3329,7 +3535,7 @@ section[id] {
   background: rgba(255, 255, 255, 0.02);
 }
 
-[data-theme="light"] .cal-day:hover,
+:is([data-theme="light"], [data-theme="colorblind-light"]) .cal-day:hover,
 [data-theme="indie"] .cal-day:hover,
 [data-theme="moss"] .cal-day:hover {
   border-color: rgba(0, 0, 0, 0.2);
@@ -3402,7 +3608,7 @@ section[id] {
   font-weight: 500;
 }
 
-[data-theme="light"] .cal-chip-deadline,
+:is([data-theme="light"], [data-theme="colorblind-light"]) .cal-chip-deadline,
 [data-theme="indie"] .cal-chip-deadline,
 [data-theme="moss"] .cal-chip-deadline {
   color: #c22e28;
@@ -3457,7 +3663,7 @@ section[id] {
   transition: border-color var(--transition-fast);
 }
 
-[data-theme="light"] .cal-agenda-row,
+:is([data-theme="light"], [data-theme="colorblind-light"]) .cal-agenda-row,
 [data-theme="indie"] .cal-agenda-row,
 [data-theme="moss"] .cal-agenda-row {
   background: rgba(0, 0, 0, 0.03);
@@ -3559,4 +3765,11 @@ section[id] {
     min-width: 120px;
     font-size: 14px;
   }
+}
+
+/* Late override: the shared light calendar rule above would otherwise beat
+   the Colorblind Light chip color on equal specificity */
+html[data-theme="colorblind-light"] .cal-chip-deadline {
+  color: #b33a00;
+  background: rgba(179, 58, 0, 0.08);
 }
