@@ -20,7 +20,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Caveat:wght@500;600&family=EB+Garamond:ital,wght@1,500;1,600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="style.css?v=60">
+  <link rel="stylesheet" href="style.css?v=62">
 </head>
 <body>
   <!-- Fullscreen Native Confetti Canvas -->
@@ -421,6 +421,14 @@
           <p class="cal-agenda-hint dues-hint">Rent, subscriptions, installments — with the amount and the exact due date. Mark paid when it clears.</p>
           <div class="money-list" id="dueList"></div>
         </div>
+        <div class="apple-card wish-card">
+          <div class="card-caption-row">
+            <span class="card-title">Wishlist</span>
+            <button class="pill-btn pill-btn-primary pill-sm" id="btnAddWish">Add wish</button>
+          </div>
+          <p class="cal-agenda-hint dues-hint">Shoes, gear, gadgets — name it, price it, rank it. Mark bought to log it as an expense.</p>
+          <div class="money-list" id="wishList"></div>
+        </div>
       </div>
     </section>
 
@@ -593,6 +601,21 @@
               <span></span>
               <span id="flEta">ETA: —</span>
             </div>
+            <div class="fl-viewbar">
+              <div class="segmented-control" role="group" aria-label="Camera view">
+                <button type="button" class="seg-btn active" id="flViewMap">Map</button>
+                <button type="button" class="seg-btn" id="flViewFollow">Follow</button>
+              </div>
+              <div class="fl-zoom-group">
+                <button type="button" class="pill-btn pill-btn-secondary pill-sm" id="btnFlZoomOut" aria-label="Zoom out">−</button>
+                <button type="button" class="pill-btn pill-btn-secondary pill-sm" id="btnFlZoomIn" aria-label="Zoom in">+</button>
+              </div>
+              <div class="segmented-control" role="group" aria-label="Time of day">
+                <button type="button" class="seg-btn" id="flDayDay">Day</button>
+                <button type="button" class="seg-btn active" id="flDayAuto">Auto</button>
+                <button type="button" class="seg-btn" id="flDayNight">Night</button>
+              </div>
+            </div>
             <div class="fl-map-wrap fl-console-map">
               <div class="fl-leaflet" id="flLeaflet" role="img" aria-label="Flight map"></div>
               <canvas class="fl-map" id="flCanvas" width="1000" height="500" role="img" aria-label="Flight map (offline)" style="display:none"></canvas>
@@ -645,7 +668,7 @@
               </div>
               <div class="form-field" id="flCustomWrap" style="display:none">
                 <label for="flCustomMin">Custom minutes (1–600)</label>
-                <input type="number" id="flCustomMin" min="1" max="600" step="1" value="50">
+                <input type="number" id="flCustomMin" min="0.1" max="600" step="0.1" value="50">
               </div>
               <div class="fl-route-meta" id="flRouteMeta">—</div>
               <div class="timer-button-row">
@@ -658,21 +681,6 @@
               <div class="card-caption-row">
                 <span class="card-title" id="flStatusTitle">Ready to board</span>
                 <span class="phase-badge" id="flPhase">IDLE</span>
-              </div>
-              <div class="fl-viewbar">
-                <div class="segmented-control" role="group" aria-label="Camera view">
-                  <button type="button" class="seg-btn active" id="flViewMap">Map</button>
-                  <button type="button" class="seg-btn" id="flViewFollow">Follow</button>
-                </div>
-                <div class="fl-zoom-group">
-                  <button type="button" class="pill-btn pill-btn-secondary pill-sm" id="btnFlZoomOut" aria-label="Zoom out">−</button>
-                  <button type="button" class="pill-btn pill-btn-secondary pill-sm" id="btnFlZoomIn" aria-label="Zoom in">+</button>
-                </div>
-                <div class="segmented-control" role="group" aria-label="Time of day">
-                  <button type="button" class="seg-btn" id="flDayDay">Day</button>
-                  <button type="button" class="seg-btn active" id="flDayAuto">Auto</button>
-                  <button type="button" class="seg-btn" id="flDayNight">Night</button>
-                </div>
               </div>
               <div class="fl-progress-track"><div class="fl-progress-fill" id="flProgressFill"></div></div>
               <div class="fl-readout">
@@ -763,10 +771,10 @@
             <input type="number" id="courseEctsInput" min="1" max="30" step="0.5" value="5" required>
           </div>
         </div>
-        <div class="form-field">
-          <label for="courseNameInput">Course Name</label>
-          <input type="text" id="courseNameInput" placeholder="e.g. Programming Methodology" maxlength="60" required>
-        </div>
+          <div class="form-field">
+            <label for="courseNameInput">Course Name (max 40)</label>
+            <input type="text" id="courseNameInput" placeholder="e.g. Programming Methodology" maxlength="40" required>
+          </div>
         <div class="form-dual-row">
           <div class="form-field flex-1">
             <label for="courseQuartileInput">Quarter</label>
@@ -973,6 +981,44 @@
           <button type="button" class="pill-btn pill-btn-secondary" id="btnDueDelete" style="display:none;margin-right:auto;">Delete</button>
           <button type="button" class="pill-btn pill-btn-secondary" id="btnCancelDueModal">Cancel</button>
           <button type="submit" class="pill-btn pill-btn-primary">Save due</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Wishlist item -->
+  <div class="modal-backdrop" id="wishModal">
+    <div class="modal-surface">
+      <div class="modal-header">
+        <h3 class="modal-title" id="wishModalTitle">New wish</h3>
+        <button class="modal-close-btn" id="btnCloseWishModal" aria-label="Close modal">
+          <svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3l10 10M13 3L3 13"></path></svg>
+        </button>
+      </div>
+      <form id="wishForm" class="modal-form">
+        <input type="hidden" id="wishEditId" value="">
+        <div class="form-field">
+          <label for="wishNameInput">What do you want?</label>
+          <input type="text" id="wishNameInput" placeholder="e.g. Running shoes" maxlength="60" required>
+        </div>
+        <div class="form-dual-row">
+          <div class="form-field flex-1">
+            <label for="wishAmountInput">Amount ($)</label>
+            <input type="number" id="wishAmountInput" min="0.01" step="0.01" placeholder="120.00" required>
+          </div>
+          <div class="form-field flex-1">
+            <label for="wishPrioInput">Priority</label>
+            <select id="wishPrioInput" class="apple-select">
+              <option value="High">High</option>
+              <option value="Medium" selected>Medium</option>
+              <option value="Low">Low</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-actions-footer">
+          <button type="button" class="pill-btn pill-btn-secondary" id="btnWishDelete" style="display:none;margin-right:auto;">Delete</button>
+          <button type="button" class="pill-btn pill-btn-secondary" id="btnCancelWishModal">Cancel</button>
+          <button type="submit" class="pill-btn pill-btn-primary">Save wish</button>
         </div>
       </form>
     </div>
@@ -1238,7 +1284,7 @@ Final Project (60%) - 2026-10-28 23:59"></textarea>
     <div class="site-container footer-container">
       <div class="footer-left">
         <span class="footer-logo">SU</span>
-        <span class="footer-copy">Stanford University<span class="footer-sub">2026 · v60</span></span>
+        <span class="footer-copy">Stanford University<span class="footer-sub">2026 · v62</span></span>
       </div>
       <nav class="footer-pages" aria-label="Pages">
         <a href="#/home" data-page-link="home">Home</a>
@@ -1335,6 +1381,6 @@ Final Project (60%) - 2026-10-28 23:59"></textarea>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" defer></script>
-  <script src="app.js?v=60"></script>
+  <script src="app.js?v=62"></script>
 </body>
 </html>

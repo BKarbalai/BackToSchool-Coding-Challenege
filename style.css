@@ -282,14 +282,14 @@ body > * {
 }
 
 .pill-btn-secondary {
-  background-color: rgba(255, 255, 255, 0.08);
+  background-color: rgba(255, 255, 255, 0.13);
   color: var(--text-primary);
-  border: var(--hairline-border);
+  border: 1px solid rgba(255, 255, 255, 0.24);
 }
 
 .pill-btn-secondary:hover {
-  background-color: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.2);
+  background-color: rgba(255, 255, 255, 0.19);
+  border-color: rgba(255, 255, 255, 0.34);
 }
 
 .pill-btn-lg {
@@ -767,6 +767,23 @@ body > * {
 .filter-controls {
   display: flex;
   gap: 10px;
+  min-width: 0;
+  max-width: 100%;
+  flex-wrap: wrap;
+}
+
+.filter-controls .apple-select,
+.deadlines-action-bar .apple-select,
+.modal-form .apple-select,
+.teams-action-bar .apple-select {
+  max-width: 100%;
+  text-overflow: ellipsis;
+}
+
+/* Long course names can never break rows again */
+.deadline-row-item > *,
+.course-card-top > * {
+  min-width: 0;
 }
 
 .apple-select, .modal-form input[type="text"], .modal-form input[type="number"], .modal-form input[type="date"], .modal-form input[type="time"] {
@@ -4371,6 +4388,30 @@ html[data-theme="colorblind-light"] .cal-chip-deadline {
 @media (max-width: 960px) { .flight-wrap { grid-template-columns: 1fr; } }
 .flight-setup-card { gap: 16px; }
 .fl-swap-btn { align-self: flex-start; }
+
+/* Plan flight goes horizontal: From | Swap | To, then Cabin | Duration | Aircraft */
+@media (min-width: 721px) {
+  .flight-setup-card {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: end;
+  }
+  .flight-setup-card > .card-caption-row,
+  .flight-setup-card > .fl-route-meta,
+  .flight-setup-card > .timer-button-row,
+  .flight-setup-card > .fl-unlock-note,
+  .flight-setup-card > #flCustomWrap {
+    grid-column: 1 / -1;
+  }
+  .flight-setup-card > .form-dual-row {
+    display: contents;
+  }
+  .flight-setup-card .fl-swap-btn {
+    align-self: end;
+    margin-bottom: 1px;
+    white-space: nowrap;
+  }
+}
 .fl-route-meta {
   font-family: var(--font-mono);
   font-size: 12.5px;
@@ -4485,10 +4526,45 @@ html[data-theme="colorblind-light"] .cal-chip-deadline {
 .flight-console:fullscreen .fl-map {
   flex: 1 1 auto;
   height: auto !important;
-  min-height: 300px;
+  min-height: 420px;
 }
 .fl-console-map { margin-top: 6px; }
 .dep-more-btn { align-self: center; margin-top: 4px; }
+
+/* Night mode: console + background go dark with the map */
+.flight-sim.flenight .flight-console {
+  background: linear-gradient(180deg, #0a1226 0%, #060b18 100%);
+  border-color: rgba(120, 180, 255, 0.22);
+  color: #eef3ff;
+}
+.flight-sim.flenight .flight-console .card-title,
+.flight-sim.flenight .fl-title {
+  color: #ffffff;
+}
+.flight-sim.flenight .fl-route-meta {
+  background: rgba(120, 180, 255, 0.14);
+  color: #9cc4ff;
+}
+.flight-sim.flenight .fl-big-time { color: #ffffff; }
+.flight-sim.flenight .spec-label { color: #8ea3c7; }
+
+/* Wishlist */
+.wish-card { margin-top: 24px; }
+.wish-row { cursor: pointer; }
+.wish-prio {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 8px;
+  corner-shape: squircle;
+  flex-shrink: 0;
+}
+.wish-high { color: #ff453a; background: rgba(255, 69, 58, 0.12); }
+.wish-medium { color: #c26a00; background: rgba(255, 159, 10, 0.15); }
+.wish-low { color: #1faa4b; background: rgba(48, 209, 88, 0.13); }
 .fl-toolbar {
   display: flex;
   align-items: center;
@@ -4742,12 +4818,12 @@ html[data-theme="colorblind-light"] .cal-chip-deadline {
 /* Leaflet street map (themed) */
 .fl-leaflet {
   width: 100%;
-  height: 380px;
+  height: 440px;
   border-radius: 16px;
   corner-shape: squircle;
   border: var(--hairline-border);
   overflow: hidden;
-  background: #0a1730;
+  background: var(--bg-surface-subtle);
   z-index: 1;
 }
 .fl-leaflet .leaflet-container { font-family: inherit; }
@@ -4761,8 +4837,12 @@ html[data-theme="colorblind-light"] .cal-chip-deadline {
   color: var(--accent-blue);
 }
 .fl-leaflet .leaflet-control-attribution {
-  background: rgba(255, 255, 255, 0.75);
+  background: var(--bg-translucent);
+  color: var(--text-tertiary);
   font-size: 10px;
+}
+.fl-leaflet .leaflet-control-attribution a {
+  color: var(--accent-blue);
 }
 .fl-leaf-wrap { background: transparent; border: none; }
 .fl-leaf-plane {
@@ -4782,7 +4862,7 @@ html[data-theme="colorblind-light"] .cal-chip-deadline {
   filter: drop-shadow(0 0 6px var(--accent-blue));
 }
 @media (max-width: 640px) {
-  .fl-leaflet { height: 300px; }
+  .fl-leaflet { height: 340px; }
 }
 @media (max-width: 640px) {
   .fl-title { order: -1; flex-basis: 100%; }

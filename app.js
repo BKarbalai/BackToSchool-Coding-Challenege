@@ -404,6 +404,7 @@
       studyDone: (typeof studyDone !== 'undefined' ? studyDone : {}),
       transactions: (typeof transactions !== 'undefined' ? transactions : []),
       dues: (typeof dues !== 'undefined' ? dues : []),
+      wishlist: (typeof wishlist !== 'undefined' ? wishlist : []),
       budget: (typeof finBudget !== 'undefined' ? finBudget : 400),
       customRepos: (typeof ghCustom !== 'undefined' ? ghCustom : []),
       settings: { scale: state.scale },
@@ -1048,7 +1049,7 @@
 
     filtered.forEach(function (item) {
       var course = state.courses.find(function (c) { return c.id === item.courseId; });
-      var courseCode = course ? course.code : 'SU';
+      var courseCode = course ? shorten(course.code, 14) : 'SU';
       var rem = getDeadlineTimeRemaining(item.dueDate, item.dueTime);
 
       // Urgency progress bar width (100% at creation, shrinks with time)
@@ -1797,7 +1798,7 @@
     e.preventDefault();
     var editId = document.getElementById('courseEditId').value;
     var code = document.getElementById('courseCodeInput').value.trim().toUpperCase().slice(0, 12).replace(/[<>&"']/g, '');
-    var name = document.getElementById('courseNameInput').value.trim().slice(0, 60);
+    var name = document.getElementById('courseNameInput').value.trim().slice(0, 40);
     var ects = parseFloat(document.getElementById('courseEctsInput').value) || 5;
     var quartile = document.getElementById('courseQuartileInput').value;
     var compRows = document.querySelectorAll('.component-edit-row');
@@ -1853,10 +1854,10 @@
   function populateCourseDropdowns() {
     var selectDeadline = document.getElementById('deadlineCourseSelect');
     var filterCourse = document.getElementById('filterCourseSelect');
-    if (selectDeadline) selectDeadline.innerHTML = state.courses.map(function (c) { return '<option value="' + escapeHtml(c.id) + '">[' + escapeHtml(c.code) + '] ' + escapeHtml(c.name) + '</option>'; }).join('');
+    if (selectDeadline) selectDeadline.innerHTML = state.courses.map(function (c) { return '<option value="' + escapeHtml(c.id) + '" title="' + escapeHtml(c.code + ' — ' + c.name) + '">[' + escapeHtml(shorten(c.code, 14)) + '] ' + escapeHtml(shorten(c.name, 26)) + '</option>'; }).join('');
     if (filterCourse) {
       var cur = state.filterCourse;
-      filterCourse.innerHTML = '<option value="all">All Enrolled Courses</option>' + state.courses.map(function (c) { return '<option value="' + escapeHtml(c.id) + '" ' + (c.id === cur ? 'selected' : '') + '>' + escapeHtml(c.code) + ' - ' + escapeHtml(c.name) + '</option>'; }).join('');
+      filterCourse.innerHTML = '<option value="all">All Enrolled Courses</option>' + state.courses.map(function (c) { return '<option value="' + escapeHtml(c.id) + '" ' + (c.id === cur ? 'selected' : '') + ' title="' + escapeHtml(c.code + ' — ' + c.name) + '">' + escapeHtml(shorten(c.code, 14)) + ' - ' + escapeHtml(shorten(c.name, 26)) + '</option>'; }).join('');
     }
     if (typeof syncKeepScopeSelect === 'function') { try { syncKeepScopeSelect(true); } catch (e) {} }
   }
@@ -1957,7 +1958,7 @@
     if (!result || result.components.length === 0) { showToast('No valid syllabus modules detected.', 'warn'); return; }
 
     var newCourseId = 'c-' + Date.now();
-    state.courses.push({ id: newCourseId, code: String(result.detectedCode).slice(0, 12), name: String(result.detectedName).slice(0, 60), ects: 5, quartile: 'Fall', components: result.components.map(function (c) { return { name: String(c.name).slice(0, 40), weight: c.weight, score: null }; }), targetGrade: state.scale === 'gpa' ? 3.0 : 60 });
+    state.courses.push({ id: newCourseId, code: String(result.detectedCode).slice(0, 12), name: String(result.detectedName).slice(0, 40), ects: 5, quartile: 'Fall', components: result.components.map(function (c) { return { name: String(c.name).slice(0, 40), weight: c.weight, score: null }; }), targetGrade: state.scale === 'gpa' ? 3.0 : 60 });
     result.deadlines.forEach(function (dl, idx) {
       state.deadlines.push({ id: 'dl-import-' + Date.now() + '-' + idx, courseId: newCourseId, title: String(dl.title).slice(0, 80), dueDate: dl.dueDate, dueTime: dl.dueTime, weight: dl.weight,         portal: 'Canvas', completed: false });
     });
@@ -2759,6 +2760,7 @@
   var FIN_KEY = 'horizon_fin_v1';
   var transactions = [];
   var dues = [];
+  var wishlist = [];
   var finBudget = 400;
   var finFilter = 'all';
   var finType = 'expense';
@@ -2776,8 +2778,10 @@
         var o = JSON.parse(raw);
         transactions = o.tx || []; finBudget = parseFloat(o.budget) || 400;
         dues = o.dues || [];
+        wishlist = o.wish || [];
         if (!Array.isArray(transactions)) transactions = [];
         if (!Array.isArray(dues)) dues = [];
+        if (!Array.isArray(wishlist)) wishlist = [];
         return;
       }
     } catch (e) {}
@@ -2792,7 +2796,7 @@
     persistFinance();
   }
 
-  function persistFinance() { try { localStorage.setItem(FIN_KEY, JSON.stringify({ tx: transactions, budget: finBudget, dues: dues })); } catch (e) {} }
+  function persistFinance() { try { localStorage.setItem(FIN_KEY, JSON.stringify({ tx: transactions, budget: finBudget, dues: dues, wish: wishlist })); } catch (e) {} }
 
   function usd(n) {
     try { return '$' + parseFloat(n).toFixed(2); }
@@ -2867,6 +2871,7 @@
       list.appendChild(row);
     });
     renderDues();
+    renderWishlist();
   }
 
   function syncFinTypeUI() {
@@ -3040,6 +3045,120 @@
       showToast('Due added: ' + name + ' ' + usd(amount), 'success');
     }
     persistFinance(); closeDueModal(); renderDues(); renderFinance();
+  }
+
+  // ---- Wishlist: name it, price it, rank it ----
+
+  var WISH_PRIO = { High: 0, Medium: 1, Low: 2 };
+
+  function wishCat(name) {
+    var n = String(name || '').toLowerCase();
+    if (/shoe|cloth|jacket|watch|game|gadget|fun|bike|skate/.test(n)) return 'Fun';
+    if (/book|study|course|exam|tutor/.test(n)) return 'Study';
+    if (/bus|train|bike|ticket|travel|flight/.test(n)) return 'Transport';
+    if (/food|snack|coffee|pizza/.test(n)) return 'Food';
+    return 'Other';
+  }
+
+  function renderWishlist() {
+    var list = document.getElementById('wishList');
+    if (!list) return;
+    list.innerHTML = '';
+    function prioRank(p) { return WISH_PRIO[p] !== undefined ? WISH_PRIO[p] : 1; }
+    var items = wishlist.slice().sort(function (a, b) {
+      return prioRank(a.prio) - prioRank(b.prio) || (parseFloat(b.amount) || 0) - (parseFloat(a.amount) || 0);
+    });
+    if (!items.length) {
+      list.innerHTML = '<div class="money-empty">Wishlist is empty — add those shoes you keep thinking about.</div>';
+      return;
+    }
+    items.forEach(function (w) {
+      var row = document.createElement('div');
+      row.className = 'tx-row wish-row';
+      var ic = document.createElement('span');
+      ic.className = 'tx-icon expense';
+      ic.textContent = String(w.name || '?').trim().slice(0, 2).toUpperCase() || 'Wi';
+      var body = document.createElement('span');
+      body.className = 'tx-body';
+      var ti = document.createElement('span');
+      ti.className = 'tx-title';
+      ti.textContent = w.name;
+      var su = document.createElement('span');
+      su.className = 'tx-sub';
+      su.textContent = (w.prio || 'Medium') + ' priority';
+      body.appendChild(ti);
+      body.appendChild(su);
+      var amt = document.createElement('span');
+      amt.className = 'tx-amt expense';
+      amt.textContent = usd(w.amount);
+      var prio = document.createElement('span');
+      prio.className = 'wish-prio wish-' + String(w.prio || 'Medium').toLowerCase();
+      prio.textContent = w.prio || 'Medium';
+      var bought = document.createElement('button');
+      bought.type = 'button';
+      bought.className = 'pill-btn pill-btn-secondary pill-sm';
+      bought.textContent = 'Bought';
+      bought.addEventListener('click', function (e) {
+        e.stopPropagation();
+        transactions.push({
+          id: 'tx-' + Date.now(), type: 'expense', title: (w.name || 'Wish') + ' (wishlist)',
+          amount: Math.round((parseFloat(w.amount) || 0) * 100) / 100,
+          cat: wishCat(w.name), date: todayKey(new Date())
+        });
+        wishlist = wishlist.filter(function (x) { return x.id !== w.id; });
+        persistFinance(); renderWishlist(); renderFinance();
+        confetti.fire(0.5, 0.4);
+        showToast('Enjoy your ' + w.name + ' — logged as ' + usd(w.amount), 'success');
+      });
+      row.appendChild(ic);
+      row.appendChild(body);
+      row.appendChild(amt);
+      row.appendChild(prio);
+      row.appendChild(bought);
+      row.addEventListener('click', function () { openWishModal(w.id); });
+      list.appendChild(row);
+    });
+  }
+
+  function openWishModal(editId) {
+    var modal = document.getElementById('wishModal');
+    if (!modal) return;
+    document.getElementById('wishForm').reset();
+    document.getElementById('wishEditId').value = editId || '';
+    var del = document.getElementById('btnWishDelete');
+    if (editId) {
+      var w = wishlist.find(function (x) { return x.id === editId; });
+      if (!w) return;
+      document.getElementById('wishModalTitle').textContent = 'Edit wish';
+      document.getElementById('wishNameInput').value = w.name || '';
+      document.getElementById('wishAmountInput').value = w.amount || '';
+      document.getElementById('wishPrioInput').value = w.prio || 'Medium';
+      if (del) del.style.display = '';
+    } else {
+      document.getElementById('wishModalTitle').textContent = 'New wish';
+      if (del) del.style.display = 'none';
+    }
+    modal.classList.add('active');
+  }
+
+  function closeWishModal() { var m = document.getElementById('wishModal'); if (m) m.classList.remove('active'); }
+
+  function saveWishFromModal(e) {
+    e.preventDefault();
+    var editId = document.getElementById('wishEditId').value;
+    var name = document.getElementById('wishNameInput').value.trim().slice(0, 60);
+    var amount = parseFloat(document.getElementById('wishAmountInput').value);
+    var prio = document.getElementById('wishPrioInput').value || 'Medium';
+    if (!name || !(amount > 0)) { showToast('Name + amount required', 'warn'); return; }
+    if (editId) {
+      var w = wishlist.find(function (x) { return x.id === editId; });
+      if (w) { w.name = name; w.amount = Math.round(amount * 100) / 100; w.prio = prio; }
+      showToast('Wish updated', 'success');
+    } else {
+      wishlist.push({ id: 'wish-' + Date.now(), name: name, amount: Math.round(amount * 100) / 100, prio: prio });
+      showToast('Wish added: ' + name, 'success');
+    }
+    persistFinance(); closeWishModal(); renderWishlist(); renderFinance();
   }
 
   // =========================================================================
@@ -3223,9 +3342,16 @@
   }
 
   function fmtDur(min) {
-    min = Math.round(min);
-    var h = Math.floor(min / 60), m = min % 60;
+    if (!(min > 0)) min = 0;
+    if (min < 1) return Math.max(1, Math.round(min * 60)) + 's';
+    var h = Math.floor(min / 60), m = Math.round((min % 60) * 10) / 10;
     return h ? h + 'h ' + m + 'm' : m + 'm';
+  }
+
+  function clampFlightMin(v, fallback) {
+    var n = parseFloat(v);
+    if (!(n > 0)) n = fallback || 50;
+    return Math.min(600, Math.max(0.1, Math.round(n * 10) / 10));
   }
 
   function fmtClock(sec) {
@@ -3304,7 +3430,7 @@
     var info = routeInfo(flightSave.from, flightSave.to, flightSave.plane);
     var cab = cabinById(flightSave.cabin);
     var plane = planeById(flightSave.plane);
-    var mins = flightSave.mode === 'custom' ? Math.min(600, Math.max(1, parseInt(flightSave.customMin, 10) || 50)) : (info ? info.realMin : 50);
+    var mins = flightSave.mode === 'custom' ? clampFlightMin(flightSave.customMin, 50) : (info ? info.realMin : 50);
     var earn = info ? Math.round(info.mi * cab.mult) : 0;
     var meta = document.getElementById('flRouteMeta');
     if (meta && info) {
@@ -3334,6 +3460,8 @@
     renderFlightStats();
     renderFlightLog();
     renderDepartures();
+    var sim = document.getElementById('flightSim');
+    if (sim) sim.classList.toggle('flenight', flightSave.day === 'night');
     buildFlightMap();
     paintFlight(flight.state === 'landed' ? 1 : flightProgress());
   }
@@ -3683,7 +3811,7 @@
     try {
       var box = document.getElementById('flLeaflet');
       if (!box) return false;
-      flLeaf = window.L.map('flLeaflet', { zoomControl: false, worldCopyJump: true });
+      flLeaf = window.L.map('flLeaflet', { zoomControl: false, worldCopyJump: true, minZoom: 2, maxBounds: [[-90, -540], [90, 540]], maxBoundsViscosity: 1.0 });
       window.L.control.zoom({ position: 'topleft' }).addTo(flLeaf);
       flApplyBase();
       flLeafBase = window.L.polyline([], { color: '#8a93a8', weight: 3, dashArray: '2 7', opacity: 0.85 }).addTo(flLeaf);
@@ -3708,7 +3836,8 @@
     var info = routeInfo(flightSave.from, flightSave.to, flightSave.plane);
     if (!info) return;
     try {
-      flLeaf.fitBounds([[info.a.lat, info.a.lon], [info.b.lat, info.b.lon]], { padding: [42, 42] });
+      flLeaf.fitBounds([[info.a.lat, info.a.lon], [info.b.lat, info.b.lon]], { padding: [42, 42], animate: false });
+      if (flLeaf.getZoom() < 2) flLeaf.setZoom(2);
     } catch (e) {}
   }
 
@@ -3915,7 +4044,7 @@
       else if (flight.state === 'landed') big.textContent = '00:00';
       else {
         var pInfo = routeInfo(flightSave.from, flightSave.to, flightSave.plane);
-        var pm = flightSave.mode === 'custom' ? Math.min(600, Math.max(1, parseInt(flightSave.customMin, 10) || 50)) : (pInfo ? pInfo.realMin : 50);
+        var pm = flightSave.mode === 'custom' ? clampFlightMin(flightSave.customMin, 50) : (pInfo ? pInfo.realMin : 50);
         big.textContent = fmtDur(pm).replace(' ', '');
       }
     }
@@ -3975,7 +4104,7 @@
     if (!info.inRange) { showToast(plane.name + ' cannot fly ' + fmtNum(info.km) + ' km nonstop (range ' + fmtNum(plane.range) + ' km) — pick a bigger jet', 'warn'); return; }
     var cab = cabinById(flightSave.cabin);
     var mins = flightSave.mode === 'custom'
-      ? Math.min(600, Math.max(1, parseInt(document.getElementById('flCustomMin').value, 10) || 50))
+      ? clampFlightMin(document.getElementById('flCustomMin').value, 50)
       : info.realMin;
     if (flightSave.mode === 'custom') { flightSave.customMin = mins; persistFlight(); }
     if (flight.state === 'landed' || flight.state === 'idle') flight.elapsed = 0;
@@ -4091,7 +4220,7 @@
     if (plEl) flightSave.plane = plEl.value;
     flLeafUserHold = false;
     var cm = document.getElementById('flCustomMin');
-    if (cm) flightSave.customMin = Math.min(600, Math.max(1, parseInt(cm.value, 10) || 50));
+    if (cm) flightSave.customMin = clampFlightMin(cm.value, 50);
     persistFlight();
     if (flight.state === 'flying' || flight.state === 'paused') {
       resetFlight(true);
@@ -4104,7 +4233,14 @@
 
   // Real IRL photos — every URL below verified live on Wikimedia Commons
   var CITY_PHOTOS = {
-    'New York': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/22/New_York_City_at_night_HDR.jpg/1280px-New_York_City_at_night_HDR.jpg',
+    'New York': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9b/One_World_Trade_Center_at_Night.jpg/1280px-One_World_Trade_Center_at_Night.jpg',
+    'San Diego': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e8/San_Diego_skyline_at_night_from_Point_Loma_2014.jpg/1280px-San_Diego_skyline_at_night_from_Point_Loma_2014.jpg',
+    'Madrid': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/ed/Gran_Via%2C_Madrid%2C_at_night.jpg/1280px-Gran_Via%2C_Madrid%2C_at_night.jpg',
+    'Toronto': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4c/Toronto_-_ON_-_Skyline_bei_Nacht.jpg/1280px-Toronto_-_ON_-_Skyline_bei_Nacht.jpg',
+    'Delhi': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/68/PXL_20231127_142319433_India_Gate_at_Night_Kartavya_Path%2C_New_Delhi%2C_Delhi_110001_05.jpg/1280px-PXL_20231127_142319433_India_Gate_at_Night_Kartavya_Path%2C_New_Delhi%2C_Delhi_110001_05.jpg',
+    'Barcelona': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8e/Barcelona%2C_Sagrada_Familia_by_night%2C_2015.jpg/1280px-Barcelona%2C_Sagrada_Familia_by_night%2C_2015.jpg',
+    'Amsterdam': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/27/Amsterdam_Canal_at_Night.JPG/1280px-Amsterdam_Canal_at_Night.JPG',
+    'Miami': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b1/The_Villa_Casa_Casuarina_%281930_%29_in_Miami_Beach%2C_Night_view.jpg/1280px-The_Villa_Casa_Casuarina_%281930_%29_in_Miami_Beach%2C_Night_view.jpg',
     'London': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b4/London_Eye_Twilight_April_2006.jpg/1280px-London_Eye_Twilight_April_2006.jpg',
     'Paris': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a8/Tour_Eiffel_Wikimedia_Commons.jpg/1280px-Tour_Eiffel_Wikimedia_Commons.jpg',
     'Dubai': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e6/Dubai_Marina_Skyline.jpg/1280px-Dubai_Marina_Skyline.jpg',
@@ -4257,6 +4393,12 @@
   function escapeHtml(str) {
     if (!str) return '';
     return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function shorten(str, n) {
+    str = String(str || '');
+    n = n || 26;
+    return str.length > n ? str.slice(0, n - 1) + '…' : str;
   }
 
   function setScale(scale) {
@@ -5006,6 +5148,22 @@
             delete studyDone[editId];
             persistStudy(); closeStudyModal(); renderStudy(); renderCalendar();
             showToast('Study block deleted', 'info');
+          }
+        });
+      });
+      document.getElementById('btnAddWish').addEventListener('click', function () { openWishModal(); });
+      document.getElementById('wishForm').addEventListener('submit', saveWishFromModal);
+      document.getElementById('btnCloseWishModal').addEventListener('click', closeWishModal);
+      document.getElementById('btnCancelWishModal').addEventListener('click', closeWishModal);
+      document.getElementById('btnWishDelete').addEventListener('click', function () {
+        var editId = document.getElementById('wishEditId').value;
+        if (!editId) return;
+        var w = wishlist.find(function (x) { return x.id === editId; });
+        askConfirm('Delete wish?', 'Remove "' + (w ? w.name : 'this wish') + '" from your wishlist?').then(function (ok) {
+          if (ok) {
+            wishlist = wishlist.filter(function (x) { return x.id !== editId; });
+            persistFinance(); closeWishModal(); renderWishlist(); renderFinance();
+            showToast('Wish removed', 'info');
           }
         });
       });
