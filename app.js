@@ -35,7 +35,8 @@
       const oX = (originX || 0.5) * this.canvas.width;
       const oY = (originY || 0.6) * this.canvas.height;
       const count = 40;
-      const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+      const _th = document.documentElement.getAttribute('data-theme');
+      const isLight = _th === 'light' || (_th && /light|indie|moss|marigold|blind/.test(_th));
       const palette = isLight ? ['#0071e3', '#34c759', '#ff9f0a', '#1d1d1f', '#5e5ce6'] : this.colors;
 
       for (let i = 0; i < count; i++) {
@@ -126,6 +127,177 @@
       toast.classList.add('removing');
       setTimeout(function () { toast.remove(); }, 300);
     }, 3000);
+  }
+
+  // =========================================================================
+  // 3. Custom confirm dialog (no native confirm()/prompt() anywhere)
+  // =========================================================================
+
+  var confirmResolve = null;
+  var confirmHasInput = false;
+
+  function openConfirm(opts) {
+    opts = opts || {};
+    var modal = document.getElementById('confirmModal');
+    if (!modal) {
+      // No native dialogs allowed — fail safe, never proceed silently destructive.
+      showToast(opts.message || 'Action cancelled', 'warn');
+      return Promise.resolve(false);
+    }
+    document.getElementById('confirmTitle').textContent = opts.title || 'Are you sure?';
+    document.getElementById('confirmMessage').textContent = opts.message || '';
+    var okBtn = document.getElementById('btnConfirmOk');
+    okBtn.textContent = opts.confirmText || 'Delete';
+    okBtn.classList.toggle('danger', opts.danger !== false);
+    confirmHasInput = !!opts.input;
+    var wrap = document.getElementById('confirmInputWrap');
+    var inp = document.getElementById('confirmInput');
+    if (opts.input) {
+      wrap.style.display = '';
+      document.getElementById('confirmInputLabel').textContent = opts.inputLabel || 'Value';
+      inp.value = opts.inputValue || '';
+      inp.placeholder = opts.inputPlaceholder || '';
+    } else {
+      wrap.style.display = 'none';
+      inp.value = '';
+    }
+    modal.classList.add('active');
+    setTimeout(function () { if (opts.input) inp.focus(); else okBtn.focus(); }, 60);
+    return new Promise(function (resolve) { confirmResolve = resolve; });
+  }
+
+  function closeConfirm(result) {
+    var modal = document.getElementById('confirmModal');
+    if (modal) modal.classList.remove('active');
+    if (confirmResolve) {
+      var r = confirmResolve;
+      confirmResolve = null;
+      if (confirmHasInput) {
+        var v = document.getElementById('confirmInput').value;
+        r({ ok: !!result, value: v });
+      } else {
+        r(!!result);
+      }
+    }
+    confirmHasInput = false;
+  }
+
+  function askConfirm(title, message, confirmText) {
+    return openConfirm({ title: title, message: message, confirmText: confirmText || 'Delete', danger: true });
+  }
+
+  // =========================================================================
+  // 3b. Page router — one focused page at a time, footer on every page
+  // =========================================================================
+
+  var PAGES = {
+    home: ['quote', 'hero', 'homePages', 'homeToday'],
+    grades: ['radar'],
+    deadlines: ['deadlines'],
+    calendar: ['calendar'],
+    study: ['study'],
+    code: ['code'],
+    money: ['money'],
+    focus: ['focus'],
+    notes: ['notes']
+  };
+
+  var LEGACY_HASH = {
+    hero: 'home', quote: 'home', radar: 'grades', deadlines: 'deadlines',
+    calendar: 'calendar', study: 'study', code: 'code',
+    money: 'money', focus: 'focus', notes: 'notes', top: 'home'
+  };
+
+  var currentPage = 'home';
+
+  function pageFromHash() {
+    var h = (location.hash || '').replace(/^#\/?/, '');
+    if (PAGES[h]) return h;
+    if (LEGACY_HASH[h]) return LEGACY_HASH[h];
+    return 'home';
+  }
+
+  function syncPageLinks() {
+    document.querySelectorAll('[data-page-link]').forEach(function (a) {
+      a.classList.toggle('active', a.dataset.pageLink === currentPage);
+    });
+  }
+
+  function closeNavMore() {
+    var m = document.getElementById('navMoreMenu');
+    var b = document.getElementById('btnNavMore');
+    if (m) m.classList.remove('open');
+    if (b) { b.classList.remove('open'); b.setAttribute('aria-expanded', 'false'); }
+  }
+
+  function showPage(page, skipHash) {
+    if (!PAGES[page]) page = 'home';
+    currentPage = page;
+    Object.keys(PAGES).forEach(function (p) {
+      PAGES[p].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.classList.toggle('page-hidden', p !== page);
+      });
+    });
+    syncPageLinks();
+    closeNavMore();
+    if (!skipHash) {
+      try {
+        if (('' + location.hash) !== '#/' + page) history.pushState(null, '', '#/' + page);
+      } catch (e) { location.hash = '#/' + page; }
+    }
+    window.scrollTo({ top: 0, behavior: 'auto' });
+    // Lazy per-page refresh so each page is always correct when opened
+    try {
+      if (page === 'home' && typeof renderHomeDigest === 'function') renderHomeDigest();
+      if (page === 'calendar' && typeof renderCalendar === 'function') renderCalendar();
+      if (page === 'code' && typeof renderGh === 'function') renderGh();
+      if (page === 'money' && typeof renderFinance === 'function') renderFinance();
+      if (page === 'study' && typeof renderStudy === 'function') renderStudy();
+      if (page === 'focus' && typeof flLeafRefresh === 'function') {
+        flLeafRefresh();
+        setTimeout(function () { try { flLeafRefresh(); } catch (e2) {} }, 300);
+      }
+    } catch (e) {}
+  }
+
+  // Element id prefix → page, so cross-page jumps open the right page first
+  function pageForElement(id) {
+    if (!id) return null;
+    if (/^(quote|hero|homePages|homeToday)/.test(id)) return 'home';
+    if (/^(course-|grade)/.test(id)) return 'grades';
+    if (/^deadline-/.test(id)) return 'deadlines';
+    if (/^study-/.test(id)) return 'study';
+    if (/^cal|calendar/.test(id)) return 'calendar';
+    if (PAGES[id]) return id;
+    return null;
+  }
+
+  function initRouter() {
+    showPage(pageFromHash(), true);
+    window.addEventListener('hashchange', function () { showPage(pageFromHash(), true); });
+    document.addEventListener('click', function (e) {
+      var link = e.target.closest ? e.target.closest('[data-page-link]') : null;
+      if (link) {
+        var p = link.dataset.pageLink;
+        if (p && PAGES[p]) {
+          e.preventDefault();
+          showPage(p, false);
+          return;
+        }
+      }
+      var moreBtn = e.target.closest ? e.target.closest('#btnNavMore') : null;
+      if (moreBtn) {
+        e.stopPropagation();
+        var m = document.getElementById('navMoreMenu');
+        var open = m && m.classList.toggle('open');
+        moreBtn.classList.toggle('open', !!open);
+        moreBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        return;
+      }
+      if (!e.target.closest || !e.target.closest('.nav-more')) closeNavMore();
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeNavMore(); });
   }
 
   // =========================================================================
@@ -228,6 +400,12 @@
       courses: state.courses,
       deadlines: state.deadlines,
       reminders: calEvents,
+      studyBlocks: (typeof studyBlocks !== 'undefined' ? studyBlocks : []),
+      studyDone: (typeof studyDone !== 'undefined' ? studyDone : {}),
+      transactions: (typeof transactions !== 'undefined' ? transactions : []),
+      dues: (typeof dues !== 'undefined' ? dues : []),
+      budget: (typeof finBudget !== 'undefined' ? finBudget : 400),
+      customRepos: (typeof ghCustom !== 'undefined' ? ghCustom : []),
       settings: { scale: state.scale },
       exportedAt: new Date().toISOString()
     };
@@ -269,7 +447,8 @@
   var ICON_SUN = '<svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="8" cy="8" r="3.2"/><path d="M8 1.5v1.6M8 12.9v1.6M1.5 8h1.6M12.9 8h1.6M3.4 3.4l1.1 1.1M11.5 11.5l1.1 1.1M12.6 3.4l-1.1 1.1M4.5 11.5l-1.1 1.1"/></svg>';
   var ICON_MOON = '<svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M13.5 9.5A5.5 5.5 0 0 1 6.5 2.5a5.5 5.5 0 1 0 7 7z"/></svg>';
 
-  var THEMES = ['dark', 'light', 'indie', 'moss', 'ghost', 'colorblind', 'colorblind-light', 'tritan'];
+  var THEMES = ['dark', 'light', 'ghost', 'indie', 'moss', 'marigold', 'colorblind', 'colorblind-light', 'marigold-blind', 'tritan'];
+  var LIGHT_THEMES = ['light', 'indie', 'moss', 'marigold', 'colorblind-light', 'marigold-blind'];
 
   function currentTheme() {
     var t = document.documentElement.getAttribute('data-theme');
@@ -280,7 +459,7 @@
     var btn = document.getElementById('btnThemeToggle');
     if (!btn) return;
     var t = currentTheme();
-    btn.innerHTML = (t === 'light' || t === 'indie' || t === 'moss' || t === 'colorblind-light') ? ICON_MOON : ICON_SUN;
+    btn.innerHTML = (LIGHT_THEMES.indexOf(t) >= 0) ? ICON_MOON : ICON_SUN;
   }
 
   function syncThemeMenu() {
@@ -742,7 +921,10 @@
     });
     container.querySelectorAll('.btn-delete-course').forEach(function (btn) {
       btn.addEventListener('click', function () {
-        if (confirm('Delete this course and associated deadlines?')) deleteCourse(btn.dataset.id);
+        var course = state.courses.find(function (c) { return c.id === btn.dataset.id; });
+        askConfirm('Delete course?', 'Delete "' + (course ? course.code + ' — ' + course.name : 'this course') + '" and its deadlines? This cannot be undone.').then(function (ok) {
+          if (ok) deleteCourse(btn.dataset.id);
+        });
       });
     });
 
@@ -987,34 +1169,54 @@
   var cmdFiltered = [];
 
   function scrollFlash(id) {
+    // Open the right page first, then scroll — pages hide inactive sections.
+    try {
+      var pg = typeof pageForElement === 'function' ? pageForElement(id) : null;
+      if (pg && typeof showPage === 'function' && pg !== currentPage) showPage(pg, false);
+    } catch (e) {}
     var el = document.getElementById(id);
     if (!el) return;
-    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    el.classList.add('flash-highlight');
-    setTimeout(function () { el.classList.remove('flash-highlight'); }, 1600);
+    setTimeout(function () {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.add('flash-highlight');
+      setTimeout(function () { el.classList.remove('flash-highlight'); }, 1600);
+    }, 60);
   }
 
   function cmdCommands() {
     var cmds = [
-      { label: 'Go to Grades', hint: 'jump', run: function () { scrollFlash('radar'); } },
-      { label: 'Go to Deadlines', hint: 'jump', run: function () { scrollFlash('deadlines'); } },
-      { label: 'Go to Calendar', hint: 'jump', run: function () { scrollFlash('calendar'); } },
-      { label: 'Go to Focus', hint: 'jump', run: function () { scrollFlash('focus'); } },
+      { label: 'Go to Home', hint: 'jump', run: function () { showPage('home', false); } },
+      { label: 'Go to Grades', hint: 'jump', run: function () { showPage('grades', false); } },
+      { label: 'Go to Deadlines', hint: 'jump', run: function () { showPage('deadlines', false); } },
+      { label: 'Go to Calendar', hint: 'jump', run: function () { showPage('calendar', false); } },
+      { label: 'Go to Study planner', hint: 'jump', run: function () { showPage('study', false); } },
+      { label: 'Go to Code', hint: 'jump', run: function () { showPage('code', false); } },
+      { label: 'Go to Finances', hint: 'jump', run: function () { showPage('money', false); } },
+      { label: 'Go to Focus', hint: 'jump', run: function () { showPage('focus', false); } },
+      { label: 'Go to Airplane mode', hint: 'jump', run: function () { showPage('focus', false); setTimeout(function () { scrollFlash('flightSim'); }, 120); } },
       { label: 'Back to top', hint: 'jump', run: function () { window.scrollTo({ top: 0, behavior: 'smooth' }); } },
       { label: 'New deadline', hint: 'N', run: function () { openDeadlineModal(); } },
       { label: 'New calendar reminder', hint: 'E', run: function () { openCalEventModal(calSelected); } },
       { label: 'New course', hint: 'C', run: function () { openCourseModal(); } },
-      { label: 'Go to Notes', hint: 'jump', run: function () { scrollFlash('notes'); } },
+      { label: 'New study block', hint: 'study', run: function () { openStudyModal(); } },
+      { label: 'New transaction', hint: 'finances', run: function () { openFinModal(); } },
+      { label: 'New due', hint: 'finances', run: function () { openDueModal(); } },
+      { label: 'Load GitHub repos', hint: 'code', run: function () { loadGhRepos(); } },
+      { label: 'Go to Notes', hint: 'jump', run: function () { showPage('notes', false); } },
       { label: 'Start / pause sprint', hint: 'Space', run: function () { if (pomodoroState.isRunning) pausePomodoro(); else startPomodoro(); } },
       { label: 'Export calendar (.ics)', hint: 'file', run: function () { exportIcsCalendar(); } },
       { label: 'Export data (JSON)', hint: 'file', run: function () { exportJsonData(); } },
       { label: 'Copy status summary', hint: 'clipboard', run: function () { copySummary(); } },
       { label: 'Enable reminders', hint: 'bell', run: function () { enableReminders(); } },
       { label: 'Open credits', hint: 'modal', run: function () { openCreditsModal(); } },
+      { label: 'Party time', hint: 'easter egg', run: function () { confetti.fire(0.5, 0.4); showToast('You found the secret menu item. Shhh.', 'success'); } },
       { label: 'Theme: Dark', hint: 'theme', run: function () { setTheme('dark'); } },
       { label: 'Theme: Light', hint: 'theme', run: function () { setTheme('light'); } },
+      { label: 'Theme: Ghost (dark)', hint: 'theme', run: function () { setTheme('ghost'); } },
+      { label: 'Theme: Marigold', hint: 'theme', run: function () { setTheme('marigold'); } },
       { label: 'Theme: Colorblind', hint: 'theme', run: function () { setTheme('colorblind'); } },
       { label: 'Theme: Colorblind Light', hint: 'theme', run: function () { setTheme('colorblind-light'); } },
+      { label: 'Theme: Marigold Safe', hint: 'theme', run: function () { setTheme('marigold-blind'); } },
       { label: 'Theme: Tritan', hint: 'theme', run: function () { setTheme('tritan'); } },
       { label: 'Theme: Indie', hint: 'theme', run: function () { setTheme('indie'); } }
     ];
@@ -1123,6 +1325,26 @@
       lines.push('END:VALARM');
       lines.push('END:VEVENT');
     });
+
+    if (typeof studyBlocks !== 'undefined') {
+      studyBlocks.forEach(function (b) {
+        (typeof studyDays === 'function' ? studyDays(b) : []).forEach(function (ds) {
+          var hhmm = (b.time || '09:00').replace(/:/g, '');
+          lines.push('BEGIN:VEVENT');
+          lines.push('UID:study-' + b.id + '-' + ds + '@tue.nl');
+          lines.push('SUMMARY:[Study] ' + b.subject);
+          lines.push('DESCRIPTION:' + (b.notes || 'Study block').slice(0, 200));
+          lines.push('DTSTART:' + ds.replace(/-/g, '') + 'T' + hhmm + '00');
+          lines.push('DTEND:' + ds.replace(/-/g, '') + 'T' + hhmm + '00');
+          lines.push('BEGIN:VALARM');
+          lines.push('ACTION:DISPLAY');
+          lines.push('DESCRIPTION:Study: ' + b.subject);
+          lines.push('TRIGGER:-PT30M');
+          lines.push('END:VALARM');
+          lines.push('END:VEVENT');
+        });
+      });
+    }
 
     calEvents.forEach(function (ev, idx) {
       var hhmm = (ev.time || '09:00').replace(/:/g, '');
@@ -1590,9 +1812,16 @@
     });
 
     if (totalWeight !== 100) {
-      if (!confirm('Notice: Components sum to ' + totalWeight + '%, not 100%. Proceed?')) return;
+      openConfirm({ title: 'Weights sum to ' + totalWeight + '%', message: 'Graded components should sum to 100%. Save anyway?', confirmText: 'Save anyway', danger: false }).then(function (ok) {
+        if (ok) finishSaveCourse(editId, code, name, ects, quartile, components);
+      });
+      return;
     }
 
+    finishSaveCourse(editId, code, name, ects, quartile, components);
+  }
+
+  function finishSaveCourse(editId, code, name, ects, quartile, components) {
     if (editId) {
       var existing = state.courses.find(function (c) { return c.id === editId; });
       if (existing) { existing.code = code; existing.name = name; existing.ects = ects; existing.quartile = quartile; existing.components = components; }
@@ -1629,6 +1858,7 @@
       var cur = state.filterCourse;
       filterCourse.innerHTML = '<option value="all">All Enrolled Courses</option>' + state.courses.map(function (c) { return '<option value="' + escapeHtml(c.id) + '" ' + (c.id === cur ? 'selected' : '') + '>' + escapeHtml(c.code) + ' - ' + escapeHtml(c.name) + '</option>'; }).join('');
     }
+    if (typeof syncKeepScopeSelect === 'function') { try { syncKeepScopeSelect(true); } catch (e) {} }
   }
 
   function openDeadlineModal() {
@@ -1673,8 +1903,18 @@
   function openImportModal() { document.getElementById('importModal').classList.add('active'); document.getElementById('importPreview').style.display = 'none'; }
   function closeImportModal() { document.getElementById('importModal').classList.remove('active'); }
 
+  function plusDaysStr(n) {
+    var d = new Date();
+    d.setDate(d.getDate() + n);
+    return todayKey(d);
+  }
+
   function loadSampleSyllabusText() {
-    var sample = 'CS106A Programming Methodology\nLectures: Mon/Wed Gates Hall\nAssignment 4 (10%) - 2026-09-22 23:59\nHomework 5: Karel (15%) - 2026-10-02 23:59\nMidterm Exam (25%) - 2026-10-14 14:00\nFinal Examination (50%) - 2026-10-29 23:59';
+    var sample = 'CS106A Programming Methodology\nLectures: Mon/Wed Gates Hall\n' +
+      'Assignment 4 (10%) - ' + plusDaysStr(4) + ' 23:59\n' +
+      'Homework 5: Karel (15%) - ' + plusDaysStr(14) + ' 23:59\n' +
+      'Midterm Exam (25%) - ' + plusDaysStr(26) + ' 14:00\n' +
+      'Final Examination (50%) - ' + plusDaysStr(41) + ' 23:59';
     document.getElementById('importRawText').value = sample;
     parseSyllabusText(sample);
   }
@@ -1829,11 +2069,24 @@
       var combined = [];
       evs.forEach(function (e) { combined.push({ kind: 'event', time: e.time || '09:00', title: e.title, ref: e }); });
       dls.forEach(function (d) { combined.push({ kind: 'deadline', time: d.dueTime || '23:59', title: d.title, ref: d }); });
+      if (typeof getStudyOn === 'function') {
+        try {
+          getStudyOn(dateStr).forEach(function (s) {
+            combined.push({ kind: 'study', time: s.block.time || '09:00', title: s.block.subject, ref: s.block, done: s.done });
+          });
+        } catch (e) {}
+      }
       combined.sort(function (a, b) { return a.time < b.time ? -1 : 1; });
 
       combined.slice(0, 3).forEach(function (item) {
         var chip = document.createElement('span');
-        chip.className = 'cal-chip ' + (item.kind === 'event' ? 'cal-chip-event' : 'cal-chip-deadline' + (item.ref.completed ? ' done' : ''));
+        if (item.kind === 'study') {
+          chip.className = 'cal-chip cal-chip-study';
+          chip.setAttribute('data-color', (item.ref.color || 'blue'));
+          if (item.done) chip.style.textDecoration = 'line-through';
+        } else {
+          chip.className = 'cal-chip ' + (item.kind === 'event' ? 'cal-chip-event' : 'cal-chip-deadline' + (item.ref.completed ? ' done' : ''));
+        }
         chip.textContent = item.title;
         chip.title = (item.time || '') + ' — ' + item.title;
         chip.dataset.kind = item.kind;
@@ -1883,6 +2136,13 @@
       var code = calCourseCode(d.courseId);
       items.push({ kind: 'deadline', time: d.dueTime || '23:59', title: d.title, sub: code + ' · ' + (d.portal || 'Canvas') + ' · ' + (d.weight || 0) + '%', ref: d });
     });
+    if (typeof getStudyOn === 'function') {
+      try {
+        getStudyOn(calSelected).forEach(function (s) {
+          items.push({ kind: 'study', time: s.block.time || '09:00', title: s.block.subject, sub: 'Study block · ' + s.block.start + ' → ' + s.block.end + (s.done ? ' · done' : ''), ref: s.block });
+        });
+      } catch (e) {}
+    }
     items.sort(function (a, b) { return a.time < b.time ? -1 : 1; });
 
     if (countEl) countEl.textContent = items.length + (items.length === 1 ? ' item' : ' items');
@@ -1912,8 +2172,8 @@
       body.appendChild(t);
       body.appendChild(s);
       var tag = document.createElement('span');
-      tag.className = 'cal-agenda-tag ' + item.kind;
-      tag.textContent = item.kind === 'event' ? 'Reminder' : 'Deadline';
+      tag.className = 'cal-agenda-tag ' + (item.kind === 'study' ? 'event' : item.kind);
+      tag.textContent = item.kind === 'event' ? 'Reminder' : item.kind === 'study' ? 'Study' : 'Deadline';
       row.appendChild(time);
       row.appendChild(body);
       row.appendChild(tag);
@@ -1927,6 +2187,8 @@
       if (e) openCalEventModal(e.date, e.id);
     } else if (kind === 'deadline') {
       scrollFlash('deadline-' + id);
+    } else if (kind === 'study') {
+      scrollFlash('study-' + id);
     }
   }
 
@@ -1996,6 +2258,1996 @@
     closeCalEventModal();
     renderCalendar();
     showToast('Reminder removed', 'info');
+  }
+
+  // =========================================================================
+  // 19c. Study Planner — syllabus blocks mapped onto the calendar
+  // Maths: 12–26 Sept 2026 · Physics: 13–17 Sept 2026 (requested defaults)
+  // =========================================================================
+
+  var STUDY_KEY = 'horizon_study_v1';
+  var STUDY_DONE_KEY = 'horizon_study_done_v1';
+  var studyBlocks = [];
+  var studyDone = {};
+
+  function loadStudy() {
+    try {
+      var raw = localStorage.getItem(STUDY_KEY);
+      if (raw) { studyBlocks = JSON.parse(raw) || []; }
+      else { studyBlocks = []; }
+      var d = localStorage.getItem(STUDY_DONE_KEY);
+      studyDone = d ? (JSON.parse(d) || {}) : {};
+    } catch (e) { studyBlocks = []; studyDone = {}; }
+    if (!Array.isArray(studyBlocks)) studyBlocks = [];
+  }
+
+  function persistStudy() {
+    try {
+      localStorage.setItem(STUDY_KEY, JSON.stringify(studyBlocks));
+      localStorage.setItem(STUDY_DONE_KEY, JSON.stringify(studyDone));
+    } catch (e) {}
+  }
+
+  function seedStudyPlan(silent) {
+    var hasMaths = studyBlocks.some(function (b) { return /math/i.test(b.subject); });
+    var hasPhys = studyBlocks.some(function (b) { return /phys/i.test(b.subject); });
+    var mStart = plusDaysStr(0), mEnd = plusDaysStr(14), pStart = plusDaysStr(1), pEnd = plusDaysStr(5);
+    if (!hasMaths) studyBlocks.push({ id: 'st-maths', subject: 'Maths — Algebra & Calculus', start: mStart, end: mEnd, time: '09:00', color: 'blue', notes: 'Daily drill: 45 min theory + 45 min problem sets. Chapters 1–6 across the 15 days.' });
+    if (!hasPhys) studyBlocks.push({ id: 'st-physics', subject: 'Physics — Mechanics', start: pStart, end: pEnd, time: '14:00', color: 'orange', notes: 'Kinematics → dynamics → energy → rotation → mock test. Lab prep each evening.' });
+    persistStudy();
+    renderStudy();
+    renderCalendar();
+    if (!silent) { confetti.fire(0.5, 0.4); showToast('Study plan loaded: Maths 15 days · Physics 5 days', 'success'); }
+  }
+
+  function studyDays(block) {
+    var out = [];
+    try {
+      var s = new Date(block.start + 'T12:00:00'), e = new Date(block.end + 'T12:00:00');
+      if (isNaN(s) || isNaN(e) || e < s) return out;
+      for (var d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) out.push(todayKey(d));
+    } catch (err) {}
+    return out;
+  }
+
+  function isStudyDone(blockId, dateStr) {
+    return !!(studyDone[blockId] && studyDone[blockId].indexOf(dateStr) >= 0);
+  }
+
+  function toggleStudyDone(blockId, dateStr) {
+    studyDone[blockId] = studyDone[blockId] || [];
+    var i = studyDone[blockId].indexOf(dateStr);
+    if (i >= 0) studyDone[blockId].splice(i, 1);
+    else studyDone[blockId].push(dateStr);
+    persistStudy();
+    renderStudy();
+    renderCalendar();
+  }
+
+  function getStudyOn(dateStr) {
+    var out = [];
+    studyBlocks.forEach(function (b) {
+      var days = studyDays(b);
+      if (days.indexOf(dateStr) >= 0) out.push({ block: b, done: isStudyDone(b.id, dateStr) });
+    });
+    return out.sort(function (a, b) { return (a.block.time || '') < (b.block.time || '') ? -1 : 1; });
+  }
+
+  function shortDay(dateStr) {
+    try { return new Date(dateStr + 'T12:00:00').getDate(); } catch (e) { return ''; }
+  }
+
+  function renderStudy() {
+    var grid = document.getElementById('studyGrid');
+    var legend = document.getElementById('studyLegend');
+    var timeline = document.getElementById('studyTimeline');
+    if (!grid || !legend || !timeline) return;
+    grid.innerHTML = ''; legend.innerHTML = ''; timeline.innerHTML = '';
+    var todayStr = todayKey(new Date());
+
+    if (!studyBlocks.length) {
+      grid.innerHTML = '<div class="empty-state"><p class="empty-state-text">No study blocks yet — load the Maths + Physics plan.</p></div>';
+      var badge = document.getElementById('studyRangeBadge');
+      if (badge) badge.textContent = '0 days';
+      return;
+    }
+
+    studyBlocks.forEach(function (b) {
+      var pill = document.createElement('span');
+      pill.className = 'legend-pill';
+      pill.innerHTML = '';
+      var dot = document.createElement('span');
+      dot.className = 'legend-dot'; dot.setAttribute('data-color', b.color || 'blue');
+      pill.appendChild(dot);
+      var t = document.createElement('span');
+      t.textContent = b.subject;
+      pill.appendChild(t);
+      legend.appendChild(pill);
+    });
+
+    // Sprint window follows the blocks (earliest start → latest end)
+    var winStart = null, winEnd = null;
+    studyBlocks.forEach(function (b) {
+      var s = new Date(b.start + 'T12:00:00'), e = new Date(b.end + 'T12:00:00');
+      if (isNaN(s) || isNaN(e)) return;
+      if (!winStart || s < winStart) winStart = s;
+      if (!winEnd || e > winEnd) winEnd = e;
+    });
+    if (!winStart || !winEnd) { winStart = new Date(); winEnd = new Date(); winEnd.setDate(winEnd.getDate() + 14); }
+    var winDays = [];
+    for (var d = new Date(winStart); d <= winEnd; d.setDate(d.getDate() + 1)) winDays.push(todayKey(d));
+    var badgeEl = document.getElementById('studyRangeBadge');
+    if (badgeEl) badgeEl.textContent = winDays.length + ' days';
+    var winTitle = document.querySelector('.study-timeline-card .card-title');
+    if (winTitle && winDays.length) {
+      function shortDs(ds) { try { return new Date(ds + 'T12:00:00').toLocaleDateString('en-US', { day: 'numeric', month: 'short' }); } catch (e) { return ds; } }
+      winTitle.textContent = 'Sprint · ' + shortDs(winDays[0]) + ' – ' + shortDs(winDays[winDays.length - 1]);
+    }
+
+    studyBlocks.forEach(function (b) {
+      var days = studyDays(b);
+      var row = document.createElement('div');
+      row.className = 'timeline-row';
+      var lab = document.createElement('span');
+      lab.className = 'timeline-label'; lab.textContent = b.subject;
+      var track = document.createElement('div');
+      track.className = 'timeline-track';
+      winDays.forEach(function (ds) {
+        if (days.indexOf(ds) < 0) return;
+        var p = document.createElement('button');
+        p.type = 'button';
+        p.className = 'timeline-pill' + (isStudyDone(b.id, ds) ? ' done' : '') + (ds === todayStr ? ' today' : '');
+        p.setAttribute('data-color', b.color || 'blue');
+        p.textContent = shortDay(ds);
+        p.title = b.subject + ' · ' + ds + (isStudyDone(b.id, ds) ? ' (done — click to reopen)' : ' — click to open day, double-click toggles done');
+        p.addEventListener('click', function () {
+          calSelected = ds;
+          var dd = new Date(ds + 'T12:00:00');
+          if (!isNaN(dd)) calCursor = { y: dd.getFullYear(), m: dd.getMonth() };
+          renderCalendar();
+          scrollFlash('calendar');
+        });
+        p.addEventListener('dblclick', function (e) { e.stopPropagation(); toggleStudyDone(b.id, ds); });
+        track.appendChild(p);
+      });
+      row.appendChild(lab); row.appendChild(track);
+      timeline.appendChild(row);
+    });
+
+    studyBlocks.forEach(function (b) {
+      var days = studyDays(b);
+      var doneCount = days.filter(function (ds) { return isStudyDone(b.id, ds); }).length;
+      var pct = days.length ? Math.round((doneCount / days.length) * 100) : 0;
+      var card = document.createElement('div');
+      card.className = 'study-card';
+      card.setAttribute('data-color', b.color || 'blue');
+      card.id = 'study-' + b.id;
+      var top = document.createElement('div');
+      top.className = 'study-card-top';
+      var left = document.createElement('div');
+      var h = document.createElement('div'); h.className = 'study-subject'; h.textContent = b.subject;
+      var dates = document.createElement('div'); dates.className = 'study-dates';
+      dates.textContent = b.start + ' → ' + b.end + ' · ' + (b.time || '09:00') + ' daily · ' + doneCount + '/' + days.length + ' done';
+      left.appendChild(h); left.appendChild(dates);
+      var acts = document.createElement('div'); acts.className = 'card-icon-actions';
+      acts.innerHTML = '<button class="btn-card-glyph" title="Edit" aria-label="Edit"><svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M11 2l3 3-9 9H2v-3l9-9z"></path></svg></button><button class="btn-card-glyph" title="Delete" aria-label="Delete"><svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 4h10M6 4V2.5h4V4M5 4v9h6V4"></path></svg></button>';
+      var btns = acts.querySelectorAll('button');
+      btns[0].addEventListener('click', function () { openStudyModal(b.id); });
+      btns[1].addEventListener('click', function () {
+        askConfirm('Delete study block?', 'Delete "' + b.subject + '" (' + b.start + ' → ' + b.end + ')? Its daily calendar entries disappear too.').then(function (ok) {
+          if (ok) {
+            studyBlocks = studyBlocks.filter(function (x) { return x.id !== b.id; });
+            delete studyDone[b.id];
+            persistStudy(); renderStudy(); renderCalendar();
+            showToast('Study block deleted', 'info');
+          }
+        });
+      });
+      top.appendChild(left); top.appendChild(acts);
+      card.appendChild(top);
+      var bar = document.createElement('div'); bar.className = 'study-progress-track';
+      var fill = document.createElement('div'); fill.className = 'study-progress-fill'; fill.style.width = pct + '%';
+      bar.appendChild(fill); card.appendChild(bar);
+      var chips = document.createElement('div'); chips.className = 'study-day-chips';
+      days.forEach(function (ds) {
+        var c = document.createElement('button');
+        c.type = 'button';
+        c.className = 'day-chip' + (isStudyDone(b.id, ds) ? ' done' : '') + (ds === todayStr ? ' today' : '');
+        c.textContent = ds.slice(5);
+        c.title = ds + ' — click to toggle done, shift-click to open day';
+        c.addEventListener('click', function (e) {
+          if (e.shiftKey) {
+            calSelected = ds;
+            var dd = new Date(ds + 'T12:00:00');
+            if (!isNaN(dd)) calCursor = { y: dd.getFullYear(), m: dd.getMonth() };
+            renderCalendar(); scrollFlash('calendar');
+          } else toggleStudyDone(b.id, ds);
+        });
+        chips.appendChild(c);
+      });
+      card.appendChild(chips);
+      if (b.notes) { var n = document.createElement('p'); n.className = 'study-notes'; n.textContent = b.notes; card.appendChild(n); }
+      grid.appendChild(card);
+    });
+  }
+
+  function openStudyModal(editId) {
+    var modal = document.getElementById('studyModal');
+    if (!modal) return;
+    document.getElementById('studyForm').reset();
+    document.getElementById('studyEditId').value = editId || '';
+    var del = document.getElementById('btnStudyDelete');
+    if (editId) {
+      var b = studyBlocks.find(function (x) { return x.id === editId; });
+      if (!b) return;
+      document.getElementById('studyModalTitle').textContent = 'Edit study block';
+      document.getElementById('studySubjectInput').value = b.subject || '';
+      document.getElementById('studyStartInput').value = b.start || '';
+      document.getElementById('studyEndInput').value = b.end || '';
+      document.getElementById('studyTimeInput').value = b.time || '09:00';
+      document.getElementById('studyColorInput').value = b.color || 'blue';
+      document.getElementById('studyNotesInput').value = b.notes || '';
+      if (del) del.style.display = '';
+    } else {
+      document.getElementById('studyModalTitle').textContent = 'New study block';
+      if (del) del.style.display = 'none';
+    }
+    modal.classList.add('active');
+  }
+  function closeStudyModal() { var m = document.getElementById('studyModal'); if (m) m.classList.remove('active'); }
+
+  function saveStudyFromModal(e) {
+    e.preventDefault();
+    var editId = document.getElementById('studyEditId').value;
+    var subject = document.getElementById('studySubjectInput').value.trim().slice(0, 60);
+    var start = document.getElementById('studyStartInput').value;
+    var end = document.getElementById('studyEndInput').value;
+    var time = document.getElementById('studyTimeInput').value || '09:00';
+    var color = document.getElementById('studyColorInput').value || 'blue';
+    var notes = document.getElementById('studyNotesInput').value.trim().slice(0, 500);
+    if (!subject || !start || !end) { showToast('Subject + date range required', 'warn'); return; }
+    if (end < start) { showToast('End date is before start date', 'warn'); return; }
+    if (editId) {
+      var b = studyBlocks.find(function (x) { return x.id === editId; });
+      if (b) { b.subject = subject; b.start = start; b.end = end; b.time = time; b.color = color; b.notes = notes; }
+      showToast('Study block updated', 'success');
+    } else {
+      studyBlocks.push({ id: 'st-' + Date.now(), subject: subject, start: start, end: end, time: time, color: color, notes: notes });
+      showToast('Study block added — see calendar', 'success');
+    }
+    persistStudy(); closeStudyModal(); renderStudy(); renderCalendar();
+  }
+
+  // =========================================================================
+  // 19e. Code — GitHub organizer (live fetch + pins + custom links)
+  // =========================================================================
+
+  var GH_KEY = 'horizon_gh_v1';
+  var ghCache = [];
+  var ghStarred = [];
+  var ghProfile = null;
+  var ghCustom = [];
+  var ghPinned = {};
+  var ghUser = 'BKarbalai';
+  var ghTab = 'repos';
+
+  function loadGhLocal() {
+    try {
+      var raw = localStorage.getItem(GH_KEY);
+      if (raw) {
+        var o = JSON.parse(raw);
+        ghCustom = o.custom || []; ghPinned = o.pinned || {}; ghUser = o.user || 'BKarbalai';
+        var inp = document.getElementById('ghUserInput');
+        if (inp && !inp.value) inp.value = ghUser;
+      }
+    } catch (e) {}
+  }
+  function persistGhLocal() {
+    try { localStorage.setItem(GH_KEY, JSON.stringify({ custom: ghCustom, pinned: ghPinned, user: ghUser })); } catch (e) {}
+  }
+
+  function langColor(lang) {
+    var map = { JavaScript: '#f1e05a', TypeScript: '#3178c6', Python: '#3572A5', HTML: '#e34c26', CSS: '#563d7c', 'C++': '#f34b7d', C: '#555', Java: '#b07219', Go: '#00ADD8', Rust: '#dea584', Verilog: '#848bf3', Shell: '#89e051' };
+    return map[lang] || '#8e8e93';
+  }
+
+  function ghAllRepos() {
+    var customs = ghCustom.map(function (c) {
+      return { id: 'custom-' + c.id, name: c.name, html_url: c.url, description: c.note || 'Custom link', language: 'Link', stargazers_count: 0, forks_count: 0, updated_at: c.addedAt || new Date().toISOString(), custom: true, ref: c };
+    });
+    return customs.concat(ghCache.map(function (r) {
+      return { id: r.id, name: r.name, full_name: r.full_name, html_url: r.html_url, description: r.description, language: r.language, stargazers_count: r.stargazers_count, forks_count: r.forks_count, updated_at: r.updated_at, custom: false, ref: r };
+    }));
+  }
+
+  function renderGhProfile() {
+    var box = document.getElementById('ghProfile');
+    if (!box) return;
+    if (!ghProfile) { box.style.display = 'none'; box.innerHTML = ''; return; }
+    box.style.display = '';
+    box.innerHTML = '';
+    var img = document.createElement('img');
+    img.className = 'gh-avatar'; img.alt = ghProfile.login || ghUser;
+    img.src = ghProfile.avatar_url || '';
+    img.loading = 'lazy';
+    var mid = document.createElement('div'); mid.style.flex = '1'; mid.style.minWidth = '0';
+    var nm = document.createElement('div'); nm.className = 'gh-profile-name';
+    var a = document.createElement('a');
+    a.href = ghProfile.html_url || ('https://github.com/' + ghUser);
+    a.target = '_blank'; a.rel = 'noopener';
+    a.textContent = '@' + (ghProfile.login || ghUser);
+    nm.appendChild(a);
+    mid.appendChild(nm);
+    if (ghProfile.bio) { var bio = document.createElement('div'); bio.className = 'gh-profile-bio'; bio.textContent = ghProfile.bio; mid.appendChild(bio); }
+    var st = document.createElement('div'); st.className = 'gh-profile-stats';
+    st.textContent = (ghProfile.public_repos || 0) + ' repos · ' + (ghProfile.followers || 0) + ' followers · ' + (ghProfile.following || 0) + ' following';
+    mid.appendChild(st);
+    var open = document.createElement('a');
+    open.className = 'pill-btn pill-btn-secondary pill-sm';
+    open.href = ghProfile.html_url || ('https://github.com/' + ghUser);
+    open.target = '_blank'; open.rel = 'noopener'; open.textContent = 'Open profile';
+    box.appendChild(img); box.appendChild(mid); box.appendChild(open);
+  }
+
+  function copyCloneUrl(fullName, btn) {
+    var url = 'https://github.com/' + fullName + '.git';
+    function done() {
+      showToast('Clone URL copied: ' + url, 'success');
+      if (btn) { var old = btn.textContent; btn.textContent = 'Copied!'; setTimeout(function () { btn.textContent = old; }, 1200); }
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(done, function () { showToast(url, 'info'); });
+    else showToast(url, 'info');
+  }
+
+  function renderGh() {
+    var grid = document.getElementById('ghGrid');
+    var status = document.getElementById('ghStatus');
+    var langSel = document.getElementById('ghLangFilter');
+    if (!grid) return;
+    var tabRepos = document.getElementById('ghTabRepos');
+    var tabStar = document.getElementById('ghTabStarred');
+    if (tabRepos) tabRepos.classList.toggle('active', ghTab === 'repos');
+    if (tabStar) tabStar.classList.toggle('active', ghTab === 'starred');
+    renderGhProfile();
+    var q = (document.getElementById('ghSearchInput').value || '').toLowerCase();
+    var sort = document.getElementById('ghSortSelect').value || 'updated';
+    var langF = langSel ? langSel.value : 'all';
+    var all = ghTab === 'starred'
+      ? ghStarred.map(function (r) { return { id: r.id, name: r.name, full_name: r.full_name, html_url: r.html_url, description: r.description, language: r.language, stargazers_count: r.stargazers_count, forks_count: r.forks_count, updated_at: r.updated_at || r.pushed_at, custom: false, starred: true, ref: r }; })
+      : ghAllRepos();
+    var langs = {};
+    all.forEach(function (r) { if (r.language) langs[r.language] = true; });
+    if (langSel) {
+      var cur = langSel.value;
+      langSel.innerHTML = '<option value="all">All languages</option>' + Object.keys(langs).sort().map(function (l) { return '<option value="' + escapeHtml(l) + '">' + escapeHtml(l) + '</option>'; }).join('');
+      langSel.value = langs[cur] || cur === 'all' ? cur : 'all';
+      langF = langSel.value;
+    }
+    var filtered = all.filter(function (r) {
+      if (langF !== 'all' && r.language !== langF) return false;
+      if (q && ((r.name || '').toLowerCase().indexOf(q) < 0 && ((r.description || '').toLowerCase().indexOf(q) < 0))) return false;
+      return true;
+    });
+    var key = function (r) { return r.full_name || ('custom:' + r.name); };
+    filtered.sort(function (a, b) {
+      var pa = !!ghPinned[key(a)], pb = !!ghPinned[key(b)];
+      if (pa !== pb) return pa ? -1 : 1;
+      if (sort === 'stars') return (b.stargazers_count || 0) - (a.stargazers_count || 0);
+      if (sort === 'name') return String(a.name).localeCompare(String(b.name));
+      return new Date(b.updated_at) - new Date(a.updated_at);
+    });
+    if (status) {
+      var pinnedCount = Object.keys(ghPinned).filter(function (k) { return ghPinned[k]; }).length;
+      status.textContent = ghTab === 'starred'
+        ? filtered.length + ' starred · @' + ghUser
+        : filtered.length + ' repos · ' + pinnedCount + ' pinned · @' + ghUser;
+      status.style.display = '';
+    }
+    grid.innerHTML = '';
+    if (!filtered.length) {
+      grid.innerHTML = '<div class="empty-state"><p class="empty-state-text">' +
+        (ghTab === 'starred' ? 'No starred repos yet — press Load repos, or star something on GitHub first.' : 'No repos match. Load a username or add a custom link.') +
+        '</p></div>';
+      return;
+    }
+    filtered.slice(0, 24).forEach(function (r) {
+      var card = document.createElement('div');
+      card.className = 'gh-card';
+      var top = document.createElement('div'); top.className = 'gh-card-top';
+      var a = document.createElement('a'); a.className = 'gh-name'; a.href = r.html_url; a.target = '_blank'; a.rel = 'noopener';
+      a.textContent = r.full_name || r.name;
+      var pin = document.createElement('button'); pin.type = 'button';
+      var kk = key(r);
+      pin.className = 'gh-pin' + (ghPinned[kk] ? ' pinned' : '');
+      pin.textContent = ghPinned[kk] ? '★' : '☆';
+      pin.title = ghPinned[kk] ? 'Unpin' : 'Pin to top';
+      pin.addEventListener('click', function () {
+        ghPinned[kk] = !ghPinned[kk];
+        if (!ghPinned[kk]) delete ghPinned[kk];
+        persistGhLocal(); renderGh();
+      });
+      top.appendChild(a); top.appendChild(pin);
+      card.appendChild(top);
+      if (r.description) { var d = document.createElement('p'); d.className = 'gh-desc'; d.textContent = r.description; card.appendChild(d); }
+      if (r.custom && r.ref.note) { var nn = document.createElement('p'); nn.className = 'gh-note'; nn.textContent = r.ref.note; card.appendChild(nn); }
+      var meta = document.createElement('div'); meta.className = 'gh-meta';
+      var langHtml = r.language ? '<span><i class="gh-lang-dot" style="background:' + langColor(r.language) + '"></i>' + escapeHtml(r.language) + '</span>' : '';
+      var upd = '';
+      try { if (r.updated_at) upd = '<span>upd ' + new Date(r.updated_at).toISOString().slice(0, 10) + '</span>'; } catch (e) {}
+      meta.innerHTML = langHtml + '<span>★ ' + (r.stargazers_count || 0) + '</span><span>⑂ ' + (r.forks_count || 0) + '</span>' + upd;
+      card.appendChild(meta);
+      var actions = document.createElement('div'); actions.className = 'gh-card-actions';
+      if (!r.custom && r.full_name) {
+        var clone = document.createElement('button');
+        clone.type = 'button'; clone.className = 'gh-mini-btn'; clone.textContent = '⧉ Clone';
+        clone.title = 'Copy git clone URL';
+        (function (fn, b) { clone.addEventListener('click', function () { copyCloneUrl(fn, b); }); })(r.full_name, clone);
+        actions.appendChild(clone);
+        var openBtn = document.createElement('a');
+        openBtn.className = 'gh-mini-btn'; openBtn.href = r.html_url; openBtn.target = '_blank'; openBtn.rel = 'noopener';
+        openBtn.textContent = 'Open ↗';
+        actions.appendChild(openBtn);
+      }
+      if (r.custom) {
+        var del = document.createElement('button');
+        del.type = 'button'; del.className = 'gh-mini-btn'; del.textContent = 'Remove';
+        del.addEventListener('click', function () {
+          ghCustom = ghCustom.filter(function (x) { return ('custom-' + x.id) !== r.id; });
+          persistGhLocal(); renderGh(); showToast('Custom link removed', 'info');
+        });
+        actions.appendChild(del);
+      }
+      if (actions.childNodes.length) card.appendChild(actions);
+      grid.appendChild(card);
+    });
+  }
+
+  function loadGhRepos() {
+    var inp = document.getElementById('ghUserInput');
+    var user = (inp.value || '').trim().replace(/^@/, '') || 'BKarbalai';
+    ghUser = user;
+    persistGhLocal();
+    var status = document.getElementById('ghStatus');
+    if (status) { status.textContent = 'Loading @' + user + ' (profile, repos, starred)...'; status.style.display = ''; }
+    function get(url) {
+      return fetch(url).then(function (res) {
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json();
+      });
+    }
+    Promise.all([
+      get('https://api.github.com/users/' + encodeURIComponent(user)).catch(function () { return null; }),
+      get('https://api.github.com/users/' + encodeURIComponent(user) + '/repos?per_page=100&sort=updated').catch(function () { return null; }),
+      get('https://api.github.com/users/' + encodeURIComponent(user) + '/starred?per_page=100').catch(function () { return null; })
+    ]).then(function (parts) {
+      var failedAll = !parts[0] && !parts[1] && !parts[2];
+      if (failedAll) {
+        if (status) status.textContent = 'Could not reach GitHub API (offline or rate-limited). Custom links still work.';
+        showToast('GitHub fetch failed — check username / connection', 'warn');
+        return;
+      }
+      if (parts[0]) ghProfile = parts[0];
+      if (Array.isArray(parts[1])) ghCache = parts[1];
+      if (Array.isArray(parts[2])) ghStarred = parts[2];
+      renderGh();
+      renderHomeDigest();
+      showToast(ghCache.length + ' repos · ' + ghStarred.length + ' starred for @' + user, 'success');
+    });
+  }
+
+  function ghSurprise() {
+    var all = ghTab === 'starred' ? ghStarred : ghCache;
+    if (!all.length && ghCustom.length) {
+      var c = ghCustom[Math.floor(Math.random() * ghCustom.length)];
+      try { window.open(c.url, '_blank', 'noopener'); } catch (e) {}
+      showToast('Random pick: ' + c.name, 'info');
+      return;
+    }
+    if (!all.length) { showToast('Load repos first, then roll the dice', 'warn'); return; }
+    var r = all[Math.floor(Math.random() * all.length)];
+    showToast('Random pick: ' + (r.full_name || r.name), 'info');
+    try { window.open(r.html_url, '_blank', 'noopener'); } catch (e) {}
+  }
+
+  function openGhModal() { var m = document.getElementById('ghModal'); if (m) m.classList.add('active'); }
+  function closeGhModal() { var m = document.getElementById('ghModal'); if (m) m.classList.remove('active'); }
+
+  // =========================================================================
+  // 19f. Money — student finance tracker
+  // =========================================================================
+
+  var FIN_KEY = 'horizon_fin_v1';
+  var transactions = [];
+  var dues = [];
+  var finBudget = 400;
+  var finFilter = 'all';
+  var finType = 'expense';
+
+  function firstOfNextMonth() {
+    var n = new Date();
+    var d = new Date(n.getFullYear(), n.getMonth() + 1, 1);
+    return todayKey(d);
+  }
+
+  function loadFinance() {
+    try {
+      var raw = localStorage.getItem(FIN_KEY);
+      if (raw) {
+        var o = JSON.parse(raw);
+        transactions = o.tx || []; finBudget = parseFloat(o.budget) || 400;
+        dues = o.dues || [];
+        if (!Array.isArray(transactions)) transactions = [];
+        if (!Array.isArray(dues)) dues = [];
+        return;
+      }
+    } catch (e) {}
+    transactions = [
+      { id: 'tx-seed-1', type: 'income', title: 'Campus job', amount: 450, cat: 'Job', date: todayKey(new Date()) },
+      { id: 'tx-seed-2', type: 'expense', title: 'Dining hall', amount: 24.5, cat: 'Food', date: todayKey(new Date()) },
+      { id: 'tx-seed-3', type: 'expense', title: 'Transit pass', amount: 49, cat: 'Transport', date: todayKey(new Date()) }
+    ];
+    dues = [
+      { id: 'due-seed-rent', name: 'Rent', amount: 1200, dueDate: firstOfNextMonth(), recur: 'monthly' }
+    ];
+    persistFinance();
+  }
+
+  function persistFinance() { try { localStorage.setItem(FIN_KEY, JSON.stringify({ tx: transactions, budget: finBudget, dues: dues })); } catch (e) {} }
+
+  function usd(n) {
+    try { return '$' + parseFloat(n).toFixed(2); }
+    catch (e) { return '$0.00'; }
+  }
+
+  function monthKey(dateStr) { return String(dateStr || '').slice(0, 7); }
+  function currentMonthKey() { return todayKey(new Date()).slice(0, 7); }
+
+  function renderFinance() {
+    var balEl = document.getElementById('finBalance');
+    if (!balEl) return;
+    var mk = currentMonthKey();
+    var monthTx = transactions.filter(function (t) { return monthKey(t.date) === mk; });
+    var inc = monthTx.filter(function (t) { return t.type === 'income'; }).reduce(function (a, t) { return a + (parseFloat(t.amount) || 0); }, 0);
+    var out = monthTx.filter(function (t) { return t.type === 'expense'; }).reduce(function (a, t) { return a + (parseFloat(t.amount) || 0); }, 0);
+    var bal = inc - out;
+    balEl.textContent = (bal < 0 ? '−' : '') + usd(Math.abs(bal));
+    balEl.classList.toggle('negative', bal < 0);
+    balEl.classList.toggle('positive', bal >= 0);
+    document.getElementById('finIncome').textContent = usd(inc);
+    document.getElementById('finExpenses').textContent = usd(out);
+    document.getElementById('finSaved').textContent = inc > 0 ? Math.max(0, Math.round((bal / inc) * 100)) + '%' : '—';
+    var mb = document.getElementById('moneyMonthBadge');
+    if (mb) mb.textContent = mk;
+    var bl = document.getElementById('finBudgetLabel');
+    if (bl) bl.textContent = usd(finBudget) + ' · ' + usd(out) + ' spent';
+    var fill = document.getElementById('finBudgetFill');
+    if (fill) {
+      var pct = finBudget > 0 ? Math.min(100, (out / finBudget) * 100) : 0;
+      fill.style.width = pct + '%';
+      fill.classList.toggle('over', out > finBudget);
+    }
+    var cats = {};
+    monthTx.filter(function (t) { return t.type === 'expense'; }).forEach(function (t) {
+      cats[t.cat || 'Other'] = (cats[t.cat || 'Other'] || 0) + (parseFloat(t.amount) || 0);
+    });
+    var catBox = document.getElementById('finCats');
+    catBox.innerHTML = '';
+    var maxCat = Math.max.apply(null, [0].concat(Object.keys(cats).map(function (k) { return cats[k]; })));
+    Object.keys(cats).sort(function (a, b) { return cats[b] - cats[a]; }).slice(0, 6).forEach(function (c) {
+      var row = document.createElement('div'); row.className = 'cat-row';
+      var nm = document.createElement('span'); nm.className = 'cat-name'; nm.textContent = c;
+      var tr = document.createElement('div'); tr.className = 'cat-track';
+      var f = document.createElement('div'); f.className = 'cat-fill';
+      f.style.width = (maxCat ? (cats[c] / maxCat) * 100 : 0) + '%';
+      tr.appendChild(f);
+      var v = document.createElement('span'); v.className = 'cat-val'; v.textContent = usd(cats[c]);
+      row.appendChild(nm); row.appendChild(tr); row.appendChild(v);
+      catBox.appendChild(row);
+    });
+    if (!Object.keys(cats).length) catBox.innerHTML = '<p class="cal-agenda-hint">No spending this month yet.</p>';
+
+    var list = document.getElementById('finList');
+    list.innerHTML = '';
+    var items = transactions.slice().sort(function (a, b) { return String(b.date).localeCompare(String(a.date)); })
+      .filter(function (t) { return finFilter === 'all' || t.type === finFilter; })
+      .slice(0, 40);
+    if (!items.length) { list.innerHTML = '<div class="money-empty">Nothing here — add your first transaction.</div>'; return; }
+    var initials = { Food: 'Fo', Transport: 'Tr', Study: 'St', Rent: 'Re', Fun: 'Fu', Job: 'Jo', Other: 'Ot' };
+    items.forEach(function (t) {
+      var row = document.createElement('div'); row.className = 'tx-row';
+      var ic = document.createElement('span'); ic.className = 'tx-icon ' + t.type; ic.textContent = initials[t.cat] || (t.type === 'income' ? '+' : '-');
+      var body = document.createElement('span'); body.className = 'tx-body';
+      var ti = document.createElement('span'); ti.className = 'tx-title'; ti.textContent = t.title;
+      var su = document.createElement('span'); su.className = 'tx-sub'; su.textContent = t.date + ' · ' + (t.cat || 'Other');
+      body.appendChild(ti); body.appendChild(su);
+      var amt = document.createElement('span'); amt.className = 'tx-amt ' + t.type;
+      amt.textContent = (t.type === 'income' ? '+' : '−') + usd(t.amount);
+      row.appendChild(ic); row.appendChild(body); row.appendChild(amt);
+      row.addEventListener('click', function () { openFinModal(t.id); });
+      list.appendChild(row);
+    });
+    renderDues();
+  }
+
+  function syncFinTypeUI() {
+    var e = document.getElementById('finTypeExpense'), i = document.getElementById('finTypeIncome');
+    if (e) e.classList.toggle('active', finType === 'expense');
+    if (i) i.classList.toggle('active', finType === 'income');
+  }
+
+  function openFinModal(editId) {
+    var modal = document.getElementById('finModal');
+    if (!modal) return;
+    document.getElementById('finForm').reset();
+    document.getElementById('finEditId').value = editId || '';
+    document.getElementById('finDateInput').value = todayKey(new Date());
+    finType = 'expense'; syncFinTypeUI();
+    var del = document.getElementById('btnFinDelete');
+    if (editId) {
+      var t = transactions.find(function (x) { return x.id === editId; });
+      if (!t) return;
+      finType = t.type || 'expense'; syncFinTypeUI();
+      document.getElementById('finTitleInput').value = t.title || '';
+      document.getElementById('finAmountInput').value = t.amount || '';
+      document.getElementById('finDateInput').value = t.date || todayKey(new Date());
+      document.getElementById('finCatInput').value = t.cat || 'Other';
+      if (del) del.style.display = '';
+    } else if (del) del.style.display = 'none';
+    modal.classList.add('active');
+  }
+  function closeFinModal() { var m = document.getElementById('finModal'); if (m) m.classList.remove('active'); }
+
+  function saveFinFromModal(e) {
+    e.preventDefault();
+    var editId = document.getElementById('finEditId').value;
+    var title = document.getElementById('finTitleInput').value.trim().slice(0, 60);
+    var amount = parseFloat(document.getElementById('finAmountInput').value);
+    var date = document.getElementById('finDateInput').value || todayKey(new Date());
+    var cat = document.getElementById('finCatInput').value || 'Other';
+    if (!title || !(amount > 0)) { showToast('Title + amount required', 'warn'); return; }
+    if (editId) {
+      var t = transactions.find(function (x) { return x.id === editId; });
+      if (t) { t.title = title; t.amount = Math.round(amount * 100) / 100; t.date = date; t.cat = cat; t.type = finType; }
+      showToast('Transaction updated', 'success');
+    } else {
+      transactions.push({ id: 'tx-' + Date.now(), type: finType, title: title, amount: Math.round(amount * 100) / 100, cat: cat, date: date });
+      if (finType === 'income') { confetti.fire(0.5, 0.4); }
+      showToast((finType === 'income' ? 'Income' : 'Expense') + ' saved: ' + usd(amount), 'success');
+    }
+    persistFinance(); closeFinModal(); renderFinance();
+  }
+
+  // ---- Upcoming dues: rent & co. with amount + exact due date ----
+
+  function dueStatus(d) {
+    var today = todayKey(new Date());
+    if (!d.dueDate) return { cls: '', label: 'no date' };
+    if (d.dueDate < today) {
+      var late = Math.round((new Date(today + 'T12:00:00') - new Date(d.dueDate + 'T12:00:00')) / 86400000);
+      return { cls: 'overdue', label: 'overdue ' + late + (late === 1 ? ' day' : ' days') };
+    }
+    if (d.dueDate === today) return { cls: 'today', label: 'due today' };
+    var ahead = Math.round((new Date(d.dueDate + 'T12:00:00') - new Date(today + 'T12:00:00')) / 86400000);
+    return { cls: ahead <= 7 ? 'soon' : '', label: 'in ' + ahead + (ahead === 1 ? ' day' : ' days') };
+  }
+
+  function addMonths(dateStr, n) {
+    var d = new Date(dateStr + 'T12:00:00');
+    d.setMonth(d.getMonth() + n);
+    return todayKey(d);
+  }
+
+  function renderDues() {
+    var list = document.getElementById('dueList');
+    if (!list) return;
+    list.innerHTML = '';
+    var items = dues.slice().sort(function (a, b) { return String(a.dueDate).localeCompare(String(b.dueDate)); });
+    if (!items.length) {
+      list.innerHTML = '<div class="money-empty">No dues tracked — add rent, a subscription or an installment above.</div>';
+      return;
+    }
+    items.forEach(function (d) {
+      var st = dueStatus(d);
+      var row = document.createElement('div');
+      row.className = 'tx-row due-row' + (st.cls ? ' ' + st.cls : '');
+      var ic = document.createElement('span');
+      ic.className = 'tx-icon expense';
+      ic.textContent = String(d.name || '?').trim().slice(0, 2).toUpperCase() || 'Du';
+      var body = document.createElement('span');
+      body.className = 'tx-body';
+      var ti = document.createElement('span');
+      ti.className = 'tx-title';
+      ti.textContent = d.name + (d.recur === 'monthly' ? ' · monthly' : '');
+      var su = document.createElement('span');
+      su.className = 'tx-sub';
+      su.textContent = (d.dueDate || '—') + ' · ' + st.label;
+      body.appendChild(ti);
+      body.appendChild(su);
+      var amt = document.createElement('span');
+      amt.className = 'tx-amt expense';
+      amt.textContent = usd(d.amount);
+      var paid = document.createElement('button');
+      paid.type = 'button';
+      paid.className = 'pill-btn pill-btn-secondary pill-sm';
+      paid.textContent = 'Paid';
+      paid.addEventListener('click', function (e) {
+        e.stopPropagation();
+        transactions.push({
+          id: 'tx-' + Date.now(), type: 'expense', title: (d.name || 'Due') + ' (due)',
+          amount: Math.round((parseFloat(d.amount) || 0) * 100) / 100,
+          cat: /rent/i.test(d.name || '') ? 'Rent' : 'Other', date: todayKey(new Date())
+        });
+        if (d.recur === 'monthly') {
+          d.dueDate = addMonths(d.dueDate || todayKey(new Date()), 1);
+          persistFinance(); renderDues(); renderFinance();
+          showToast(d.name + ' paid ' + usd(d.amount) + ' — next due ' + d.dueDate, 'success');
+        } else {
+          dues = dues.filter(function (x) { return x.id !== d.id; });
+          persistFinance(); renderDues(); renderFinance();
+          confetti.fire(0.5, 0.4);
+          showToast(d.name + ' paid off ' + usd(d.amount) + '. Nicely done.', 'success');
+        }
+      });
+      row.appendChild(ic);
+      row.appendChild(body);
+      row.appendChild(amt);
+      row.appendChild(paid);
+      row.addEventListener('click', function () { openDueModal(d.id); });
+      list.appendChild(row);
+    });
+  }
+
+  function openDueModal(editId) {
+    var modal = document.getElementById('dueModal');
+    if (!modal) return;
+    document.getElementById('dueForm').reset();
+    document.getElementById('dueEditId').value = editId || '';
+    document.getElementById('dueDateInput').value = firstOfNextMonth();
+    document.getElementById('dueRecurInput').checked = true;
+    var del = document.getElementById('btnDueDelete');
+    if (editId) {
+      var d = dues.find(function (x) { return x.id === editId; });
+      if (!d) return;
+      document.getElementById('dueModalTitle').textContent = 'Edit due';
+      document.getElementById('dueNameInput').value = d.name || '';
+      document.getElementById('dueAmountInput').value = d.amount || '';
+      document.getElementById('dueDateInput').value = d.dueDate || firstOfNextMonth();
+      document.getElementById('dueRecurInput').checked = d.recur === 'monthly';
+      if (del) del.style.display = '';
+    } else {
+      document.getElementById('dueModalTitle').textContent = 'New due';
+      if (del) del.style.display = 'none';
+    }
+    modal.classList.add('active');
+  }
+
+  function closeDueModal() { var m = document.getElementById('dueModal'); if (m) m.classList.remove('active'); }
+
+  function saveDueFromModal(e) {
+    e.preventDefault();
+    var editId = document.getElementById('dueEditId').value;
+    var name = document.getElementById('dueNameInput').value.trim().slice(0, 60);
+    var amount = parseFloat(document.getElementById('dueAmountInput').value);
+    var date = document.getElementById('dueDateInput').value || firstOfNextMonth();
+    var recur = document.getElementById('dueRecurInput').checked ? 'monthly' : 'once';
+    if (!name || !(amount > 0)) { showToast('Name + amount required', 'warn'); return; }
+    if (editId) {
+      var d = dues.find(function (x) { return x.id === editId; });
+      if (d) { d.name = name; d.amount = Math.round(amount * 100) / 100; d.dueDate = date; d.recur = recur; }
+      showToast('Due updated', 'success');
+    } else {
+      dues.push({ id: 'due-' + Date.now(), name: name, amount: Math.round(amount * 100) / 100, dueDate: date, recur: recur });
+      showToast('Due added: ' + name + ' ' + usd(amount), 'success');
+    }
+    persistFinance(); closeDueModal(); renderDues(); renderFinance();
+  }
+
+  // =========================================================================
+  // 19g. Flight simulator — fly your focus sessions
+  // =========================================================================
+
+  var FLIGHT_KEY = 'horizon_flight_v1';
+
+  var AIRPORTS = [
+    { id: 'JFK', city: 'New York', name: 'John F. Kennedy', region: 'North America', lat: 40.64, lon: -73.78, tier: 0 },
+    { id: 'LAS', city: 'Las Vegas', name: 'Harry Reid', region: 'North America', lat: 36.08, lon: -115.15, tier: 0 },
+    { id: 'LAX', city: 'Los Angeles', name: 'Los Angeles Intl', region: 'North America', lat: 33.94, lon: -118.41, tier: 0 },
+    { id: 'ORD', city: 'Chicago', name: "O'Hare", region: 'North America', lat: 41.97, lon: -87.91, tier: 1 },
+    { id: 'MIA', city: 'Miami', name: 'Miami Intl', region: 'North America', lat: 25.79, lon: -80.29, tier: 1 },
+    { id: 'SFO', city: 'San Francisco', name: 'San Francisco Intl', region: 'North America', lat: 37.62, lon: -122.38, tier: 1 },
+    { id: 'ATL', city: 'Atlanta', name: 'Hartsfield-Jackson', region: 'North America', lat: 33.64, lon: -84.43, tier: 2 },
+    { id: 'YYZ', city: 'Toronto', name: 'Pearson', region: 'North America', lat: 43.68, lon: -79.63, tier: 2 },
+    { id: 'MEX', city: 'Mexico City', name: 'Benito Juarez', region: 'North America', lat: 19.44, lon: -99.07, tier: 3 },
+    { id: 'LHR', city: 'London', name: 'Heathrow', region: 'Europe', lat: 51.47, lon: -0.45, tier: 0 },
+    { id: 'CDG', city: 'Paris', name: 'Charles de Gaulle', region: 'Europe', lat: 49.01, lon: 2.55, tier: 0 },
+    { id: 'FRA', city: 'Frankfurt', name: 'Frankfurt am Main', region: 'Europe', lat: 50.03, lon: 8.56, tier: 1 },
+    { id: 'AMS', city: 'Amsterdam', name: 'Schiphol', region: 'Europe', lat: 52.31, lon: 4.76, tier: 1 },
+    { id: 'MAD', city: 'Madrid', name: 'Barajas', region: 'Europe', lat: 40.47, lon: -3.57, tier: 2 },
+    { id: 'FCO', city: 'Rome', name: 'Fiumicino', region: 'Europe', lat: 41.80, lon: 12.25, tier: 2 },
+    { id: 'ZRH', city: 'Zurich', name: 'Zurich', region: 'Europe', lat: 47.46, lon: 8.55, tier: 3 },
+    { id: 'DXB', city: 'Dubai', name: 'Dubai Intl', region: 'Middle East', lat: 25.25, lon: 55.36, tier: 0 },
+    { id: 'DOH', city: 'Doha', name: 'Hamad Intl', region: 'Middle East', lat: 25.27, lon: 51.61, tier: 1 },
+    { id: 'MCT', city: 'Muscat', name: 'Muscat Intl', region: 'Middle East', lat: 23.59, lon: 58.28, tier: 1 },
+    { id: 'RUH', city: 'Riyadh', name: 'King Khalid', region: 'Middle East', lat: 24.96, lon: 46.70, tier: 2 },
+    { id: 'JED', city: 'Jeddah', name: 'King Abdulaziz', region: 'Middle East', lat: 21.68, lon: 39.16, tier: 3 },
+    { id: 'SIN', city: 'Singapore', name: 'Changi', region: 'Asia', lat: 1.36, lon: 103.99, tier: 0 },
+    { id: 'BOM', city: 'Mumbai', name: 'Chhatrapati Shivaji', region: 'Asia', lat: 19.09, lon: 72.87, tier: 1 },
+    { id: 'HKG', city: 'Hong Kong', name: 'Hong Kong Intl', region: 'Asia', lat: 22.31, lon: 113.91, tier: 1 },
+    { id: 'DEL', city: 'Delhi', name: 'Indira Gandhi', region: 'Asia', lat: 28.57, lon: 77.10, tier: 2 },
+    { id: 'NRT', city: 'Tokyo', name: 'Narita', region: 'Asia', lat: 35.77, lon: 140.39, tier: 2 },
+    { id: 'ICN', city: 'Seoul', name: 'Incheon', region: 'Asia', lat: 37.46, lon: 126.44, tier: 3 },
+    { id: 'BKK', city: 'Bangkok', name: 'Suvarnabhumi', region: 'Asia', lat: 13.69, lon: 100.75, tier: 3 },
+    { id: 'SYD', city: 'Sydney', name: 'Kingsford Smith', region: 'Oceania', lat: -33.95, lon: 151.18, tier: 1 },
+    { id: 'MEL', city: 'Melbourne', name: 'Melbourne', region: 'Oceania', lat: -37.67, lon: 144.84, tier: 2 },
+    { id: 'AKL', city: 'Auckland', name: 'Auckland', region: 'Oceania', lat: -37.01, lon: 174.79, tier: 3 },
+    { id: 'CAI', city: 'Cairo', name: 'Cairo Intl', region: 'Africa', lat: 30.12, lon: 31.41, tier: 2 },
+    { id: 'ADD', city: 'Addis Ababa', name: 'Bole', region: 'Africa', lat: 8.98, lon: 38.80, tier: 3 },
+    { id: 'JNB', city: 'Johannesburg', name: 'O.R. Tambo', region: 'Africa', lat: -26.14, lon: 28.25, tier: 3 },
+    { id: 'GRU', city: 'Sao Paulo', name: 'Guarulhos', region: 'South America', lat: -23.44, lon: -46.47, tier: 2 },
+    { id: 'EZE', city: 'Buenos Aires', name: 'Ezeiza', region: 'South America', lat: -34.82, lon: -58.54, tier: 3 },
+    { id: 'BOG', city: 'Bogota', name: 'El Dorado', region: 'South America', lat: 4.70, lon: -74.14, tier: 3 },
+    { id: 'DFW', city: 'Dallas', name: 'Dallas/Fort Worth', region: 'North America', lat: 32.90, lon: -97.04, tier: 1 },
+    { id: 'DEN', city: 'Denver', name: 'Denver Intl', region: 'North America', lat: 39.86, lon: -104.67, tier: 1 },
+    { id: 'SEA', city: 'Seattle', name: 'Seattle-Tacoma', region: 'North America', lat: 47.45, lon: -122.31, tier: 1 },
+    { id: 'BOS', city: 'Boston', name: 'Logan', region: 'North America', lat: 42.36, lon: -71.01, tier: 1 },
+    { id: 'IAD', city: 'Washington', name: 'Dulles', region: 'North America', lat: 38.95, lon: -77.46, tier: 2 },
+    { id: 'BCN', city: 'Barcelona', name: 'El Prat', region: 'Europe', lat: 41.30, lon: 2.08, tier: 1 },
+    { id: 'LIS', city: 'Lisbon', name: 'Humberto Delgado', region: 'Europe', lat: 38.77, lon: -9.13, tier: 1 },
+    { id: 'VIE', city: 'Vienna', name: 'Vienna Intl', region: 'Europe', lat: 48.11, lon: 16.57, tier: 1 },
+    { id: 'ATH', city: 'Athens', name: 'Athens Intl', region: 'Europe', lat: 37.94, lon: 23.94, tier: 2 },
+    { id: 'CPH', city: 'Copenhagen', name: 'Kastrup', region: 'Europe', lat: 55.62, lon: 12.66, tier: 2 },
+    { id: 'DUB', city: 'Dublin', name: 'Dublin', region: 'Europe', lat: 53.42, lon: -6.27, tier: 2 },
+    { id: 'AUH', city: 'Abu Dhabi', name: 'Zayed Intl', region: 'Middle East', lat: 24.43, lon: 54.65, tier: 1 },
+    { id: 'KWI', city: 'Kuwait City', name: 'Kuwait Intl', region: 'Middle East', lat: 29.23, lon: 47.97, tier: 2 },
+    { id: 'PEK', city: 'Beijing', name: 'Capital Intl', region: 'Asia', lat: 40.08, lon: 116.58, tier: 1 },
+    { id: 'KUL', city: 'Kuala Lumpur', name: 'Kuala Lumpur Intl', region: 'Asia', lat: 3.14, lon: 101.69, tier: 1 },
+    { id: 'CGK', city: 'Jakarta', name: 'Soekarno-Hatta', region: 'Asia', lat: -6.13, lon: 106.66, tier: 2 },
+    { id: 'IDR', city: 'Indore', name: 'Devi Ahilyabai Holkar', region: 'Asia', lat: 22.72, lon: 75.80, tier: 2 },
+    { id: 'SJC', city: 'San Jose', name: 'Norman Y. Mineta', region: 'North America', lat: 37.36, lon: -121.93, tier: 1 },
+    { id: 'SAN', city: 'San Diego', name: 'San Diego Intl', region: 'North America', lat: 32.73, lon: -117.19, tier: 1 },
+    { id: 'SMF', city: 'Sacramento', name: 'Sacramento Intl', region: 'North America', lat: 38.70, lon: -121.59, tier: 2 },
+    { id: 'PRG', city: 'Prague', name: 'Vaclav Havel', region: 'Europe', lat: 50.10, lon: 14.26, tier: 1 },
+    { id: 'BRU', city: 'Brussels', name: 'Brussels', region: 'Europe', lat: 50.90, lon: 4.48, tier: 2 },
+    { id: 'ARN', city: 'Stockholm', name: 'Arlanda', region: 'Europe', lat: 59.65, lon: 17.92, tier: 2 },
+    { id: 'OSL', city: 'Oslo', name: 'Gardermoen', region: 'Europe', lat: 60.19, lon: 11.10, tier: 2 },
+    { id: 'NJF', city: 'Najaf', name: 'Al Najaf Intl', region: 'Middle East', lat: 31.99, lon: 44.40, tier: 2 },
+    { id: 'NBO', city: 'Nairobi', name: 'Jomo Kenyatta', region: 'Africa', lat: -1.32, lon: 36.93, tier: 2 },
+    { id: 'LOS', city: 'Lagos', name: 'Murtala Muhammed', region: 'Africa', lat: 6.52, lon: 3.38, tier: 3 },
+    { id: 'SCL', city: 'Santiago', name: 'Arturo Merino Benitez', region: 'South America', lat: -33.39, lon: -70.79, tier: 2 },
+    { id: 'LIM', city: 'Lima', name: 'Jorge Chavez', region: 'South America', lat: -12.02, lon: -77.11, tier: 3 }
+  ];
+
+  var TIER_MILES = { 1: 2000, 2: 8000, 3: 20000 };
+  var CABINS = [
+    { id: 'economy', name: 'Economy', mult: 1, flights: 0 },
+    { id: 'premium', name: 'Premium', mult: 1.25, flights: 5 },
+    { id: 'business', name: 'Business', mult: 1.5, flights: 15 },
+    { id: 'first', name: 'First Class', mult: 2, flights: 30 }
+  ];
+
+  var PLANES = [
+    { id: 'a320', name: 'Airbus A320', cruise: 840, range: 6100, size: 1 },
+    { id: 'b737', name: 'Boeing 737', cruise: 820, range: 5600, size: 1 },
+    { id: 'b787', name: 'Boeing 787', cruise: 913, range: 14100, size: 1.35 },
+    { id: 'a350', name: 'Airbus A350', cruise: 903, range: 15000, size: 1.35 },
+    { id: 'b777', name: 'Boeing 777', cruise: 905, range: 14000, size: 1.5 },
+    { id: 'a380', name: 'Airbus A380', cruise: 900, range: 14800, size: 1.8 }
+  ];
+
+  // Real Earth landmask (Natural Earth 110m, rasterized 144x72, base64 bits)
+  var LAND_W = 144, LAND_H = 72;
+  var LANDMASK = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/5///gAAAAAAAAAAAAAAAAAz/P//8ABwAAAADAAAAAAAABKZAP//8AAAAA4AH4AAAAAAADwDQAP/8AAAAGAH/4AIAAgEABfG/gH/4AAAAGHf//9/gAB///1Ds4H/gAAf4F6///////8/////w+H8BAB/0/////////AP////UcHwCAD3/////////+A////8BgDgAAPn////////74AeB//+B6AAAAPn///////4CAAIAf//h+AAACFP///////gOAAAAP//7/gAANH////////wMAAAAH////wAAD/////////wAAAAAD///04AAD/////////wAAAAAD///8AAAB//X3/////gAAAAAD///wAAAB6+Dv/////EAAAAAD///gAAAPhvbz////8IAAAAAB///AAAAPAp/z///+IIAAAAAB///AAAAA8Af/////EwAAAAAAf/+AAAAH8AP/////BAAAAAAAX/4AAAAP/uv/////gAAAAAAAP8EAAAAP///v////gAAAAAAAD4EAAAA///3z////AAAAAAAAB4AAAAA///3+H//+gAAAAAAAA4gAAAB///7/D+fgAAAAAAAAA9gYAAA///7+B8PQAAAAAAAAAHgAAAB///94B4HggAAAAAAAAA4AAAB////gAwHwwAAAAAAAAAAoAAA///+QAwFgAAAAAAAAAAF/AAAf///wAAEAIAAAAAAAAAB/gAAPv//wAICAAAAAAAAAAAB/8AAAD//gAAGGAAAAAAAAAAD/8AAAD//AAADOAAAAAAAAAAD//AAAD/+AAADOjAAAAAAAAAD//4AAD/8AAABAg8AAAAAAAAD//8AAB/8AAAAgAeAAAAAAAAD//8AAB/8AAAABoIAAAAAAAAB//4AAB/8AAAAAAAAAAAAAAAB//wAAB/8QAAAADAAAAAAAAAAf/wAAB/8wAAAAfkAAAAAAAAAP/wAAB/wwAAAAf+AAAAAAAAAP/wAAB/xgAAAD//AAAAAAAAAP/AAAA/xgAAAH//AAAAAAAAAP+AAAA/gAAAAH//gAAAAAAAAf8AAAAfgAAAAD//gAAAAAAAAf8AAAAfAAAAAD//gAAAAAAAAf4AAAAcAAAAADw/gAAAAAAAAfgAAAAAAAAAAAAPAAAAAAAAAfAAAAAAAAAAAAACACAAAAAAA8AAAAAAAAAAAAACAEAAAAAAAcAAAAAAAAAAAAAAAIAAAAAAA4AAAAAAAAAAAAAAAQAAAAAAA4AAAAAAAAAAAAAAAAAAAAAAAwgAAAAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAAAAAAAAAAAAAAAAAAAACAAAAAAAGAABEAAAAAAAAAAAEAAAAAAR/8f////gAAAAAAAA+AAAF////5//////wAAABAf+/AAB////////////gAAP////wAAP///////////+AAT////+ADj/////////////gAD/////4AH////////////8AAB/////////////////////wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
+
+  function landAt(col, row) {
+    if (col < 0 || col >= LAND_W || row < 0 || row >= LAND_H) return false;
+    var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+    var i = row * LAND_W + col;
+    var ch = LANDMASK.charAt(i >> 3);
+    var v = chars.indexOf(ch);
+    if (v < 0) return false;
+    return !!((v >> (7 - (i & 7))) & 1);
+  }
+
+  var flightSave = { miles: 0, flights: 0, log: [], from: 'JFK', to: 'LAS', cabin: 'economy', mode: 'real', customMin: 50, airline: 'BA', plane: 'b777', view: 'map', day: 'auto', zoom: 3 };
+  var flight = { state: 'idle', totalSec: 0, elapsed: 0, runStart: 0, raf: null, distMi: 0, miles: 0 };
+  var flRefs = {};
+
+  function loadFlight() {
+    try {
+      var raw = localStorage.getItem(FLIGHT_KEY);
+      if (raw) {
+        var o = JSON.parse(raw);
+        ['miles', 'flights', 'from', 'to', 'cabin', 'mode', 'customMin', 'plane', 'view', 'day', 'zoom'].forEach(function (k) {
+          if (o[k] !== undefined) flightSave[k] = o[k];
+        });
+        if (Array.isArray(o.log)) flightSave.log = o.log.slice(0, 20);
+      }
+    } catch (e) {}
+    if (!apById(flightSave.from)) flightSave.from = 'JFK';
+    if (!apById(flightSave.to) || flightSave.to === flightSave.from) flightSave.to = 'LAS';
+    if (!CABINS.some(function (c) { return c.id === flightSave.cabin; })) flightSave.cabin = 'economy';
+    if (!planeById(flightSave.plane)) flightSave.plane = 'b777';
+    if (['map', 'follow'].indexOf(flightSave.view) < 0) flightSave.view = 'map';
+    if (['day', 'auto', 'night'].indexOf(flightSave.day) < 0) flightSave.day = 'auto';
+    flightSave.zoom = Math.min(8, Math.max(1, parseInt(flightSave.zoom, 10) || 3));
+  }
+
+  function persistFlight() {
+    try { localStorage.setItem(FLIGHT_KEY, JSON.stringify(flightSave)); } catch (e) {}
+  }
+
+  function apById(id) {
+    for (var i = 0; i < AIRPORTS.length; i++) if (AIRPORTS[i].id === id) return AIRPORTS[i];
+    return null;
+  }
+
+  function cabinById(id) {
+    for (var i = 0; i < CABINS.length; i++) if (CABINS[i].id === id) return CABINS[i];
+    return CABINS[0];
+  }
+
+  function planeById(id) {
+    for (var i = 0; i < PLANES.length; i++) if (PLANES[i].id === id) return PLANES[i];
+    return PLANES[4];
+  }
+
+  function isApUnlocked(ap) {
+    if (!ap) return false;
+    if (!ap.tier) return true;
+    return flightSave.miles >= (TIER_MILES[ap.tier] || Infinity);
+  }
+
+  function unlockedPorts() {
+    return AIRPORTS.filter(isApUnlocked).length;
+  }
+
+  function isCabinUnlocked(c) {
+    return flightSave.flights >= (c.flights || 0);
+  }
+
+  function haversineKm(a, b) {
+    var R = 6371, dLat = (b.lat - a.lat) * Math.PI / 180, dLon = (b.lon - a.lon) * Math.PI / 180;
+    var la1 = a.lat * Math.PI / 180, la2 = b.lat * Math.PI / 180;
+    var h = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(la1) * Math.cos(la2) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    return 2 * R * Math.asin(Math.sqrt(h));
+  }
+
+  function routeInfo(fromId, toId, planeId) {
+    var a = apById(fromId), b = apById(toId);
+    if (!a || !b) return null;
+    var plane = planeById(planeId || flightSave.plane);
+    var km = haversineKm(a, b);
+    var mi = Math.round(km * 0.621371);
+    var realMin = Math.max(5, Math.round(km / plane.cruise * 60 + 30));
+    return { a: a, b: b, km: Math.round(km), mi: mi, realMin: realMin, plane: plane, inRange: km <= plane.range };
+  }
+
+  function fmtDur(min) {
+    min = Math.round(min);
+    var h = Math.floor(min / 60), m = min % 60;
+    return h ? h + 'h ' + m + 'm' : m + 'm';
+  }
+
+  function fmtClock(sec) {
+    sec = Math.max(0, Math.ceil(sec));
+    var h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+    function p(n) { return String(n).padStart(2, '0'); }
+    return h ? h + ':' + p(m) + ':' + p(s) : p(m) + ':' + p(s);
+  }
+
+  function fmtNum(n) {
+    try { return Number(n).toLocaleString('en-US'); } catch (e) { return String(n); }
+  }
+
+  function populateFlightSelects() {
+    var from = document.getElementById('flFrom'), to = document.getElementById('flTo'), cab = document.getElementById('flCabin');
+    var pl = document.getElementById('flPlane');
+    if (!from || !to || !cab) return;
+    var regions = [];
+    AIRPORTS.forEach(function (a) { if (regions.indexOf(a.region) < 0) regions.push(a.region); });
+    function fill(sel, val) {
+      sel.innerHTML = '';
+      regions.forEach(function (rg) {
+        var g = document.createElement('optgroup');
+        g.label = rg;
+        AIRPORTS.filter(function (a) { return a.region === rg; }).forEach(function (a) {
+          var o = document.createElement('option');
+          o.value = a.id;
+          var locked = !isApUnlocked(a);
+          o.textContent = a.id + ' — ' + a.city + (locked ? ' (locked · ' + fmtNum(TIER_MILES[a.tier]) + ' mi)' : '');
+          o.disabled = locked;
+          if (locked) o.title = 'Locked — earn ' + fmtNum(TIER_MILES[a.tier]) + ' total miles to unlock ' + a.city;
+          if (a.id === val) o.selected = true;
+          g.appendChild(o);
+        });
+        sel.appendChild(g);
+      });
+    }
+    fill(from, flightSave.from);
+    fill(to, flightSave.to);
+    cab.innerHTML = '';
+    CABINS.forEach(function (c) {
+      var o = document.createElement('option');
+      o.value = c.id;
+      var locked = !isCabinUnlocked(c);
+      o.textContent = c.name + ' ×' + c.mult + (locked ? ' (' + c.flights + ' flights)' : '');
+      o.disabled = locked;
+      if (c.id === flightSave.cabin) o.selected = true;
+      cab.appendChild(o);
+    });
+    if (pl) {
+      pl.innerHTML = '';
+      PLANES.forEach(function (p) {
+        var o = document.createElement('option');
+        o.value = p.id;
+        o.textContent = p.name + ' · ' + p.cruise + ' km/h · ' + fmtNum(p.range) + ' km range';
+        if (p.id === flightSave.plane) o.selected = true;
+        pl.appendChild(o);
+      });
+    }
+  }
+
+  function nextUnlockInfo() {
+    var lockedTiers = AIRPORTS.filter(function (a) { return !isApUnlocked(a); }).map(function (a) { return a.tier; });
+    if (!lockedTiers.length) return null;
+    var next = Math.min.apply(null, lockedTiers);
+    var count = AIRPORTS.filter(function (a) { return a.tier === next; }).length;
+    return { tier: next, count: count, need: TIER_MILES[next] - flightSave.miles };
+  }
+
+  function flightSpeedKmh(info, mins) {
+    if (!info || !mins) return 0;
+    return Math.round(info.km / (mins / 60));
+  }
+
+  function renderFlightAll() {
+    var info = routeInfo(flightSave.from, flightSave.to, flightSave.plane);
+    var cab = cabinById(flightSave.cabin);
+    var plane = planeById(flightSave.plane);
+    var mins = flightSave.mode === 'custom' ? Math.min(600, Math.max(1, parseInt(flightSave.customMin, 10) || 50)) : (info ? info.realMin : 50);
+    var earn = info ? Math.round(info.mi * cab.mult) : 0;
+    var meta = document.getElementById('flRouteMeta');
+    if (meta && info) {
+      var spd = flightSpeedKmh(info, mins);
+      var comp = flightSave.mode === 'custom' && info.realMin !== mins
+        ? ' · ' + (info.realMin / mins).toFixed(1) + '× time' : '';
+      var rangeWarn = info.inRange ? '' : ' · OUT OF RANGE for ' + plane.name;
+      meta.textContent = plane.name + ' · ' + info.a.id + ' → ' + info.b.id + ' · ' +
+        fmtNum(info.mi) + ' mi · ' + (flightSave.mode === 'custom' ? 'custom ' + fmtDur(mins) : 'real ' + fmtDur(info.realMin)) +
+        ' · ' + fmtNum(spd) + ' km/h' + comp + ' · +' + fmtNum(earn) + ' mi' + rangeWarn;
+    }
+    syncFlightViewBtns();
+    var badge = document.getElementById('flMilesBadge');
+    if (badge) badge.textContent = fmtNum(flightSave.miles) + ' mi flown';
+    var note = document.getElementById('flUnlockNote');
+    if (note) {
+      var nx = nextUnlockInfo();
+      var nextCab = CABINS.filter(function (c) { return !isCabinUnlocked(c); })[0];
+      var bits = [];
+      if (nx) bits.push('Next: ' + nx.count + ' airports at ' + fmtNum(TIER_MILES[nx.tier]) + ' mi (' + fmtNum(nx.need) + ' to go)');
+      else bits.push('All airports unlocked');
+      if (nextCab) bits.push(nextCab.name + ' cabin at ' + nextCab.flights + ' flights');
+      note.textContent = bits.join(' · ');
+    }
+    var cw = document.getElementById('flCustomWrap');
+    if (cw) cw.style.display = flightSave.mode === 'custom' ? '' : 'none';
+    renderFlightStats();
+    renderFlightLog();
+    renderDepartures();
+    buildFlightMap();
+    paintFlight(flight.state === 'landed' ? 1 : flightProgress());
+  }
+
+  function renderFlightStats() {
+    setText('flStatMiles', fmtNum(flightSave.miles));
+    setText('flStatFlights', String(flightSave.flights));
+    setText('flStatPorts', unlockedPorts() + '/' + AIRPORTS.length);
+    setText('flLogCount', flightSave.flights + (flightSave.flights === 1 ? ' stamp' : ' stamps'));
+  }
+
+  function renderFlightLog() {
+    var box = document.getElementById('flLog');
+    if (!box) return;
+    box.innerHTML = '';
+    if (!flightSave.log.length) {
+      box.innerHTML = '<div class="money-empty">Passport is empty — every landed flight earns a stamp here.</div>';
+      return;
+    }
+    flightSave.log.slice(0, 8).forEach(function (f) {
+      var row = document.createElement('div');
+      row.className = 'tx-row passport-stamp';
+      var ic = document.createElement('span');
+      ic.className = 'tx-icon expense';
+      ic.textContent = f.f;
+      var body = document.createElement('span');
+      body.className = 'tx-body';
+      var ti = document.createElement('span');
+      ti.className = 'tx-title';
+      ti.textContent = f.f + ' → ' + f.t;
+      var su = document.createElement('span');
+      su.className = 'tx-sub';
+      su.textContent = (f.date || '') + ' · ' + fmtDur(f.min) + ' · ' + (f.cabin || '') + (f.plane ? ' · ' + f.plane : '');
+      body.appendChild(ti);
+      body.appendChild(su);
+      var amt = document.createElement('span');
+      amt.className = 'tx-amt income';
+      amt.textContent = '+' + fmtNum(f.miles) + ' mi';
+      row.appendChild(ic);
+      row.appendChild(body);
+      row.appendChild(amt);
+      box.appendChild(row);
+    });
+  }
+
+  // ---------- canvas Earth engine (real coastlines, day/night, cameras) ----------
+
+  var flMapDay = null, flMapNight = null;
+
+  function gcPos(a, b, f) {
+    function v(ap) {
+      var la = ap.lat * Math.PI / 180, lo = ap.lon * Math.PI / 180;
+      return [Math.cos(la) * Math.cos(lo), Math.cos(la) * Math.sin(lo), Math.sin(la)];
+    }
+    var A = v(a), B = v(b);
+    var dot = Math.max(-1, Math.min(1, A[0] * B[0] + A[1] * B[1] + A[2] * B[2]));
+    var th = Math.acos(dot);
+    if (th < 1e-6) return { lat: a.lat, lon: a.lon, heading: 0 };
+    var s = Math.sin(th);
+    var k0 = Math.sin((1 - f) * th) / s, k1 = Math.sin(f * th) / s;
+    var x = k0 * A[0] + k1 * B[0], y = k0 * A[1] + k1 * B[1], z = k0 * A[2] + k1 * B[2];
+    var lat = Math.asin(Math.max(-1, Math.min(1, z))) * 180 / Math.PI;
+    var lon = Math.atan2(y, x) * 180 / Math.PI;
+    var e = 0.004;
+    var f2 = Math.min(1, f + e);
+    var k0b = Math.sin((1 - f2) * th) / s, k1b = Math.sin(f2 * th) / s;
+    var xb = k0b * A[0] + k1b * B[0], yb = k0b * A[1] + k1b * B[1], zb = k0b * A[2] + k1b * B[2];
+    var lat2 = Math.asin(Math.max(-1, Math.min(1, zb))) * 180 / Math.PI;
+    var lon2 = Math.atan2(yb, xb) * 180 / Math.PI;
+    var dLon = lon2 - lon;
+    if (dLon > 180) dLon -= 360;
+    if (dLon < -180) dLon += 360;
+    var heading = Math.atan2(dLon * Math.cos(lat * Math.PI / 180), lat2 - lat) * 180 / Math.PI;
+    return { lat: lat, lon: lon, heading: heading };
+  }
+
+  function altProfile(t) {
+    t = Math.min(1, Math.max(0, t));
+    return Math.pow(Math.sin(Math.PI * t), 0.65);
+  }
+
+  function prerenderEarth() {
+    if (flMapDay) return;
+    var W = 1000, H = 500;
+    var day = document.createElement('canvas');
+    day.width = W; day.height = H;
+    var g = day.getContext('2d');
+    var oc = g.createLinearGradient(0, 0, 0, H);
+    oc.addColorStop(0, '#0b1a33');
+    oc.addColorStop(0.5, '#0a1730');
+    oc.addColorStop(1, '#0b1a33');
+    g.fillStyle = oc;
+    g.fillRect(0, 0, W, H);
+    g.strokeStyle = 'rgba(140,170,220,0.10)';
+    g.lineWidth = 1;
+    for (var gx = 0; gx <= W; gx += 1000 / 12) { g.beginPath(); g.moveTo(gx, 0); g.lineTo(gx, H); g.stroke(); }
+    for (var gy = 0; gy <= H; gy += 500 / 6) { g.beginPath(); g.moveTo(0, gy); g.lineTo(W, gy); g.stroke(); }
+    var cw = W / LAND_W, ch = H / LAND_H;
+    for (var row = 0; row < LAND_H; row++) {
+      for (var col = 0; col < LAND_W; col++) {
+        if (!landAt(col, row)) continue;
+        var shade = 0.75 + 0.25 * ((col * 7 + row * 13) % 5) / 4;
+        g.fillStyle = 'rgba(72,138,118,' + shade.toFixed(2) + ')';
+        g.beginPath();
+        g.arc(col * cw + cw / 2, row * ch + ch / 2, Math.min(cw, ch) * 0.42, 0, Math.PI * 2);
+        g.fill();
+      }
+    }
+    flMapDay = day;
+    var night = document.createElement('canvas');
+    night.width = W; night.height = H;
+    var n2 = night.getContext('2d');
+    n2.drawImage(day, 0, 0);
+    n2.fillStyle = 'rgba(2,6,20,0.78)';
+    n2.fillRect(0, 0, W, H);
+    flMapNight = night;
+  }
+
+  function sunPos(date) {
+    var start = Date.UTC(date.getUTCFullYear(), 0, 0);
+    var doy = Math.floor((date.getTime() - start) / 86400000);
+    var decl = -23.44 * Math.cos(2 * Math.PI * (doy + 10) / 365);
+    var utcH = date.getUTCHours() + date.getUTCMinutes() / 60 + date.getUTCSeconds() / 3600;
+    var lon = ((12 - utcH) * 15 + 540) % 360 - 180;
+    return { lat: decl, lon: lon };
+  }
+
+  function terminatorHalf(latDeg, declDeg) {
+    var la = latDeg * Math.PI / 180, de = declDeg * Math.PI / 180;
+    var c = -Math.tan(la) * Math.tan(de);
+    if (c >= 1) return 0;
+    if (c <= -1) return 180;
+    return Math.acos(c) * 180 / Math.PI;
+  }
+
+  function flightCamera(t) {
+    if (flightSave.view === 'follow') {
+      var info = routeInfo(flightSave.from, flightSave.to, flightSave.plane);
+      var pos = info ? gcPos(info.a, info.b, t) : { lat: 20, lon: 0 };
+      return { cx: pos.lon, cy: Math.max(-70, Math.min(70, pos.lat)), z: flightSave.zoom, pos: pos };
+    }
+    return { cx: 0, cy: 12, z: 1, pos: null };
+  }
+
+  function camProject(cam, lon, lat, W, H) {
+    var dLon = lon - cam.cx;
+    while (dLon > 180) dLon -= 360;
+    while (dLon < -180) dLon += 360;
+    return { x: W / 2 + dLon * (W / 360) * cam.z, y: H / 2 - (lat - cam.cy) * (H / 180) * cam.z };
+  }
+
+  function buildFlightMap() {
+    prerenderEarth();
+    flRefs = {};
+    if (leafletActive() && flight.state === 'idle') { flLeafUserHold = false; flLeafFit(); }
+    paintFlight(flight.state === 'landed' ? 1 : flightProgress());
+  }
+
+  function drawEarthFrame(ctx, W, H, cam, t, routePts, planePos, planeHeading, planeScale, livery) {
+    prerenderEarth();
+    var span = 360 / cam.z;
+    var lon0 = cam.cx - span / 2;
+    var lat1 = Math.min(90, cam.cy + 90 / cam.z), lat0 = Math.max(-90, cam.cy - 90 / cam.z);
+    // day base, split at antimeridian
+    var a = lon0, parts = [];
+    function norm(l) { var r = l; while (r < -180) r += 360; while (r > 180) r -= 360; return r; }
+    var cur = a;
+    for (var k = 0; k < 4 && cur < lon0 + span - 1e-6; k++) {
+      var chunkEnd = Math.min(lon0 + span, (Math.floor((cur + 180) / 360) + 1) * 360 - 180 + 360);
+      // simpler: cut at next multiple of 360 offset
+      var cut = Math.ceil((cur + 180) / 360) * 360 - 180;
+      if (cut <= cur + 1e-6) cut = cur + (lon0 + span - cur);
+      chunkEnd = Math.min(lon0 + span, cut);
+      parts.push([cur, chunkEnd]);
+      cur = chunkEnd;
+    }
+    parts.forEach(function (pr) {
+      var p0 = norm(pr[0]), p1 = norm(pr[1]);
+      var sx = (p0 + 180) / 360 * 1000, sw = (p1 - p0) / 360 * 1000;
+      var dx = (pr[0] - lon0) / span * W, dw = (pr[1] - pr[0]) / span * W;
+      var sy = (90 - lat1) / 180 * 500, sh = (lat1 - lat0) / 180 * 500;
+      try { ctx.drawImage(flMapDay, sx, sy, sw, sh, dx, 0, dw, H); } catch (e) {}
+    });
+    // night overlay (per-row terminator spans)
+    var sun = sunPos(new Date());
+    var nightFull = flightSave.day === 'night';
+    var nightSkip = flightSave.day === 'day';
+    if (nightFull) {
+      ctx.fillStyle = 'rgba(2,6,20,0.62)';
+      ctx.fillRect(0, 0, W, H);
+    } else if (!nightSkip) {
+      ctx.fillStyle = 'rgba(2,6,20,0.62)';
+      for (var y = 0; y < H; y += 3) {
+        var lat = cam.cy + (H / 2 - y) * 180 / (H * cam.z);
+        if (lat > 90 || lat < -90) { ctx.fillRect(0, y, W, 3); continue; }
+        var hw = terminatorHalf(lat, sun.lat);
+        if (hw >= 180) continue;
+        if (hw <= 0) { ctx.fillRect(0, y, W, 3); continue; }
+        var n0 = sun.lon + hw, n1 = sun.lon + 360 - hw;
+        // intersect [n0,n1] with visible [lon0, lon0+span] in unwrapped frame near lon0
+        while (n0 < lon0) { n0 += 360; n1 += 360; }
+        while (n0 > lon0 + 360) { n0 -= 360; n1 -= 360; }
+        var s0 = Math.max(n0, lon0), s1 = Math.min(n1, lon0 + span);
+        if (s1 > s0) ctx.fillRect((s0 - lon0) / span * W, y, (s1 - s0) / span * W + 1, 3);
+        // wrapped remainder
+        var r0 = Math.max(n0 - 360, lon0), r1 = Math.min(n1 - 360, lon0 + span);
+        if (r1 > r0 && r0 < lon0 + span && r1 > lon0) ctx.fillRect((r0 - lon0) / span * W, y, (r1 - r0) / span * W + 1, 3);
+      }
+    }
+    function toScreen(lon, lat) { return camProject(cam, lon, lat, W, H); }
+    // airports in view
+    AIRPORTS.forEach(function (ap) {
+      var unlocked = isApUnlocked(ap);
+      var p = toScreen(ap.lon, ap.lat);
+      if (p.x < -20 || p.x > W + 20 || p.y < -20 || p.y > H + 20) return;
+      var isSel = ap.id === flightSave.from || ap.id === flightSave.to;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, isSel ? 5 : 3, 0, Math.PI * 2);
+      if (unlocked) {
+        ctx.fillStyle = isSel ? '#ffffff' : 'rgba(120,190,255,0.85)';
+        ctx.fill();
+      } else {
+        ctx.strokeStyle = 'rgba(140,150,170,0.6)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
+      if (isSel) {
+        ctx.fillStyle = 'rgba(255,255,255,0.9)';
+        ctx.font = '700 13px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(ap.id, p.x, p.y - 12);
+        var pr = 8 + ((performance.now() / 900) % 1) * 14;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, pr, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(120,190,255,' + (0.7 * (1 - pr / 24)).toFixed(2) + ')';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+    });
+    // route polyline with antimeridian splits
+    function strokeRoute(upto, style, width, glow) {
+      if (!routePts.length) return;
+      var n = Math.max(2, Math.floor(routePts.length * upto));
+      ctx.strokeStyle = style;
+      ctx.lineWidth = width;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      if (glow) { ctx.shadowColor = style; ctx.shadowBlur = 10; }
+      ctx.beginPath();
+      var started = false, prevX = 0;
+      for (var i = 0; i < n; i++) {
+        var p = toScreen(routePts[i].lon, routePts[i].lat);
+        if (!started || Math.abs(p.x - prevX) > W / 2) { ctx.moveTo(p.x, p.y); started = true; }
+        else ctx.lineTo(p.x, p.y);
+        prevX = p.x;
+      }
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+    }
+    strokeRoute(1, 'rgba(140,160,200,0.35)', 2, false);
+    if (t > 0.005) strokeRoute(t, '#5eb2ff', 3, true);
+    // plane (Google-maps style marker, livery colored)
+    if (planePos) {
+      var pp = toScreen(planePos.lon, planePos.lat);
+      var sc = planeScale * (0.8 + cam.z * 0.22);
+      ctx.save();
+      ctx.translate(pp.x, pp.y);
+      ctx.rotate(planeHeading * Math.PI / 180);
+      ctx.scale(sc, sc);
+      ctx.shadowColor = livery;
+      ctx.shadowBlur = 12;
+      ctx.fillStyle = livery;
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.moveTo(13, 0);
+      ctx.lineTo(-9, 8);
+      ctx.lineTo(-4.5, 0);
+      ctx.lineTo(-9, -8);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  function flightProgress() {
+    if (!flight.totalSec) return 0;
+    var el = flight.elapsed;
+    if (flight.state === 'flying') el += (performance.now() - flight.runStart) / 1000;
+    return Math.min(1, Math.max(0, el / flight.totalSec));
+  }
+
+  function sampleRoute(a, b, n) {
+    var pts = [];
+    for (var i = 0; i <= n; i++) pts.push(gcPos(a, b, i / n));
+    return pts;
+  }
+
+  // ---------- Leaflet street map (Google-Maps style) + plane ----------
+
+  var flLeaf = null, flLeafTiles = null, flLeafRef = null, flLeafBase = null, flLeafTrail = null, flLeafPlane = null;
+  var flLeafTried = false, flLeafShown = false, flLeafUserHold = false;
+  var flBaseStyle = '';
+
+  function flIsDarkMap() {
+    try {
+      var t = document.documentElement.getAttribute('data-theme') || 'dark';
+      return ['dark', 'ghost', 'ember', 'colorblind', 'tritan'].indexOf(t) >= 0;
+    } catch (e) { return true; }
+  }
+
+  function flEsriUrl(style) {
+    if (style === 'dark') return 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}';
+    return 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}';
+  }
+
+  function flEsriRefUrl() {
+    return 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}';
+  }
+
+  function flAttribution() {
+    return 'Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics';
+  }
+
+  function flApplyBase() {
+    if (!flLeaf) return;
+    var style = flightSave.day === 'day' ? 'light' : flightSave.day === 'night' ? 'dark' : (flIsDarkMap() ? 'dark' : 'light');
+    if (flLeafTiles && flBaseStyle === style) return;
+    var L = window.L;
+    try {
+      if (flLeafTiles) flLeaf.removeLayer(flLeafTiles);
+      if (flLeafRef) { flLeaf.removeLayer(flLeafRef); flLeafRef = null; }
+    } catch (e) {}
+    flBaseStyle = style;
+    flLeafTiles = L.tileLayer(flEsriUrl(style), { maxZoom: 12, attribution: flAttribution() }).addTo(flLeaf);
+    if (style === 'dark') {
+      try { flLeafRef = L.tileLayer(flEsriRefUrl(), { maxZoom: 12 }).addTo(flLeaf); } catch (e2) {}
+    }
+    try { flLeafTrail.bringToFront(); flLeafPlane.setZIndexOffset(1000); } catch (e3) {}
+  }
+
+  function leafletActive() {
+    if (flLeaf) return true;
+    if (flLeafTried || typeof window.L === 'undefined') return false;
+    flLeafTried = true;
+    try {
+      var box = document.getElementById('flLeaflet');
+      if (!box) return false;
+      flLeaf = window.L.map('flLeaflet', { zoomControl: false, worldCopyJump: true });
+      window.L.control.zoom({ position: 'topleft' }).addTo(flLeaf);
+      flApplyBase();
+      flLeafBase = window.L.polyline([], { color: '#8a93a8', weight: 3, dashArray: '2 7', opacity: 0.85 }).addTo(flLeaf);
+      flLeafTrail = window.L.polyline([], { color: '#0071e3', weight: 4, opacity: 0.95 }).addTo(flLeaf);
+      var icon = window.L.divIcon({
+        className: 'fl-leaf-wrap',
+        html: '<div class="fl-leaf-plane" id="flLeafPlaneGlyph"><svg viewBox="0 0 48 28"><path d="M46 14 C34 16.5 20 17 8 17 L8 11 C20 11 34 11.5 46 14 Z M31 13.6 L17 26.5 L12 26.5 L24 13.6 Z M31 14.4 L17 1.5 L12 1.5 L24 14.4 Z M12 13.6 L5 20 L2 20 L8 13.6 Z M12 14.4 L5 8 L2 8 L8 14.4 Z" fill="#1b2f4b" stroke="#ffffff" stroke-width="1.6" stroke-linejoin="round" style="paint-order:stroke"/></svg></div>',
+        iconSize: [46, 28],
+        iconAnchor: [23, 14]
+      });
+      flLeafPlane = window.L.marker([0, 0], { icon: icon, interactive: false, keyboard: false }).addTo(flLeaf);
+      try { flLeafPlane.setZIndexOffset(1000); } catch (e5) {}
+      flLeaf.on('dragstart', function () { flLeafUserHold = true; });
+      flLeafFit();
+      setTimeout(function () { try { flLeaf.invalidateSize(); } catch (e) {} }, 400);
+      return true;
+    } catch (e) { flLeaf = null; return false; }
+  }
+
+  function flLeafFit() {
+    if (!flLeaf) return;
+    var info = routeInfo(flightSave.from, flightSave.to, flightSave.plane);
+    if (!info) return;
+    try {
+      flLeaf.fitBounds([[info.a.lat, info.a.lon], [info.b.lat, info.b.lon]], { padding: [42, 42] });
+    } catch (e) {}
+  }
+
+  function paintLeaflet(t, info) {
+    if (!info || !flLeaf) return;
+    try {
+      var pts = sampleRoute(info.a, info.b, 120).map(function (p) { return [p.lat, p.lon]; });
+      flLeafBase.setLatLngs(pts);
+      var n = Math.max(0, Math.floor(pts.length * t));
+      flLeafTrail.setLatLngs(n < 2 ? [] : pts.slice(0, n));
+      var pos = gcPos(info.a, info.b, t);
+      flLeafPlane.setLatLng([pos.lat, pos.lon]);
+      var glyph = document.getElementById('flLeafPlaneGlyph');
+      if (glyph) glyph.style.transform = 'rotate(' + (pos.heading - 90) + 'deg)';
+      if (flightSave.view === 'follow' && (flight.state === 'flying' || flight.state === 'paused')) {
+        try { if (flLeaf.getZoom() < 5) flLeaf.setZoom(5); } catch (e) {}
+        flLeaf.panTo([pos.lat, pos.lon], { animate: false });
+      }
+    } catch (e) {}
+  }
+
+  function syncFlightViewBtns() {
+    if (flightSave.view === 'cockpit') { flightSave.view = 'map'; persistFlight(); }
+    flApplyBase();
+    var views = [['flViewMap', 'map'], ['flViewFollow', 'follow']];
+    views.forEach(function (p) { var el = document.getElementById(p[0]); if (el) el.classList.toggle('active', flightSave.view === p[1]); });
+    var days = [['flDayDay', 'day'], ['flDayAuto', 'auto'], ['flDayNight', 'night']];
+    days.forEach(function (p) { var el = document.getElementById(p[0]); if (el) el.classList.toggle('active', flightSave.day === p[1]); });
+    var hideMap = false;
+    try { hideMap = document.getElementById('flightSim').classList.contains('nomap'); } catch (e) {}
+    var useLeaf = !hideMap && leafletActive();
+    var lf = document.getElementById('flLeaflet');
+    if (lf) {
+      var show = !!useLeaf;
+      if (show !== flLeafShown) {
+        flLeafShown = show;
+        lf.style.display = show ? '' : 'none';
+        if (show && flLeaf) setTimeout(function () { try { flLeaf.invalidateSize(); } catch (e) {} }, 60);
+      } else if (!show) {
+        lf.style.display = 'none';
+      }
+    }
+    var mc = document.getElementById('flCanvas');
+    if (mc) mc.style.display = (!useLeaf && !hideMap) ? '' : 'none';
+    var db = document.getElementById('btnFlDay');
+    if (db) db.textContent = flightSave.day.charAt(0).toUpperCase() + flightSave.day.slice(1);
+  }
+
+  function flLeafRefresh() {
+    if (!flLeaf) return;
+    try { flLeaf.invalidateSize(); } catch (e) {}
+    flApplyBase();
+    if (flight.state === 'idle') flLeafFit();
+    else paintFlight(flightProgress());
+  }
+
+  // ---------- engine hum (ambient audio while airborne) ----------
+
+  var flHum = { on: true, src: null, drone: null };
+  function flHumStart() {
+    if (!flHum.on) return;
+    try {
+      if (flHum.src) return;
+      var ctx = getAudioContext();
+      if (ctx.state === 'suspended') ctx.resume();
+      var len = ctx.sampleRate * 2;
+      var buf = ctx.createBuffer(1, len, ctx.sampleRate);
+      var d = buf.getChannelData(0);
+      var last = 0;
+      for (var i = 0; i < len; i++) {
+        var w = Math.random() * 2 - 1;
+        last = (last + 0.03 * w) / 1.03;
+        d[i] = last * 3.2;
+      }
+      var src = ctx.createBufferSource();
+      src.buffer = buf;
+      src.loop = true;
+      var f = ctx.createBiquadFilter();
+      f.type = 'lowpass';
+      f.frequency.value = 320;
+      var g = ctx.createGain();
+      g.gain.setValueAtTime(0.0001, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.085, ctx.currentTime + 2.5);
+      src.connect(f);
+      f.connect(g);
+      g.connect(ctx.destination);
+      src.start();
+      var drone = ctx.createOscillator();
+      var dg = ctx.createGain();
+      drone.type = 'sine';
+      drone.frequency.value = 54;
+      dg.gain.setValueAtTime(0.0001, ctx.currentTime);
+      dg.gain.exponentialRampToValueAtTime(0.022, ctx.currentTime + 2.5);
+      drone.connect(dg);
+      dg.connect(ctx.destination);
+      drone.start();
+      flHum.src = src;
+      flHum.drone = drone;
+    } catch (e) {}
+  }
+  function flHumStop() {
+    try {
+      if (flHum.src) { flHum.src.stop(); flHum.src.disconnect(); }
+      if (flHum.drone) { flHum.drone.stop(); flHum.drone.disconnect(); }
+    } catch (e) {}
+    flHum.src = null;
+    flHum.drone = null;
+  }
+
+  function flZoom(d) {
+    if (leafletActive() && flLeaf) {
+      try { if (d > 0) flLeaf.zoomIn(); else flLeaf.zoomOut(); } catch (e) {}
+      if (d > 0 && flightSave.view === 'map') { flightSave.view = 'follow'; persistFlight(); renderFlightAll(); }
+      return;
+    }
+    flightSave.zoom = Math.min(8, Math.max(1, flightSave.zoom + d));
+    persistFlight();
+    if (d > 0 && flightSave.view === 'map') flightSave.view = 'follow';
+    renderFlightAll();
+  }
+
+  function flightAltFt(t) {
+    if (flight.state !== 'flying' && flight.state !== 'paused') return 0;
+    return Math.round(38000 * altProfile(t));
+  }
+
+  function flightSpdKmh(t) {
+    var info = routeInfo(flightSave.from, flightSave.to, flightSave.plane);
+    if (!info || !flight.totalSec) return 0;
+    return Math.round(info.km / (flight.totalSec / 3600));
+  }
+
+  function paintFlight(t) {
+    syncFlightViewBtns();
+    var info = routeInfo(flightSave.from, flightSave.to, flightSave.plane);
+    var W = 1000, H = 500;
+    if (leafletActive()) {
+      paintLeaflet(t, info);
+    } else {
+      var cv = document.getElementById('flCanvas');
+      if (cv && info) {
+        var ctx = cv.getContext('2d');
+        var cam = flightCamera(t);
+        var pts = sampleRoute(info.a, info.b, 160);
+        var pos = gcPos(info.a, info.b, t);
+        var pos2 = gcPos(info.a, info.b, Math.min(1, t + 0.004));
+        var s0 = camProject(cam, pos.lon, pos.lat, W, H);
+        var s1 = camProject(cam, pos2.lon, pos2.lat, W, H);
+        var heading = Math.atan2(s1.y - s0.y, s1.x - s0.x) * 180 / Math.PI;
+        var plane = planeById(flightSave.plane);
+        drawEarthFrame(ctx, W, H, cam, t, pts, pos, heading, plane.size * 1.6, '#5eb2ff');
+      }
+    }
+    var fill = document.getElementById('flProgressFill');
+    if (fill) fill.style.width = (t * 100) + '%';
+    var remain = flight.totalSec ? flight.totalSec * (1 - t) : 0;
+    var rl = document.getElementById('flRemain');
+    if (rl) rl.textContent = flight.totalSec ? fmtClock(remain) : '—';
+    var dl = document.getElementById('flDistLeft');
+    if (dl) dl.textContent = flight.distMi ? fmtNum(Math.round(flight.distMi * (1 - t))) + ' mi' : '—';
+    var er = document.getElementById('flEarn');
+    if (er) er.textContent = flight.miles ? '+' + fmtNum(flight.miles) + ' mi' : '—';
+    var phase = document.getElementById('flPhase');
+    var title = document.getElementById('flStatusTitle');
+    var label = 'IDLE', sub = 'Ready to board';
+    if (flight.state === 'flying') {
+      label = t < 0.04 ? 'TAKEOFF' : t < 0.9 ? 'CRUISING' : 'DESCENT';
+      sub = flightSave.from + ' → ' + flightSave.to + ' · ' + label.charAt(0) + label.slice(1).toLowerCase() +
+        ' · ' + fmtNum(flightAltFt(t)) + ' ft · ' + fmtNum(flightSpdKmh(t)) + ' km/h';
+    } else if (flight.state === 'paused') {
+      label = 'HELD'; sub = 'Holding pattern — resume to continue';
+    } else if (flight.state === 'landed') {
+      label = 'LANDED'; sub = 'Welcome to ' + (apById(flightSave.to) || {}).city;
+    }
+    if (phase) phase.textContent = label;
+    if (title) title.textContent = sub;
+    // console readout (big timer, plane progress, phase, ETA)
+    var big = document.getElementById('flBigTime');
+    var pct = Math.round(t * 100);
+    var bf = document.getElementById('flBigFill');
+    if (bf) bf.style.width = (t * 100) + '%';
+    var bp = document.getElementById('flBigPlane');
+    if (bp) bp.style.left = (t * 100) + '%';
+    var bpct = document.getElementById('flBigPct');
+    if (bpct) bpct.textContent = pct + '%';
+    var phaseName = 'Pre-takeoff';
+    if (flight.state === 'flying') phaseName = t < 0.04 ? 'Takeoff' : t < 0.9 ? 'Cruising' : 'Descent';
+    else if (flight.state === 'paused') phaseName = 'Holding';
+    else if (flight.state === 'landed') phaseName = 'Landed';
+    var ph = document.getElementById('flPhaseName');
+    if (ph) ph.textContent = 'Phase: ' + phaseName;
+    var etaEl = document.getElementById('flEta');
+    if (etaEl) {
+      if (flight.state === 'flying' || flight.state === 'paused') {
+        var eta = new Date(Date.now() + remain * 1000);
+        etaEl.textContent = 'ETA: ' + String(eta.getHours()).padStart(2, '0') + ':' + String(eta.getMinutes()).padStart(2, '0');
+      } else if (flight.state === 'landed' && flight.landedAt) {
+        var la = new Date(flight.landedAt);
+        etaEl.textContent = 'Arrived ' + String(la.getHours()).padStart(2, '0') + ':' + String(la.getMinutes()).padStart(2, '0');
+      } else etaEl.textContent = 'ETA: —';
+    }
+    if (big) {
+      if (flight.state === 'flying' || flight.state === 'paused') big.textContent = fmtClock(remain);
+      else if (flight.state === 'landed') big.textContent = '00:00';
+      else {
+        var pInfo = routeInfo(flightSave.from, flightSave.to, flightSave.plane);
+        var pm = flightSave.mode === 'custom' ? Math.min(600, Math.max(1, parseInt(flightSave.customMin, 10) || 50)) : (pInfo ? pInfo.realMin : 50);
+        big.textContent = fmtDur(pm).replace(' ', '');
+      }
+    }
+    var ct = document.getElementById('flConsoleTitle');
+    if (ct) {
+      ct.textContent = flight.state === 'idle' ? 'Airplane mode' : flightSave.from + ' → ' + flightSave.to;
+    }
+    syncFlightButtons();
+  }
+
+  var flBtnState = '';
+  function syncFlightButtons() {
+    if (flBtnState === flight.state) return;
+    flBtnState = flight.state;
+    var main = flight.state === 'flying' ? 'Hold' : flight.state === 'paused' ? 'Resume' : flight.state === 'landed' ? 'Fly again' : 'Take off';
+    var con = flight.state === 'flying' ? 'Pause' : flight.state === 'paused' ? 'Resume' : 'Pause';
+    var a = document.getElementById('flightPlayText');
+    if (a) a.textContent = main;
+    var b = document.getElementById('btnFlPause');
+    if (b) b.textContent = con;
+  }
+
+  function flightLoop() {
+    if (flight.state !== 'flying') return;
+    var t = flightProgress();
+    paintFlight(t);
+    if (t >= 1) { landFlight(); return; }
+    flight.raf = requestAnimationFrame(flightLoop);
+  }
+
+  function resetFlight(silent) {
+    if (flight.raf) cancelAnimationFrame(flight.raf);
+    flHumStop();
+    flLeafUserHold = false;
+    flight.state = 'idle';
+    flight.elapsed = 0;
+    flight.totalSec = 0;
+    flight.distMi = 0;
+    flight.miles = 0;
+    flight.landedAt = 0;
+    flight.bonus = false;
+    var btn = document.getElementById('flightPlayText');
+    if (btn) btn.textContent = 'Take off';
+    buildFlightMap();
+    paintFlight(0);
+    if (!silent) {
+      var title = document.getElementById('flStatusTitle');
+      if (title) title.textContent = 'Ready to board';
+    }
+  }
+
+  function startFlight(bonus) {
+    var plane = planeById(flightSave.plane);
+    var info = routeInfo(flightSave.from, flightSave.to, flightSave.plane);
+    if (!info) { showToast('Pick two different airports first', 'warn'); return; }
+    if (!isApUnlocked(info.a) || !isApUnlocked(info.b)) { showToast('That airport is still locked — earn more miles', 'warn'); return; }
+    if (!info.inRange) { showToast(plane.name + ' cannot fly ' + fmtNum(info.km) + ' km nonstop (range ' + fmtNum(plane.range) + ' km) — pick a bigger jet', 'warn'); return; }
+    var cab = cabinById(flightSave.cabin);
+    var mins = flightSave.mode === 'custom'
+      ? Math.min(600, Math.max(1, parseInt(document.getElementById('flCustomMin').value, 10) || 50))
+      : info.realMin;
+    if (flightSave.mode === 'custom') { flightSave.customMin = mins; persistFlight(); }
+    if (flight.state === 'landed' || flight.state === 'idle') flight.elapsed = 0;
+    flight.totalSec = mins * 60;
+    flight.distMi = info.mi;
+    flight.bonus = !!bonus;
+    flight.miles = Math.round(info.mi * cab.mult * (flight.bonus ? 2 : 1));
+    flight.state = 'flying';
+    flight.runStart = performance.now();
+    flight.landedAt = 0;
+    flLeafUserHold = false;
+    flHumStart();
+    flTakeoffChime();
+    var btn = document.getElementById('flightPlayText');
+    if (btn) btn.textContent = 'Hold';
+    var spd = Math.round(info.km / (mins / 60));
+    showToast(info.a.id + ' → ' + info.b.id + ' · wheels up for ' + fmtDur(mins) + ' at ' + fmtNum(spd) + ' km/h', 'success');
+    flightLoop();
+  }
+
+  function toggleFlight() {
+    if (flight.state === 'flying') {
+      flight.elapsed += (performance.now() - flight.runStart) / 1000;
+      flight.state = 'paused';
+      if (flight.raf) cancelAnimationFrame(flight.raf);
+      var btn = document.getElementById('flightPlayText');
+      if (btn) btn.textContent = 'Resume';
+      paintFlight(flightProgress());
+    } else if (flight.state === 'paused') {
+      flight.state = 'flying';
+      flight.runStart = performance.now();
+      var btn2 = document.getElementById('flightPlayText');
+      if (btn2) btn2.textContent = 'Hold';
+      flightLoop();
+    } else {
+      startFlight();
+    }
+  }
+
+  function landFlight() {
+    if (flight.raf) cancelAnimationFrame(flight.raf);
+    flHumStop();
+    flight.state = 'landed';
+    flight.elapsed = flight.totalSec;
+    flight.landedAt = Date.now();
+    paintFlight(1);
+    var btn = document.getElementById('flightPlayText');
+    if (btn) btn.textContent = 'Fly again';
+    var beforeIds = {};
+    AIRPORTS.forEach(function (a) { if (isApUnlocked(a)) beforeIds[a.id] = true; });
+    flightSave.miles += flight.miles;
+    flightSave.flights += 1;
+    var cab = cabinById(flightSave.cabin);
+    var mins = Math.round(flight.totalSec / 60);
+    flightSave.log.unshift({ f: flightSave.from, t: flightSave.to, miles: flight.miles, min: mins, cabin: cab.name, date: todayKey(new Date()), plane: planeById(flightSave.plane).name });
+    flightSave.log = flightSave.log.slice(0, 20);
+    persistFlight();
+    try { recordSprint(); } catch (e) {}
+    try { renderSprintCount(); } catch (e) {}
+    confetti.fire(0.5, 0.4);
+    try { playSprintCompletionChime(); } catch (e) {}
+    var fresh = AIRPORTS.filter(function (a) { return isApUnlocked(a) && !beforeIds[a.id]; }).map(function (a) { return a.id; });
+    var dest = apById(flightSave.to) || { city: flightSave.to, id: flightSave.to, name: '' };
+    var msg = 'Landed in ' + dest.city + ' · +' + fmtNum(flight.miles) + ' mi' + (flight.bonus ? ' (double miles!)' : '') + ' · focus session complete';
+    if (fresh.length) msg += ' · new airports: ' + fresh.join(', ');
+    showToast(msg, 'success');
+    flBell();
+    openArrival(dest,
+      '<div class="arrival-stat"><span>Flight time</span><b>' + escapeHtml(fmtDur(mins)) + '</b></div>' +
+      '<div class="arrival-stat"><span>Miles earned</span><b>+' + escapeHtml(fmtNum(flight.miles)) + ' mi' + (flight.bonus ? ' · 2×' : '') + '</b></div>' +
+      '<div class="arrival-stat"><span>Cabin</span><b>' + escapeHtml(cab.name) + '</b></div>' +
+      '<div class="arrival-stat"><span>Aircraft</span><b>' + escapeHtml(planeById(flightSave.plane).name) + '</b></div>');
+    populateFlightSelects();
+    renderFlightAll();
+  }
+
+  // ---------- airplane sounds: chimes, bells, crew call ----------
+
+  function flTone(freq, at, dur, vol) {
+    try {
+      var ctx = getAudioContext();
+      var o = ctx.createOscillator();
+      var g = ctx.createGain();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(freq, ctx.currentTime + at);
+      g.gain.setValueAtTime(0.0001, ctx.currentTime + at);
+      g.gain.exponentialRampToValueAtTime(vol || 0.12, ctx.currentTime + at + 0.03);
+      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + at + dur);
+      o.connect(g);
+      g.connect(ctx.destination);
+      o.start(ctx.currentTime + at);
+      o.stop(ctx.currentTime + at + dur + 0.05);
+    } catch (e) {}
+  }
+
+  function flBell() {
+    flTone(880, 0, 0.7, 0.12);
+    flTone(659.25, 0.3, 1.0, 0.12);
+  }
+
+  function flTakeoffChime() {
+    flTone(523.25, 0, 0.5, 0.1);
+    flTone(659.25, 0.14, 0.5, 0.1);
+    flTone(783.99, 0.28, 0.8, 0.1);
+  }
+
+  function onFlightPlanChange() {
+    flightSave.from = document.getElementById('flFrom').value;
+    flightSave.to = document.getElementById('flTo').value;
+    flightSave.cabin = document.getElementById('flCabin').value;
+    flightSave.mode = document.getElementById('flMode').value;
+    var plEl = document.getElementById('flPlane');
+    if (plEl) flightSave.plane = plEl.value;
+    flLeafUserHold = false;
+    var cm = document.getElementById('flCustomMin');
+    if (cm) flightSave.customMin = Math.min(600, Math.max(1, parseInt(cm.value, 10) || 50));
+    persistFlight();
+    if (flight.state === 'flying' || flight.state === 'paused') {
+      resetFlight(true);
+      showToast('Flight plan changed — back to the gate', 'info');
+    }
+    renderFlightAll();
+  }
+
+  // ---------- departures board (one-tap boarding, 2x on next flight) ----------
+
+  // Real IRL photos — every URL below verified live on Wikimedia Commons
+  var CITY_PHOTOS = {
+    'New York': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/22/New_York_City_at_night_HDR.jpg/1280px-New_York_City_at_night_HDR.jpg',
+    'London': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b4/London_Eye_Twilight_April_2006.jpg/1280px-London_Eye_Twilight_April_2006.jpg',
+    'Paris': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a8/Tour_Eiffel_Wikimedia_Commons.jpg/1280px-Tour_Eiffel_Wikimedia_Commons.jpg',
+    'Dubai': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e6/Dubai_Marina_Skyline.jpg/1280px-Dubai_Marina_Skyline.jpg',
+    'Singapore': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f9/Marina_Bay_Sands_in_the_evening_-_20101120.jpg/1280px-Marina_Bay_Sands_in_the_evening_-_20101120.jpg',
+    'Las Vegas': 'https://upload.wikimedia.org/wikipedia/commons/a/a7/Las_Vegas_Strip_at_night.jpg',
+    'Tokyo': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/c/ce/Tokyo_Tower_at_night.jpg/1280px-Tokyo_Tower_at_night.jpg',
+    'Sydney': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7c/Sydney_Opera_House_-_Dec_2008.jpg/1280px-Sydney_Opera_House_-_Dec_2008.jpg',
+    'Rome': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/53/Colosseum_in_Rome%2C_Italy_-_April_2007.jpg/1280px-Colosseum_in_Rome%2C_Italy_-_April_2007.jpg',
+    'Mumbai': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/ed/Gateway_of_India.jpg/1280px-Gateway_of_India.jpg',
+    'Hong Kong': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/18/Hong_Kong_Night_Skyline.jpg/1280px-Hong_Kong_Night_Skyline.jpg',
+    'Chicago': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bb/Chicago_Lakefront_Night_Skyline.jpg/1280px-Chicago_Lakefront_Night_Skyline.jpg',
+    'San Francisco': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bf/Golden_Gate_Bridge_as_seen_from_Battery_East.jpg/1280px-Golden_Gate_Bridge_as_seen_from_Battery_East.jpg',
+    'Los Angeles': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e7/Downtown_Los_Angeles_at_night.jpg/1280px-Downtown_Los_Angeles_at_night.jpg'
+  };
+
+  var depCache = { key: '', list: [] };
+  var depExpanded = false;
+
+  function unlockedDests(fromId) {
+    return AIRPORTS.filter(function (a) { return a.id !== fromId && isApUnlocked(a); });
+  }
+
+  function renderDepartures() {
+    var box = document.getElementById('depList');
+    var badge = document.getElementById('depFromBadge');
+    if (!box) return;
+    if (badge) badge.textContent = flightSave.from + ' departures';
+    var now = new Date();
+    var key = flightSave.from + '|' + todayKey(now) + '-' + now.getHours();
+    if (depCache.key !== key) {
+      depCache.key = key;
+      depCache.list = [];
+      var dests = unlockedDests(flightSave.from);
+      if (dests.length) {
+        var h = 0, i;
+        for (i = 0; i < flightSave.from.length; i++) h = (h * 31 + flightSave.from.charCodeAt(i)) >>> 0;
+        h = (h + now.getHours() * 97) >>> 0;
+        var t = Date.now() + (10 + (h % 25)) * 60000;
+        for (var k = 0; k < 6; k++) {
+          var d = dests[(h + k * 3) % dests.length];
+          var info = routeInfo(flightSave.from, d.id, flightSave.plane);
+          depCache.list.push({ to: d.id, time: t, min: info ? info.realMin : 60, no: 100 + (((h >> (k * 2)) % 800) + 800) % 800 });
+          t += (38 + ((h >> (k * 3)) % 30 + 30) % 30) * 60000;
+        }
+      }
+    }
+    box.innerHTML = '';
+    if (!depCache.list.length) {
+      box.innerHTML = '<div class="money-empty">Unlock more airports to fill this board.</div>';
+      var more0 = document.getElementById('btnDepMore');
+      if (more0) more0.style.display = 'none';
+      return;
+    }
+    var rows = depExpanded ? depCache.list : depCache.list.slice(0, 2);
+    var more = document.getElementById('btnDepMore');
+    if (more) {
+      more.style.display = depCache.list.length > 2 ? '' : 'none';
+      more.textContent = depExpanded ? 'Show less' : 'Show all ' + depCache.list.length + ' departures';
+    }
+    rows.forEach(function (dep, i) {
+      var d = apById(dep.to);
+      if (!d) return;
+      var row = document.createElement('div');
+      row.className = 'dep-row' + (i === 0 ? ' boarding' : '');
+      var tm = new Date(dep.time);
+      var hh = String(tm.getHours()).padStart(2, '0'), mm = String(tm.getMinutes()).padStart(2, '0');
+      var left = document.createElement('div');
+      left.className = 'dep-left';
+      var time = document.createElement('div');
+      time.className = 'dep-time';
+      time.textContent = hh + ':' + mm;
+      var no = document.createElement('div');
+      no.className = 'dep-no';
+      no.textContent = 'HX ' + dep.no;
+      left.appendChild(time);
+      left.appendChild(no);
+      var mid = document.createElement('div');
+      mid.className = 'dep-mid';
+      var city = document.createElement('div');
+      city.className = 'dep-city';
+      city.textContent = d.city;
+      var sub = document.createElement('div');
+      sub.className = 'dep-sub';
+      sub.textContent = d.id + ' · ' + fmtDur(dep.min) + (i === 0 ? ' · 2× miles' : '');
+      mid.appendChild(city);
+      mid.appendChild(sub);
+      var right = document.createElement('div');
+      right.className = 'dep-right';
+      var tag = document.createElement('span');
+      tag.className = 'phase-badge';
+      tag.textContent = i === 0 ? 'BOARDING' : 'SCHEDULED';
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'pill-btn pill-btn-secondary pill-sm';
+      btn.textContent = 'Board';
+      (function (idx) { btn.addEventListener('click', function () { boardDeparture(idx); }); })(i);
+      right.appendChild(tag);
+      right.appendChild(btn);
+      row.appendChild(left);
+      row.appendChild(mid);
+      row.appendChild(right);
+      box.appendChild(row);
+    });
+  }
+
+  function boardDeparture(i) {
+    var dep = depCache.list[i];
+    if (!dep) return;
+    var d = apById(dep.to);
+    if (!d || !isApUnlocked(d)) { showToast('That destination is still locked', 'warn'); return; }
+    if (flight.state === 'flying' || flight.state === 'paused') resetFlight(true);
+    flightSave.to = dep.to;
+    flightSave.mode = 'real';
+    document.getElementById('flTo').value = dep.to;
+    document.getElementById('flMode').value = 'real';
+    persistFlight();
+    renderFlightAll();
+    startFlight(i === 0);
+  }
+
+  function openArrival(dest, statsHtml) {
+    var modal = document.getElementById('arrivalModal');
+    if (!modal) return;
+    document.getElementById('arrivalCity').textContent = dest.city || dest.id;
+    document.getElementById('arrivalSub').textContent = flightSave.from + ' → ' + dest.id + (dest.name ? ' · ' + dest.name : '');
+    var img = document.getElementById('arrivalPhoto');
+    var credit = document.getElementById('arrivalCredit');
+    img.style.display = 'none';
+    img.removeAttribute('src');
+    if (credit) credit.style.display = 'none';
+    img.onerror = function () { img.style.display = 'none'; if (credit) credit.style.display = 'none'; };
+    var url = CITY_PHOTOS[dest.city];
+    if (url) {
+      img.onload = function () { img.style.display = ''; if (credit) credit.style.display = ''; };
+      img.src = url;
+    }
+    document.getElementById('arrivalStats').innerHTML = statsHtml;
+    modal.classList.add('active');
+  }
+
+  function closeArrival() {
+    var m = document.getElementById('arrivalModal');
+    if (m) m.classList.remove('active');
   }
 
   // =========================================================================
@@ -2088,10 +4340,23 @@
     return c ? c.code : 'General';
   }
 
+  function syncKeepScopeSelect(keep) {
+    var sel = document.getElementById('keepScope');
+    if (!sel) return;
+    var cur = keep && sel.value ? sel.value : (sel.value || 'general');
+    sel.innerHTML = '<option value="general">General</option>' + state.courses.map(function (c) {
+      return '<option value="' + escapeHtml(c.id) + '">[' + escapeHtml(c.code) + '] ' + escapeHtml(c.name) + '</option>';
+    }).join('');
+    if (!state.courses.some(function (c) { return c.id === cur; })) cur = 'general';
+    sel.value = cur;
+  }
+
   function resetComposer() {
     keepEditingId = null;
     document.getElementById('keepTitle').value = '';
     document.getElementById('keepBody').value = '';
+    var sel = document.getElementById('keepScope');
+    if (sel) sel.value = 'general';
     document.getElementById('btnKeepSave').textContent = 'Add note';
   }
 
@@ -2244,12 +4509,17 @@
     keepEditingId = id;
     document.getElementById('keepTitle').value = n.title || '';
     document.getElementById('keepBody').value = n.body || '';
+    syncKeepScopeSelect(true);
+    var sel = document.getElementById('keepScope');
+    if (sel) sel.value = (n.scope && (n.scope === 'general' || state.courses.some(function (c) { return c.id === n.scope; }))) ? n.scope : 'general';
     document.getElementById('btnKeepSave').textContent = 'Save changes';
   }
 
   function saveKeepComposer() {
     var title = document.getElementById('keepTitle').value.trim().slice(0, 80);
-    var scope = 'general';
+    var scopeSel = document.getElementById('keepScope');
+    var scope = scopeSel ? scopeSel.value : 'general';
+    if (scope !== 'general' && !state.courses.some(function (c) { return c.id === scope; })) scope = 'general';
     var body = document.getElementById('keepBody').value.trim().slice(0, 2000);
     if (!title && !body) {
       showToast('Write something first', 'warn');
@@ -2426,17 +4696,117 @@
   }
   function closeCreditsModal() { document.getElementById('creditsModal').classList.remove('active'); }
 
+  // =========================================================================
+  // 20b. Home front page — stats, today digest, easter eggs
+  // =========================================================================
+
+  function setText(id, txt) { var el = document.getElementById(id); if (el) el.textContent = txt; }
+
+  function renderHomeDigest() {
+    try {
+      var pending = state.deadlines.filter(function (d) { return !d.completed; });
+      setText('homeStatGrades', state.courses.length + (state.courses.length === 1 ? ' course' : ' courses'));
+      setText('homeStatDeadlines', pending.length + ' pending');
+      setText('homeStatCal', calEvents.length + (calEvents.length === 1 ? ' reminder' : ' reminders'));
+      setText('homeStatStudy', studyBlocks.length + (studyBlocks.length === 1 ? ' block' : ' blocks'));
+      setText('homeStatCode', (ghCache.length + ghCustom.length) + ' repos · ' + ghStarred.length + ' starred');
+      var bal = transactions.reduce(function (a, t) { return a + (t.type === 'income' ? 1 : -1) * (parseFloat(t.amount) || 0); }, 0);
+      setText('homeStatMoney', (bal < 0 ? '−' : '') + usd(Math.abs(bal)));
+      setText('homeStatFocus', sprintsToday() + (sprintsToday() === 1 ? ' sprint' : ' sprints') + ' today');
+      setText('homeStatNotes', keepNotes.filter(function (n) { return n.type !== 'todo'; }).length + ' notes');
+
+      var todayStr = todayKey(new Date());
+      var due = pending.filter(function (d) { return d.dueDate === todayStr; });
+      var study = getStudyOn(todayStr);
+      var rems = getCalEventsOn(todayStr);
+
+      setText('digestDueCount', String(due.length));
+      setText('digestStudyCount', String(study.length));
+      setText('digestRemCount', String(rems.length));
+
+      function fillList(id, items, emptyTxt) {
+        var box = document.getElementById(id);
+        if (!box) return;
+        box.innerHTML = '';
+        if (!items.length) { box.innerHTML = '<div class="digest-empty">' + emptyTxt + '</div>'; return; }
+        items.slice(0, 5).forEach(function (it) {
+          var div = document.createElement('div');
+          div.className = 'digest-item';
+          div.textContent = it.label;
+          div.title = it.label;
+          div.addEventListener('click', function () { it.go(); });
+          box.appendChild(div);
+        });
+      }
+
+      fillList('digestDue', due.map(function (d) {
+        return { label: (d.dueTime || '23:59') + ' — ' + d.title, go: function () { scrollFlash('deadline-' + d.id); } };
+      }), 'Nothing due today. Enjoy it.');
+      fillList('digestStudy', study.map(function (s) {
+        return { label: (s.block.time || '09:00') + ' — ' + s.block.subject + (s.done ? ' ✓' : ''), go: function () { scrollFlash('study-' + s.block.id); } };
+      }), 'No study blocks today.');
+      fillList('digestRem', rems.map(function (e) {
+        return { label: (e.time || '09:00') + ' — ' + e.title, go: function () { showPage('calendar', false); calSelected = e.date; renderCalendar(); } };
+      }), 'No reminders today.');
+    } catch (e) {}
+  }
+
+  var konamiSeq = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
+  var konamiPos = 0;
+  var logoClicks = [];
+
+  function initEasterEggs() {
+    try {
+      console.log('%cHORIZON%c v42 — psst: try the Konami code, click the logo 5x, or click the coffee heart.', 'font-weight:bold;color:#0071e3', 'color:inherit');
+    } catch (e) {}
+    document.addEventListener('keydown', function (e) {
+      var k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+      var want = konamiSeq[konamiPos];
+      if (k === want || (want.length === 1 && k === want)) {
+        konamiPos++;
+        if (konamiPos === konamiSeq.length) {
+          konamiPos = 0;
+          confetti.fire(0.2, 0.4); confetti.fire(0.8, 0.4); confetti.fire(0.5, 0.2);
+          try { playSprintCompletionChime(); } catch (err) {}
+          showToast('KONAMI! +30 focus aura for the rest of the day.', 'success');
+        }
+      } else {
+        konamiPos = (k === konamiSeq[0]) ? 1 : 0;
+      }
+    });
+    document.querySelectorAll('.nav-brand-link, .hole-logo').forEach(function (el) {
+      el.addEventListener('click', function () {
+        var now = Date.now();
+        logoClicks = logoClicks.filter(function (t) { return now - t < 3000; });
+        logoClicks.push(now);
+        if (logoClicks.length === 5) {
+          logoClicks = [];
+          confetti.fire(0.5, 0.3);
+          showToast('You found the hole! The logo is a black hole eating deadlines. Tasty.', 'success');
+        }
+      });
+    });
+    var made = document.querySelector('.footer-made');
+    if (made) made.addEventListener('click', function () {
+      var lines = ['Espresso yourself.', 'Decaf? Never heard of her.', 'Powered by 4 shots and a deadline.', 'Coffee first, calculus later.'];
+      showToast(lines[Math.floor(Math.random() * lines.length)], 'info');
+    });
+  }
+
   function resetAllData() {
-    if (confirm('Restore default Stanford demo courses?')) {
+    openConfirm({ title: 'Restore demo data?', message: 'Replace your courses and deadlines with the Stanford demo set? Your other data stays untouched.', confirmText: 'Restore', danger: false }).then(function (ok) {
+      if (!ok) return;
       localStorage.removeItem(STORAGE_KEY_COURSES);
       localStorage.removeItem(STORAGE_KEY_DEADLINES);
       loadState();
       renderCourses();
       renderDeadlines();
+      if (typeof seedStudyPlan === 'function') seedStudyPlan(true);
+      if (typeof renderFinance === 'function') renderFinance();
       renderCalendar();
       updateOverallKPIs();
       showToast('Demo data restored', 'info');
-    }
+    });
   }
 
   // =========================================================================
@@ -2447,16 +4817,31 @@
     initTheme();
     loadState();
     loadCal();
+    if (typeof loadStudy === 'function') loadStudy();
+    if (typeof loadGhLocal === 'function') loadGhLocal();
+    if (typeof loadFinance === 'function') loadFinance();
+    if (typeof loadFlight === 'function') loadFlight();
     setScale(state.scale);
     renderCourses();
     renderDeadlines();
+    if (typeof renderStudy === 'function') {
+      if (!studyBlocks.length) seedStudyPlan(true);
+      else renderStudy();
+    }
+    if (typeof renderGh === 'function') renderGh();
+    if (typeof renderFinance === 'function') renderFinance();
+    if (typeof renderFlightAll === 'function') { populateFlightSelects(); renderFlightAll(); }
     renderCalendar();
     updateOverallKPIs();
     updateTimerDisplay();
     renderSprintCount();
     renderKeepList();
+    if (typeof renderHomeDigest === 'function') renderHomeDigest();
+    initRouter();
+    initEasterEggs();
 
     setInterval(function () { updateStanfordClock(); updateOverallKPIs(); updatePanicMeter(); tickDeadlineTimers(); }, 1000);
+    setInterval(function () { if (currentPage === 'home') renderHomeDigest(); }, 15000);
     updateStanfordClock();
     updatePanicMeter();
 
@@ -2469,13 +4854,9 @@
     document.getElementById('btnShuffleQuote').addEventListener('click', shuffleQuote);
     window.addEventListener('resize', fitQuote);
 
-    // Nav pills appear only after scrolling past the hero
+    // Nav is always visible now (decluttered: Home + 3 + More menu)
     var navLinks = document.querySelector('.nav-links');
-    function syncNavVisibility() {
-      if (navLinks) navLinks.classList.toggle('show', window.scrollY > 120);
-    }
-    window.addEventListener('scroll', syncNavVisibility, { passive: true });
-    syncNavVisibility();
+    if (navLinks) navLinks.classList.add('show');
 
     // Keyboard shortcuts
     initKeyboardShortcuts();
@@ -2536,14 +4917,30 @@
         closeThemeMenu();
       });
     });
+    try {
+      new MutationObserver(function () { if (typeof flApplyBase === 'function') flApplyBase(); })
+        .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    } catch (e) {}
     document.addEventListener('click', function (e) {
       var menu = document.getElementById('themeMenu');
       if (menu && menu.classList.contains('open') && !e.target.closest('.theme-picker')) closeThemeMenu();
     });
     document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape') closeThemeMenu();
+      if (e.key === 'Escape') {
+        var cm = document.getElementById('confirmModal');
+        if (cm && cm.classList.contains('active')) closeConfirm(false);
+        closeThemeMenu();
+      }
     });
     document.getElementById('btnOpenCredits').addEventListener('click', openCreditsModal);
+    // Custom confirm dialog wiring
+    document.getElementById('btnConfirmOk').addEventListener('click', function () { closeConfirm(true); });
+    document.getElementById('btnConfirmCancel').addEventListener('click', function () { closeConfirm(false); });
+    document.getElementById('btnConfirmClose').addEventListener('click', function () { closeConfirm(false); });
+    document.getElementById('confirmModal').addEventListener('click', function (e) { if (e.target === this) closeConfirm(false); });
+    document.getElementById('confirmInput').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); closeConfirm(true); }
+    });
     var keepListEl = document.getElementById('keepList');
     keepListEl.addEventListener('dragover', makeThrottledReorder(keepListEl, '.keep-card'));
     keepListEl.addEventListener('drop', function (e) { e.preventDefault(); keepListEl.classList.remove('is-reordering'); persistKeepOrder(); });
@@ -2592,12 +4989,191 @@
       scrollFlash('calendar');
     });
     document.getElementById('btnCalAdd').addEventListener('click', function () { openCalEventModal(calSelected); });
+    // Study / Dues / Code / Money wiring
+    try {
+      document.getElementById('btnAddStudy').addEventListener('click', function () { openStudyModal(); });
+      document.getElementById('btnSeedStudy').addEventListener('click', function () { seedStudyPlan(false); });
+      document.getElementById('studyForm').addEventListener('submit', saveStudyFromModal);
+      document.getElementById('btnCloseStudyModal').addEventListener('click', closeStudyModal);
+      document.getElementById('btnCancelStudyModal').addEventListener('click', closeStudyModal);
+      document.getElementById('btnStudyDelete').addEventListener('click', function () {
+        var editId = document.getElementById('studyEditId').value;
+        if (!editId) return;
+        var b = studyBlocks.find(function (x) { return x.id === editId; });
+        askConfirm('Delete study block?', 'Delete "' + (b ? b.subject : 'this block') + '" and its daily calendar entries?').then(function (ok) {
+          if (ok) {
+            studyBlocks = studyBlocks.filter(function (x) { return x.id !== editId; });
+            delete studyDone[editId];
+            persistStudy(); closeStudyModal(); renderStudy(); renderCalendar();
+            showToast('Study block deleted', 'info');
+          }
+        });
+      });
+      document.getElementById('btnAddDue').addEventListener('click', function () { openDueModal(); });
+      document.getElementById('dueForm').addEventListener('submit', saveDueFromModal);
+      document.getElementById('btnCloseDueModal').addEventListener('click', closeDueModal);
+      document.getElementById('btnCancelDueModal').addEventListener('click', closeDueModal);
+      document.getElementById('btnDueDelete').addEventListener('click', function () {
+        var editId = document.getElementById('dueEditId').value;
+        if (!editId) return;
+        var d = dues.find(function (x) { return x.id === editId; });
+        askConfirm('Delete due?', 'Delete "' + (d ? d.name : 'this due') + '"? This cannot be undone.').then(function (ok) {
+          if (ok) {
+            dues = dues.filter(function (x) { return x.id !== editId; });
+            persistFinance(); closeDueModal(); renderFinance();
+            showToast('Due removed', 'info');
+          }
+        });
+      });
+      document.getElementById('btnGhLoad').addEventListener('click', loadGhRepos);
+      document.getElementById('ghUserInput').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); loadGhRepos(); } });
+      document.getElementById('btnGhAdd').addEventListener('click', openGhModal);
+      document.getElementById('btnCloseGhModal').addEventListener('click', closeGhModal);
+      document.getElementById('btnCancelGhModal').addEventListener('click', closeGhModal);
+      document.getElementById('ghForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var nm = document.getElementById('ghNameInput').value.trim().slice(0, 80);
+        var url = document.getElementById('ghUrlInput').value.trim().slice(0, 200);
+        var note = document.getElementById('ghDescInput').value.trim().slice(0, 300);
+        if (!nm || !url) { showToast('Name + URL required', 'warn'); return; }
+        ghCustom.unshift({ id: Date.now(), name: nm, url: url, note: note, addedAt: new Date().toISOString() });
+        persistGhLocal(); closeGhModal(); renderGh();
+        document.getElementById('ghForm').reset();
+        showToast('Repo saved: ' + nm, 'success');
+      });
+      document.getElementById('ghSearchInput').addEventListener('input', renderGh);
+      document.getElementById('ghSortSelect').addEventListener('change', renderGh);
+      document.getElementById('ghLangFilter').addEventListener('change', renderGh);
+      document.getElementById('ghTabRepos').addEventListener('click', function () { ghTab = 'repos'; renderGh(); });
+      document.getElementById('ghTabStarred').addEventListener('click', function () { ghTab = 'starred'; renderGh(); });
+      document.getElementById('btnGhReadme').addEventListener('click', ghSurprise);
+      document.getElementById('btnAddTx').addEventListener('click', function () { openFinModal(); });
+      document.getElementById('finForm').addEventListener('submit', saveFinFromModal);
+      document.getElementById('btnCloseFinModal').addEventListener('click', closeFinModal);
+      document.getElementById('btnCancelFinModal').addEventListener('click', closeFinModal);
+      document.getElementById('finTypeExpense').addEventListener('click', function () { finType = 'expense'; syncFinTypeUI(); });
+      document.getElementById('finTypeIncome').addEventListener('click', function () { finType = 'income'; syncFinTypeUI(); });
+      document.getElementById('btnFinDelete').addEventListener('click', function () {
+        var editId = document.getElementById('finEditId').value;
+        if (!editId) return;
+        askConfirm('Delete transaction?', 'Remove this transaction from your records?').then(function (ok) {
+          if (ok) {
+            transactions = transactions.filter(function (x) { return x.id !== editId; });
+            persistFinance(); closeFinModal(); renderFinance();
+            showToast('Transaction deleted', 'info');
+          }
+        });
+      });
+      document.getElementById('btnEditBudget').addEventListener('click', function () {
+        openConfirm({ title: 'Monthly budget', message: 'Set your monthly spending budget in dollars.', confirmText: 'Save budget', danger: false, input: true, inputLabel: 'Budget ($)', inputValue: String(finBudget), inputPlaceholder: 'e.g. 400' }).then(function (res) {
+          if (!res || !res.ok) return;
+          var n = parseFloat(res.value);
+          if (!(n > 0)) { showToast('Enter a valid amount', 'warn'); return; }
+          finBudget = Math.round(n * 100) / 100;
+          persistFinance(); renderFinance();
+          showToast('Budget set to $' + finBudget, 'success');
+        });
+      });
+      document.getElementById('finFilterSelect').addEventListener('change', function (e) { finFilter = e.target.value; renderFinance(); });
+      document.getElementById('btnHeroTakeoff').addEventListener('click', function () {
+        setTimeout(function () { scrollFlash('flightSim'); }, 150);
+      });
+      document.getElementById('btnFlightToggle').addEventListener('click', toggleFlight);
+      document.getElementById('btnFlightReset').addEventListener('click', function () { resetFlight(false); showToast('Back to the gate', 'info'); });
+      document.getElementById('btnFlSwap').addEventListener('click', function () {
+        var f = document.getElementById('flFrom'), t = document.getElementById('flTo');
+        var tmp = f.value; f.value = t.value; t.value = tmp;
+        onFlightPlanChange();
+      });
+      ['flFrom', 'flTo', 'flCabin', 'flMode', 'flPlane'].forEach(function (id) {
+        document.getElementById(id).addEventListener('change', onFlightPlanChange);
+      });
+      document.getElementById('flCustomMin').addEventListener('change', onFlightPlanChange);
+      [['flViewMap', 'map'], ['flViewFollow', 'follow']].forEach(function (p) {
+        document.getElementById(p[0]).addEventListener('click', function () {
+          flightSave.view = p[1]; persistFlight(); renderFlightAll();
+        });
+      });
+      [['flDayDay', 'day'], ['flDayAuto', 'auto'], ['flDayNight', 'night']].forEach(function (p) {
+        document.getElementById(p[0]).addEventListener('click', function () {
+          flightSave.day = p[1]; persistFlight(); renderFlightAll();
+        });
+      });
+      document.getElementById('btnFlZoomIn').addEventListener('click', function () { flZoom(1); });
+      document.getElementById('btnFlZoomOut').addEventListener('click', function () { flZoom(-1); });
+      document.getElementById('btnFlZoomIn2').addEventListener('click', function () { flZoom(1); });
+      document.getElementById('btnFlZoomOut2').addEventListener('click', function () { flZoom(-1); });
+      document.getElementById('btnFlPause').addEventListener('click', toggleFlight);
+      document.getElementById('btnFlEnd').addEventListener('click', function () {
+        if (flight.state !== 'flying' && flight.state !== 'paused') { showToast('No active flight to end', 'info'); return; }
+        askConfirm('End flight?', 'Cut this flight short? You will not earn miles for it.').then(function (ok) {
+          if (ok) { resetFlight(false); showToast('Flight ended', 'info'); }
+        });
+      });
+      document.getElementById('btnFlDay').addEventListener('click', function () {
+        flightSave.day = flightSave.day === 'day' ? 'auto' : flightSave.day === 'auto' ? 'night' : 'day';
+        persistFlight(); renderFlightAll();
+      });
+      document.getElementById('btnFlAudio').addEventListener('click', function () {
+        flHum.on = !flHum.on;
+        this.classList.toggle('active', flHum.on);
+        if (flHum.on && flight.state === 'flying') flHumStart();
+        if (!flHum.on) flHumStop();
+      });
+      document.getElementById('btnFlFull').addEventListener('click', function () {
+        var el = document.getElementById('flConsole');
+        try {
+          if (document.fullscreenElement) document.exitFullscreen();
+          else if (el && el.requestFullscreen) el.requestFullscreen();
+        } catch (e) { showToast('Fullscreen not available here', 'warn'); }
+      });
+      document.getElementById('btnFlHideMap').addEventListener('click', function () {
+        var sim = document.getElementById('flightSim');
+        var hidden = sim.classList.toggle('nomap');
+        this.classList.toggle('active', !hidden);
+        renderFlightAll();
+      });
+      document.getElementById('btnFlPure').addEventListener('click', function () {
+        var sim = document.getElementById('flightSim');
+        var on = sim.classList.toggle('pure');
+        this.classList.toggle('active', on);
+      });
+      document.addEventListener('fullscreenchange', function () {
+        var con = document.getElementById('flConsole');
+        var inFs = document.fullscreenElement === con;
+        ['toastContainer', 'confirmModal', 'arrivalModal'].forEach(function (id) {
+          var el = document.getElementById(id);
+          if (!el || !con) return;
+          if (inFs) con.appendChild(el);
+          else document.body.appendChild(el);
+        });
+        if (flLeaf) setTimeout(function () { try { flLeaf.invalidateSize(); } catch (e) {} }, 120);
+      });
+      document.getElementById('btnFlCrew').addEventListener('click', function () {
+        flBell();
+        showToast(flight.state === 'flying' ? 'Cabin crew on the way — extra pretzels incoming' : 'Crew standing by for your next flight', 'info');
+      });
+      document.getElementById('btnDepMore').addEventListener('click', function () {
+        depExpanded = !depExpanded;
+        renderDepartures();
+      });
+      document.getElementById('btnArrivalClose').addEventListener('click', closeArrival);
+      document.getElementById('btnArrivalContinue').addEventListener('click', closeArrival);
+      document.getElementById('btnArrivalAgain').addEventListener('click', function () {
+        closeArrival();
+        showPage('focus', false);
+        setTimeout(function () { scrollFlash('flightSim'); }, 120);
+      });
+      document.getElementById('arrivalModal').addEventListener('click', function (e) { if (e.target === this) closeArrival(); });
+    } catch (err) { console.error('v40 wiring', err); }
+
     var calGrid = document.getElementById('calGrid');
     calGrid.addEventListener('click', function (e) {
       var chip = e.target.closest ? e.target.closest('.cal-chip') : null;
       if (chip && chip.dataset.id) {
         e.stopPropagation();
         if (chip.dataset.kind === 'event') openCalEventModal(chip.dataset.date, chip.dataset.id);
+        else if (chip.dataset.kind === 'study') scrollFlash('study-' + chip.dataset.id);
         else scrollFlash('deadline-' + chip.dataset.id);
         return;
       }
@@ -2701,24 +5277,25 @@
 
     document.getElementById('btnMuteAllAudio').addEventListener('click', toggleMuteAll);
 
-    // Mobile nav active state
-    var mobileNavItems = document.querySelectorAll('.mobile-nav-item');
-    if (mobileNavItems.length) {
-      var navObserver = new IntersectionObserver(function (entries) {
+    // Mobile nav active state follows the page router (syncPageLinks covers it).
+    // Keep a lightweight observer for in-page scroll position only.
+    (function () {
+      var items = document.querySelectorAll('.mobile-nav-item');
+      if (!items.length || !('IntersectionObserver' in window)) return;
+      var map = { hero: 'home', quote: 'home', radar: 'grades', deadlines: 'deadlines', calendar: 'calendar', study: 'study', code: 'code', money: 'money', focus: 'focus', notes: 'notes' };
+      var obs = new IntersectionObserver(function (entries) {
         entries.forEach(function (entry) {
-          if (entry.isIntersecting) {
-            var id = entry.target.id;
-            mobileNavItems.forEach(function (item) {
-              item.classList.toggle('active', item.getAttribute('href') === '#' + id);
+          if (entry.isIntersecting && map[entry.target.id] === currentPage) {
+            items.forEach(function (it) {
+              it.classList.toggle('active', it.dataset.pageLink === currentPage);
             });
           }
         });
-      }, { threshold: 0.3 });
-
-      ['radar', 'deadlines', 'calendar', 'focus', 'notes'].forEach(function (id) {
-        var section = document.getElementById(id);
-        if (section) navObserver.observe(section);
+      }, { threshold: 0.2 });
+      Object.keys(map).forEach(function (id) {
+        var s = document.getElementById(id);
+        if (s) obs.observe(s);
       });
-    }
+    })();
   });
 })();
