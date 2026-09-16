@@ -58,23 +58,65 @@ html {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Dark Mode Scrollbar */
+/* Theme-aware scrollbar */
+:root {
+  --sb-track: #121215;
+  --sb-thumb: #3a3a3c;
+  --sb-thumb-hover: #555558;
+}
+[data-theme="light"], [data-theme="colorblind-light"] {
+  --sb-track: #e4e4e8;
+  --sb-thumb: #b9b9c0;
+  --sb-thumb-hover: #9a9aa2;
+}
+[data-theme="ghost"] {
+  --sb-track: #0a0a0c;
+  --sb-thumb: #2b2b30;
+  --sb-thumb-hover: #3d3d44;
+}
+[data-theme="indie"] {
+  --sb-track: #e8e1d1;
+  --sb-thumb: #c2b797;
+  --sb-thumb-hover: #a89e83;
+}
+[data-theme="moss"] {
+  --sb-track: #e3ddc9;
+  --sb-thumb: #a9b08d;
+  --sb-thumb-hover: #8b9570;
+}
+[data-theme="marigold"], [data-theme="marigold-blind"] {
+  --sb-track: #f0e4c8;
+  --sb-thumb: #c8ab6d;
+  --sb-thumb-hover: #ab8f55;
+}
+[data-theme="colorblind"] {
+  --sb-track: #0a0c10;
+  --sb-thumb: #3d5a80;
+  --sb-thumb-hover: #50709a;
+}
+[data-theme="tritan"] {
+  --sb-track: #101014;
+  --sb-thumb: #4a4a55;
+  --sb-thumb-hover: #5e5e6a;
+}
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 10px;
+  height: 10px;
 }
 ::-webkit-scrollbar-track {
-  background: #121215;
+  background: var(--sb-track);
 }
 ::-webkit-scrollbar-thumb {
-  background: #3a3a3c;
-  border-radius: 3px;
+  background: var(--sb-thumb);
+  border-radius: 6px;
+  border: 2px solid var(--sb-track);
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #555;
+  background: var(--sb-thumb-hover);
 }
 * {
   scrollbar-width: thin;
-  scrollbar-color: #3a3a3c #121215;
+  scrollbar-color: var(--sb-thumb) var(--sb-track);
 }
 
 body {
@@ -1858,7 +1900,7 @@ body > * {
 }
 
 /* ==========================================================================
-   Indie Theme — cream paper, ink text, terracotta accent
+   Indie Theme - cream paper, ink text, terracotta accent
    ========================================================================== */
 [data-theme="indie"] {
   color-scheme: light;
@@ -2028,7 +2070,7 @@ body > * {
 }
 
 /* ==========================================================================
-   Moss Theme — warm sand paper, ink text, moss-green accent
+   Moss Theme - warm sand paper, ink text, moss-green accent
    ========================================================================== */
 [data-theme="moss"] {
   color-scheme: light;
@@ -2198,7 +2240,7 @@ body > * {
 }
 
 /* ==========================================================================
-   Ghost Theme — monochrome dark, white accent, no color at all
+   Ghost Theme - monochrome dark, white accent, no color at all
    ========================================================================== */
 [data-theme="ghost"] {
   color-scheme: dark;
@@ -2234,7 +2276,7 @@ body > * {
 }
 
 /* ==========================================================================
-   Colorblind Theme — high-contrast dark, Okabe-Ito safe palette
+   Colorblind Theme - high-contrast dark, Okabe-Ito safe palette
    (blue / orange / vermillion / bluish-green: no red-vs-green signalling,
    plus underlines + striped bars so urgency never relies on hue alone)
    ========================================================================== */
@@ -2494,7 +2536,7 @@ body > * {
 }
 
 /* ==========================================================================
-   Colorblind Light — same red-green-safe logic on a bright base
+   Colorblind Light - same red-green-safe logic on a bright base
    (surfaces inherited from the Light rules above via :is(); colors below
    are darkened for contrast on white)
    ========================================================================== */
@@ -2583,7 +2625,7 @@ body > * {
 }
 
 /* ==========================================================================
-   Tritan — blue-yellow safe (tritanopia): no blue/yellow signalling at all.
+   Tritan - blue-yellow safe (tritanopia): no blue/yellow signalling at all.
    Neutrals + red/orange/green (all intact channels) + shape cues.
    ========================================================================== */
 [data-theme="tritan"] {
@@ -3233,8 +3275,82 @@ body > * {
 
 .keep-composer:focus-within {
   border-color: var(--hairline-border-hover);
-  box-shadow: 0 4px 24px rgba(0, 113, 227, 0.08);
 }
+
+/* Formatting toolbar */
+.fmt-bar { display: flex; align-items: center; gap: 4px; }
+.fmt-btn {
+  min-width: 28px; height: 26px; padding: 0 7px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: transparent; color: var(--text-secondary);
+  border: var(--hairline-border); border-radius: 7px;
+  font-size: 12px; cursor: pointer;
+}
+.fmt-btn:hover { color: var(--text-primary); border-color: var(--accent-blue); }
+.fmt-sep { width: 1px; height: 16px; background: var(--hairline-divider); margin: 0 4px; }
+
+/* Composer image + reminder */
+.keep-img-prev { display: flex; align-items: flex-start; gap: 8px; }
+.keep-img-prev img { max-width: 100%; max-height: 160px; border-radius: 8px; border: var(--hairline-border); }
+.keep-remind-row { display: flex; align-items: center; gap: 10px; position: relative; flex-wrap: wrap; }
+#keepRemindChip { cursor: pointer; }
+.remind-pop {
+  position: absolute; left: 0; top: calc(100% + 8px); z-index: 50;
+  background: var(--bg-surface); border: var(--hairline-border); border-radius: 12px;
+  padding: 12px; display: flex; flex-direction: column; gap: 10px; min-width: 240px;
+}
+.remind-pop .apple-input { width: 100%; font-size: 12px; }
+.remind-pop-actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+/* Editable note body */
+#keepBody { white-space: pre-wrap; word-break: break-word; }
+#keepBody:focus { outline: none; }
+#keepBody:empty::before {
+  content: attr(data-placeholder);
+  color: var(--text-tertiary);
+  font-weight: 400;
+  pointer-events: none;
+}
+
+/* Card extras: image, chips, actions */
+.keep-card-img { width: 100%; max-height: 140px; object-fit: cover; border-radius: 8px; border: var(--hairline-border); }
+.keep-card-meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.keep-card-actions { display: flex; gap: 2px; margin-left: auto; }
+.keep-card-actions .btn-card-glyph { width: 24px; height: 24px; }
+.keep-card-body strong { color: var(--text-primary); }
+.note-reader-body strong { color: var(--text-primary); }
+
+/* Trash */
+.trash-meta { font-size: 11px; color: var(--text-tertiary); font-family: var(--font-mono); }
+.trash-actions { display: flex; gap: 8px; margin-top: 4px; }
+
+/* Note reader modal */
+.note-reader { gap: 14px; }
+.note-reader-meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.note-reader-body { font-size: 14px; line-height: 1.6; color: var(--text-secondary); white-space: pre-line; }
+#noteModalImg { width: 100%; max-height: 320px; object-fit: contain; border-radius: 10px; border: var(--hairline-border); }
+.note-reader-actions { flex-wrap: wrap; }
+.modal-surface.note-full {
+  max-width: none; width: calc(100vw - 32px); height: calc(100vh - 32px); max-height: none;
+}
+.modal-surface.note-full .note-reader-body { flex: 1; overflow-y: auto; }
+
+/* History rows */
+.hist-row { padding: 10px 0; border-bottom: var(--hairline-divider); }
+.hist-row:last-child { border-bottom: none; }
+.hist-when { font-family: var(--font-mono); font-size: 11px; color: var(--text-tertiary); }
+.hist-snippet { font-size: 12px; color: var(--text-secondary); white-space: pre-line; margin: 4px 0 8px 0;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* Smooth tab + card motion */
+.keep-grid.play .keep-card { animation: cardIn 0.3s var(--ease-apple) both; }
+.keep-grid.play .keep-card:nth-child(2) { animation-delay: 0.04s; }
+.keep-grid.play .keep-card:nth-child(3) { animation-delay: 0.08s; }
+.keep-grid.play .keep-card:nth-child(4) { animation-delay: 0.12s; }
+.keep-grid.play .keep-card:nth-child(5) { animation-delay: 0.16s; }
+.keep-grid.play .keep-card:nth-child(6) { animation-delay: 0.2s; }
+.keep-grid.play .keep-card:nth-child(n+7) { animation-delay: 0.24s; }
+.pane-swap { animation: paneIn 0.25s ease; }
 
 /* Notes board section */
 section[id] {
@@ -3472,7 +3588,7 @@ section[id] {
 }
 
 /* ==========================================================================
-   Calendar — Google-Calendar-style month grid + agenda
+   Calendar - Google-Calendar-style month grid + agenda
    ========================================================================== */
 .cal-toolbar {
   width: 100%;
@@ -3808,7 +3924,7 @@ html[data-theme="colorblind-light"] .cal-chip-deadline {
 }
 
 /* ==========================================================================
-   v40 — Apple-level polish + Study / Teams / Code / Money
+   v40 - Apple-level polish + Study / Teams / Code / Money
    ========================================================================== */
 
 /* Two-row header: brand + actions on top, big page buttons below */
@@ -3848,7 +3964,7 @@ html[data-theme="colorblind-light"] .cal-chip-deadline {
   .hero-headline-sub { color: var(--text-secondary); -webkit-text-fill-color: var(--text-secondary); }
 }
 
-/* Frosted cards everywhere */
+/* Shared frosted-card finish */
 .apple-card, .apple-course-card, .cal-month-card, .cal-agenda-card,
 .study-timeline-card, .study-card, .team-card, .gh-card, .money-balance-card, .money-list-card {
   backdrop-filter: saturate(150%) blur(8px);
@@ -4077,7 +4193,7 @@ html[data-theme="colorblind-light"] .cal-chip-deadline {
 }
 
 /* ==========================================================================
-   v41 — pages, dropdown nav, confirm dialog, home, new themes
+   v41 - pages, dropdown nav, confirm dialog, home, new themes
    ========================================================================== */
 
 /* Page router: one page visible at a time, footer always stays */
@@ -4162,7 +4278,7 @@ html[data-theme="colorblind-light"] .cal-chip-deadline {
 .footer-pages a.active { color: var(--text-primary); font-weight: 600; }
 
 /* ==========================================================================
-   Marigold theme — light Indian paper, marigold + deep green
+   Marigold theme - light Indian paper, marigold + deep green
    ========================================================================== */
 [data-theme="marigold"] {
   color-scheme: light;
@@ -4202,7 +4318,7 @@ html[data-theme="colorblind-light"] .cal-chip-deadline {
 [data-theme="marigold"] .pill-btn-primary:hover { background-color: #267047; }
 
 /* ==========================================================================
-   Marigold Safe — colorblind-safe light Indian moss (blue/ochre, no red-green)
+   Marigold Safe - colorblind-safe light Indian moss (blue/ochre, no red-green)
    ========================================================================== */
 [data-theme="marigold-blind"] {
   color-scheme: light;
@@ -4251,7 +4367,7 @@ html[data-theme="colorblind-light"] .cal-chip-deadline {
 [data-theme="ghost"] { color-scheme: dark; }
 
 /* ==========================================================================
-   v42 — smaller quote, icon tiles, bigger buttons, UI polish
+   v42 - smaller quote, icon tiles, bigger buttons, UI polish
    ========================================================================== */
 
 /* Compact quote of the day */
@@ -4293,23 +4409,21 @@ html[data-theme="colorblind-light"] .cal-chip-deadline {
 .theme-toggle-btn .icon-svg { width: 16px; height: 16px; display: block; }
 
 /* ==========================================================================
-   v44 — squircles everywhere (smooth continuous corners, graceful fallback)
+   v44 - squircles everywhere (smooth continuous corners, graceful fallback)
    ========================================================================== */
 
-/* Buttons + pills become squircles instead of stadiums */
+/* Buttons + pills: compact radius instead of full stadium */
 .pill-btn, .nav-link, .chip-btn, .seg-btn, .phase-badge,
 .gh-mini-btn, .cal-agenda-tag, .grade-secured, .grade-warn,
 .grade-fail, .grade-pass, .legend-pill, .meta-chip, .team-group-label {
   border-radius: 14px;
-  corner-shape: squircle;
 }
 .seg-btn { border-radius: 11px; }
 .segmented-control {
   border-radius: 18px;
-  corner-shape: squircle;
 }
 
-/* Cards + surfaces: large squircles */
+/* Cards + surfaces: base reset, real radii follow below */
 .apple-card, .apple-course-card, .cal-month-card, .cal-agenda-card,
 .study-timeline-card, .study-card, .team-card, .gh-card,
 .money-balance-card, .money-list-card, .home-card, .gh-profile,
@@ -4318,7 +4432,7 @@ html[data-theme="colorblind-light"] .cal-chip-deadline {
 .credit-link, .tx-row, .money-stat, .team-goal, .digest-item,
 .study-timeline-card, .components-config-block, .import-preview-box,
 .sim-output-badge, .cal-agenda-row {
-  corner-shape: squircle;
+  border-radius: 0;
 }
 .apple-card, .apple-course-card, .cal-month-card, .cal-agenda-card,
 .study-timeline-card, .study-card, .team-card, .gh-card,
@@ -4340,20 +4454,13 @@ html[data-theme="colorblind-light"] .cal-chip-deadline {
 .modal-form input[type="date"], .modal-form input[type="time"],
 .cal-day, .cal-chip, .day-chip, .timeline-pill {
   border-radius: 12px;
-  corner-shape: squircle;
 }
 .cal-day { border-radius: 14px; }
 
-/* Circles stay circular: avatars, dots, toggles, checkboxes, timer */
-.avatar, .home-card-dot, .legend-dot, .gh-lang-dot, .location-dot,
-.theme-toggle-btn, .shuffle-btn, .modal-close-btn, .btn-card-glyph,
-.apple-checkbox, .todo-circle, .gh-pin, .cal-day-num, .toast-icon,
-.tx-icon, .credits-logo svg {
-  corner-shape: round;
-}
+/* Circles stay circular through their own 50% radii, no override needed */
 
 /* ==========================================================================
-   v47 — dues tracker
+   v47 - dues tracker
    ========================================================================== */
 .dues-card { margin-top: 24px; }
 .dues-hint { text-align: left; margin: 0; }
@@ -4376,7 +4483,7 @@ html[data-theme="colorblind-light"] .cal-chip-deadline {
 }
 
 /* ==========================================================================
-   v50 — flight simulator
+   v50 - flight simulator
    ========================================================================== */
 .flight-sim { margin-top: 8px; }
 .flight-wrap {
@@ -4419,7 +4526,6 @@ html[data-theme="colorblind-light"] .cal-chip-deadline {
   color: var(--accent-blue);
   background: var(--accent-blue-subtle);
   border-radius: 12px;
-  corner-shape: squircle;
   padding: 10px 14px;
   text-align: center;
 }
@@ -4434,7 +4540,6 @@ html[data-theme="colorblind-light"] .cal-chip-deadline {
   width: 100%;
   height: auto;
   border-radius: 16px;
-  corner-shape: squircle;
   background: rgba(127, 127, 133, 0.07);
   border: var(--hairline-border);
 }
@@ -4451,7 +4556,6 @@ html[data-theme="colorblind-light"] .cal-chip-deadline {
   width: 100%;
   height: auto;
   border-radius: 16px;
-  corner-shape: squircle;
   border: var(--hairline-border);
 }
 .fl-progress-track {
@@ -4479,7 +4583,6 @@ html[data-theme="colorblind-light"] .cal-chip-deadline {
   background: rgba(127, 127, 133, 0.08);
   border: var(--hairline-border);
   border-radius: 12px;
-  corner-shape: squircle;
   padding: 9px 12px;
 }
 .fl-read-val { font-family: var(--font-mono); font-size: 14px; font-weight: 700; }
@@ -4495,7 +4598,7 @@ html[data-theme="colorblind-light"] .cal-chip-deadline {
 }
 
 /* ==========================================================================
-   v53 — In Focus Flight console (big timer, plane progress, toolbar)
+   v53 - In Focus Flight console (big timer, plane progress, toolbar)
    ========================================================================== */
 .flight-console {
   margin-bottom: 24px;
@@ -4559,7 +4662,6 @@ html[data-theme="colorblind-light"] .cal-chip-deadline {
   text-transform: uppercase;
   padding: 3px 9px;
   border-radius: 8px;
-  corner-shape: squircle;
   flex-shrink: 0;
 }
 .wish-high { color: #ff453a; background: rgba(255, 69, 58, 0.12); }
@@ -4644,7 +4746,6 @@ html[data-theme="colorblind-light"] .cal-chip-deadline {
   display: flex;
   flex-direction: column;
   border-radius: 12px;
-  corner-shape: squircle;
   overflow: hidden;
   border: var(--hairline-border);
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
@@ -4662,12 +4763,12 @@ html[data-theme="colorblind-light"] .cal-chip-deadline {
 }
 .fl-map-zoom button:first-child { border-bottom: var(--hairline-divider); }
 .fl-map-zoom button:hover { background: var(--bg-surface-subtle); color: var(--accent-blue); }
-/* Pure mode: console only — setup, map extras and logbook step aside */
+/* Pure mode: console only - setup, map extras and logbook step aside */
 .flight-sim.pure .flight-wrap,
 .flight-sim.pure .flight-log-card { display: none; }
 
 /* ==========================================================================
-   v56 — departures board, arrival celebration, markers, locked options
+   v56 - departures board, arrival celebration, markers, locked options
    ========================================================================== */
 
 /* Locked select options: clearly off-limits, no pointer tease */
@@ -4686,7 +4787,6 @@ html[data-theme="colorblind-light"] .cal-chip-deadline {
   background: rgba(127, 127, 133, 0.07);
   border: var(--hairline-border);
   border-radius: 14px;
-  corner-shape: squircle;
   padding: 11px 14px;
 }
 .dep-row.boarding { border-color: var(--accent-blue); }
@@ -4776,7 +4876,6 @@ html[data-theme="colorblind-light"] .cal-chip-deadline {
   background: rgba(127, 127, 133, 0.08);
   border: var(--hairline-border);
   border-radius: 12px;
-  corner-shape: squircle;
   padding: 10px 14px;
   display: flex;
   flex-direction: column;
@@ -4820,7 +4919,6 @@ html[data-theme="colorblind-light"] .cal-chip-deadline {
   width: 100%;
   height: 440px;
   border-radius: 16px;
-  corner-shape: squircle;
   border: var(--hairline-border);
   overflow: hidden;
   background: var(--bg-surface-subtle);
@@ -4870,19 +4968,19 @@ html[data-theme="colorblind-light"] .cal-chip-deadline {
 
 
 
-/* Bigger, better buttons */
+/* Button sizing */
 .pill-btn { padding: 9px 20px; font-weight: 600; }
 .pill-btn-lg { padding: 12px 28px; font-size: 15px; }
 .pill-btn-primary { box-shadow: 0 2px 14px rgba(0,113,227,.28); }
 .pill-btn-primary:hover { box-shadow: 0 4px 20px rgba(0,113,227,.35); }
 [data-theme="ghost"] .pill-btn-primary { box-shadow: 0 2px 14px rgba(255,255,255,.18); }
 
-/* Hero polish for the new motto */
+/* Hero spacing */
 .hero-section { padding: 70px 0 56px 0; }
 .hero-headline { letter-spacing: -0.04em; }
 .hero-lead { margin-bottom: 20px; }
 
-/* Sharper cards and inputs */
+/* Card and input focus */
 .apple-course-card, .study-card, .team-card, .gh-card, .home-card { border-width: 1px; }
 .apple-select:focus, .apple-input:focus, .modal-form input:focus, .apple-textarea:focus {
   border-color: var(--accent-blue);
@@ -4891,7 +4989,96 @@ html[data-theme="colorblind-light"] .cal-chip-deadline {
 .seg-btn { font-weight: 600; }
 .section-headline { letter-spacing: -0.032em; }
 
-/* Transaction category dots (no emoji) */
+/* Transaction category initials */
 .tx-icon { font-family: var(--font-display); font-size: 13px; font-weight: 700; color: #fff; }
 .tx-icon.income { background: #1faa4b; }
 .tx-icon.expense { background: #5e5ce6; }
+
+/* Flashcards (Study tab) */
+.fc-card { margin-top: 24px; }
+.fc-add-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.fc-add-grid .apple-input, .fc-add-grid .apple-select { width: 100%; }
+.fc-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 12px; }
+.fc-revise-row { display: flex; align-items: flex-end; gap: 10px; margin-top: 16px; }
+.fc-stage {
+  margin-top: 12px; min-height: 170px; width: 100%;
+  background: var(--bg-surface-subtle); border: var(--hairline-border);
+  border-radius: var(--radius-card); padding: 26px 22px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+  cursor: pointer; color: var(--text-primary); font-family: inherit; text-align: center;
+}
+.fc-stage:hover { border-color: var(--accent-blue); }
+.fc-stage-topic { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent-blue); }
+.fc-stage-text { font-family: var(--font-display); font-size: 20px; font-weight: 600; letter-spacing: -0.015em; max-width: 560px; }
+.fc-stage-hint { font-size: 11px; color: var(--text-tertiary); font-family: var(--font-mono); }
+.fc-nav-row { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+.fc-pos { font-family: var(--font-mono); font-size: 12px; color: var(--text-secondary); min-width: 64px; text-align: center; }
+.fc-deck-info { font-family: var(--font-mono); font-size: 11px; color: var(--text-tertiary); white-space: nowrap; }
+
+/* Flashcard big view popup */
+.fc-modal-surface { max-width: 640px; }
+.fc-big-body { padding: 28px; display: flex; flex-direction: column; gap: 14px; }
+.fc-big-stage { min-height: 280px; padding: 40px 28px; }
+.fc-big-text { font-size: 26px; }
+.fc-big-meta { display: flex; justify-content: center; }
+.fc-big-nav { display: flex; justify-content: center; align-items: center; gap: 12px; flex-wrap: wrap; }
+
+/* Glow control: luminous blue/white glows off, neutral depth shadows stay smooth */
+*, *::before, *::after { text-shadow: none !important; }
+.pill-btn-primary, .pill-btn-primary:hover,
+[data-theme="ghost"] .pill-btn-primary,
+.apple-course-card:hover { box-shadow: none !important; }
+.timer-circle-fill { filter: none; }
+.fl-big-plane, .gh-big-logo, .hero-headline, .section-headline, .timer-digits-display, .panic-digits,
+.fl-leaf-plane svg {
+  filter: none !important;
+}
+.fc-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0; border-bottom: var(--hairline-divider); }
+.fc-row:last-child { border-bottom: none; }
+.fc-row-main { min-width: 0; flex: 1; }
+.fc-row-topic { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent-blue); }
+.fc-row-front { font-size: 13px; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fc-row-back { font-size: 12px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 640px) { .fc-add-grid { grid-template-columns: 1fr; } }
+
+/* Todo due dates + priority */
+.todo-quick-add { flex-wrap: wrap; }
+.todo-due-input, .todo-prio-input { font-size: 12px; padding: 6px 10px; }
+.todo-due-input { max-width: 150px; }
+.todo-prio-input { max-width: 130px; }
+.todo-chips { display: inline-flex; gap: 6px; margin-left: 8px; flex-shrink: 0; }
+.todo-chip {
+  font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+  padding: 2px 8px; border-radius: var(--radius-pill);
+  border: var(--hairline-border); color: var(--text-secondary); white-space: nowrap;
+}
+.todo-chip.overdue { color: #ff453a; border-color: rgba(255, 69, 58, 0.4); }
+.todo-chip.prio-High { color: #ff453a; border-color: rgba(255, 69, 58, 0.4); }
+.todo-chip.prio-Medium { color: #ff9f0a; border-color: rgba(255, 159, 10, 0.4); }
+.todo-chip.prio-Low { color: var(--accent-blue); }
+.todo-row { align-items: center; }
+
+/* Focus custom time */
+.focus-custom-row { display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 10px; }
+.focus-custom-input { width: 90px; text-align: center; }
+
+/* Flight custom hours + minutes */
+.fl-custom-row { display: flex; align-items: center; gap: 8px; }
+.fl-custom-row .apple-select { flex: 1; min-width: 0; }
+.fl-custom-unit { font-size: 12px; color: var(--text-tertiary); font-family: var(--font-mono); }
+
+/* Formula symbol popup */
+.fc-sym-row { display: flex; justify-content: flex-end; margin: 8px 0 0 0; }
+.sym-bar { display: none; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.sym-bar.open { display: flex; }
+.sym-bar button {
+  font-family: var(--font-mono); font-size: 13px; line-height: 1;
+  min-width: 34px; padding: 6px 8px; border-radius: 8px;
+  background: var(--bg-surface-subtle); color: var(--text-secondary);
+  border: var(--hairline-border); cursor: pointer;
+}
+.sym-bar button:hover { color: var(--text-primary); border-color: var(--accent-blue); }
+
+/* Flashcard edit state */
+.fc-editing { border-color: var(--accent-blue); }
+#fcList .fc-edit { color: var(--accent-blue); }

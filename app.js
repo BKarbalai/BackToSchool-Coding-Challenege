@@ -1,8 +1,8 @@
 /**
- * Horizon — Stanford Grades & Deadlines
+ * Horizon - Stanford Grades & Deadlines
  * Stanford University
- * Pure Vanilla JavaScript — Apple.com Design System
- * Built for Codédex Monthly Challenge — September 2026
+ * Pure Vanilla JavaScript - Apple.com Design System
+ * Built for Codédex Monthly Challenge - September 2026
  */
 (function () {
   'use strict';
@@ -82,8 +82,7 @@
         this.ctx.translate(p.x, p.y);
         this.ctx.rotate((p.rotation * Math.PI) / 180);
         this.ctx.globalAlpha = p.opacity;
-        this.ctx.shadowColor = p.color;
-        this.ctx.shadowBlur = 4;
+        this.ctx.shadowBlur = 0;
         this.ctx.fillStyle = p.color;
         this.ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
         this.ctx.restore();
@@ -140,7 +139,7 @@
     opts = opts || {};
     var modal = document.getElementById('confirmModal');
     if (!modal) {
-      // No native dialogs allowed — fail safe, never proceed silently destructive.
+      // No native dialogs anywhere: if the custom modal is missing, cancel instead of deleting.
       showToast(opts.message || 'Action cancelled', 'warn');
       return Promise.resolve(false);
     }
@@ -187,7 +186,7 @@
   }
 
   // =========================================================================
-  // 3b. Page router — one focused page at a time, footer on every page
+  // 3b. Page router - one focused page at a time, footer on every page
   // =========================================================================
 
   var PAGES = {
@@ -377,7 +376,7 @@
       nextText = uncompleted[0].title + ' in ' + rem.text;
     }
 
-    var summary = 'Horizon — Fall Status\n' +
+    var summary = 'Horizon - Fall Status\n' +
       'Courses: ' + state.courses.length + ' | Units: ' + totalEcts + ' units\n' +
       'Deadlines: ' + state.deadlines.length + ' total, ' + uncompleted.length + ' pending\n' +
       'Next: ' + nextText;
@@ -407,6 +406,7 @@
       wishlist: (typeof wishlist !== 'undefined' ? wishlist : []),
       budget: (typeof finBudget !== 'undefined' ? finBudget : 400),
       customRepos: (typeof ghCustom !== 'undefined' ? ghCustom : []),
+      flashcards: (typeof fcCards !== 'undefined' ? fcCards : []),
       settings: { scale: state.scale },
       exportedAt: new Date().toISOString()
     };
@@ -805,7 +805,7 @@
     if (label) label.textContent = shown + '% of ' + year + ' is over';
   }
 
-  // Morse code easter eggs — decode them yourself
+  // Morse code easter eggs - decode them yourself
   function morseEggs() {
     try {
       var mono = 'font-family:monospace;color:#0071e3';
@@ -923,7 +923,7 @@
     container.querySelectorAll('.btn-delete-course').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var course = state.courses.find(function (c) { return c.id === btn.dataset.id; });
-        askConfirm('Delete course?', 'Delete "' + (course ? course.code + ' — ' + course.name : 'this course') + '" and its deadlines? This cannot be undone.').then(function (ok) {
+        askConfirm('Delete course?', 'Delete "' + (course ? course.code + ' - ' + course.name : 'this course') + '" and its deadlines? This cannot be undone.').then(function (ok) {
           if (ok) deleteCourse(btn.dataset.id);
         });
       });
@@ -1160,6 +1160,23 @@
         try { new Notification('Reminder: ' + c.title, { body: (c.time || '') + ' · ' + (c.notes || c.date) }); } catch (e) {}
       }
     });
+    if (typeof keepNotes !== 'undefined') {
+      var dirty = false;
+      keepNotes.forEach(function (n) {
+        if (!n.reminder || n.reminded || n.deletedAt || n.type === 'todo') return;
+        if (new Date(n.reminder).getTime() <= now.getTime()) {
+          n.reminded = true;
+          dirty = true;
+          try { new Notification('Note reminder', { body: (n.title || 'Untitled') + (n.body ? ' - ' + String(n.body).slice(0, 80) : '') }); } catch (e) {}
+          showToast('Reminder: ' + (n.title || 'Untitled note'), 'info');
+          try { playSprintCompletionChime(); } catch (e2) {}
+        }
+      });
+      if (dirty) {
+        persistKeep();
+        if (typeof renderKeepList === 'function') renderKeepList();
+      }
+    }
   }
 
   // =========================================================================
@@ -1170,7 +1187,7 @@
   var cmdFiltered = [];
 
   function scrollFlash(id) {
-    // Open the right page first, then scroll — pages hide inactive sections.
+    // Open the right page first, then scroll - pages hide inactive sections.
     try {
       var pg = typeof pageForElement === 'function' ? pageForElement(id) : null;
       if (pg && typeof showPage === 'function' && pg !== currentPage) showPage(pg, false);
@@ -1222,7 +1239,7 @@
       { label: 'Theme: Indie', hint: 'theme', run: function () { setTheme('indie'); } }
     ];
     state.courses.forEach(function (c) {
-      cmds.push({ label: c.code + ' — ' + c.name, hint: 'course', run: (function (id) { return function () { scrollFlash('course-' + id); }; })(c.id) });
+      cmds.push({ label: c.code + ' - ' + c.name, hint: 'course', run: (function (id) { return function () { scrollFlash('course-' + id); }; })(c.id) });
     });
     state.deadlines.filter(function (d) { return !d.completed; }).forEach(function (d) {
       cmds.push({ label: d.title, hint: 'deadline', run: (function (id) { return function () { scrollFlash('deadline-' + id); }; })(d.id) });
@@ -1283,7 +1300,7 @@
     Notification.requestPermission().then(function (p) {
       if (p === 'granted') {
         try { localStorage.setItem(REM_KEY, '1'); } catch (e) {}
-        showToast('Reminders on — 2h before each cutoff', 'success');
+        showToast('Reminders on - 2h before each cutoff', 'success');
       } else {
         showToast('Reminders blocked in browser settings', 'warn');
       }
@@ -1503,6 +1520,35 @@
     }
   }
 
+  function playTimerAlarm() {
+    try {
+      var ctx = getAudioContext();
+      var pattern = [0, 0.35, 0.7, 1.4, 1.75, 2.1];
+      pattern.forEach(function (at) {
+        var osc = ctx.createOscillator();
+        var gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(880, ctx.currentTime + at);
+        gain.gain.setValueAtTime(0, ctx.currentTime + at);
+        gain.gain.linearRampToValueAtTime(0.22, ctx.currentTime + at + 0.04);
+        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + at + 0.3);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(ctx.currentTime + at);
+        osc.stop(ctx.currentTime + at + 0.35);
+      });
+    } catch (e) {}
+  }
+
+  function notifyTimerEnd(title, body) {
+    try {
+      if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification(title, { body: body });
+      }
+    } catch (e) {}
+    try { if (navigator.vibrate) navigator.vibrate([200, 100, 200]); } catch (e2) {}
+  }
+
   function playSprintCompletionChime() {
     try {
       var ctx = getAudioContext();
@@ -1546,6 +1592,9 @@
 
   function startPomodoro() {
     if (pomodoroState.isRunning) return;
+    try {
+      if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission();
+    } catch (e) {}
     pomodoroState.isRunning = true;
     var text = document.getElementById('timerPlayText');
     var icon = document.getElementById('timerPlayIconSvg');
@@ -1563,12 +1612,15 @@
         if (icon) icon.innerHTML = '<polygon points="4,2 14,8 4,14"></polygon>';
         confetti.fire(0.5, 0.5);
         playSprintCompletionChime();
+        playTimerAlarm();
         if (pomodoroState.phase === 'focus') {
           recordSprint();
+          notifyTimerEnd('Focus sprint done', 'Nice work. Your 5-minute break starts when you press Start.');
           pomodoroState.phase = 'break';
           pomodoroState.durationMinutes = 5;
           showToast('Sprint banked. 5-minute break queued.', 'success');
         } else {
+          notifyTimerEnd('Break over', 'Time to lock back in for 25 minutes.');
           pomodoroState.phase = 'focus';
           pomodoroState.durationMinutes = 25;
           showToast('Break over. 25-minute focus queued.', 'info');
@@ -1593,6 +1645,18 @@
     pausePomodoro();
     pomodoroState.secondsLeft = pomodoroState.durationMinutes * 60;
     updateTimerDisplay();
+  }
+
+  function setFocusCustom() {
+    var inp = document.getElementById('focusCustomMin');
+    var n = inp ? Math.round(parseFloat(inp.value)) : NaN;
+    if (!(n >= 1)) { showToast('Enter 1 to 180 minutes', 'warn'); return; }
+    n = Math.min(180, Math.max(1, n));
+    pomodoroState.phase = 'focus';
+    pomodoroState.durationMinutes = n;
+    syncTimerPhaseUI();
+    resetPomodoro();
+    showToast(n + '-minute focus ready - press Start', 'success');
   }
 
   function syncTimerPhaseUI() {
@@ -1708,11 +1772,11 @@
     var future = open.filter(function (d) { return deadlineInstant(d.dueDate, d.dueTime) - now > 0; });
     var past = open.filter(function (d) { return deadlineInstant(d.dueDate, d.dueTime) - now <= 0; });
     if (!future.length) {
-      // Every open cutoff has passed — say so, point at the most recent one.
+      // Every open cutoff has passed - say so, point at the most recent one.
       var last = past[past.length - 1];
       if (titleEl) titleEl.textContent = last.title;
       digits.textContent = 'Passed';
-      if (subEl) subEl.textContent = past.length === 1 ? 'That cutoff passed — tick it off or add the next one.' : past.length + ' cutoffs passed — tick them off or add the next one.';
+      if (subEl) subEl.textContent = past.length === 1 ? 'That cutoff passed - tick it off or add the next one.' : past.length + ' cutoffs passed - tick them off or add the next one.';
       if (wrap) wrap.className = 'panic-widget danger';
       return;
     }
@@ -1729,9 +1793,9 @@
     if (wrap) wrap.className = 'panic-widget ' + (hours < 24 ? 'danger' : hours < 48 ? 'warn' : 'calm');
     var crunch = future.filter(function (x) { return deadlineInstant(x.dueDate, x.dueTime) - now < 48 * 3600000; }).length;
     var parts = [];
-    if (past.length) parts.push(past.length === 1 ? 'Last cutoff passed — next up' : past.length + ' cutoffs passed — next up');
-    if (crunch >= 2) parts.push(crunch + ' cutoffs land within 48h — heaviest stretch');
-    if (!sprintsToday() && open.length) parts.push('No sprints yet today — start one below');
+    if (past.length) parts.push(past.length === 1 ? 'Last cutoff passed - next up' : past.length + ' cutoffs passed - next up');
+    if (crunch >= 2) parts.push(crunch + ' cutoffs land within 48h - heaviest stretch');
+    if (!sprintsToday() && open.length) parts.push('No sprints yet today - start one below');
     if (subEl) subEl.textContent = parts.join(' · ') || 'On track. Keep it that way.';
   }
 
@@ -1854,12 +1918,13 @@
   function populateCourseDropdowns() {
     var selectDeadline = document.getElementById('deadlineCourseSelect');
     var filterCourse = document.getElementById('filterCourseSelect');
-    if (selectDeadline) selectDeadline.innerHTML = state.courses.map(function (c) { return '<option value="' + escapeHtml(c.id) + '" title="' + escapeHtml(c.code + ' — ' + c.name) + '">[' + escapeHtml(shorten(c.code, 14)) + '] ' + escapeHtml(shorten(c.name, 26)) + '</option>'; }).join('');
+    if (selectDeadline) selectDeadline.innerHTML = state.courses.map(function (c) { return '<option value="' + escapeHtml(c.id) + '" title="' + escapeHtml(c.code + ' - ' + c.name) + '">[' + escapeHtml(shorten(c.code, 14)) + '] ' + escapeHtml(shorten(c.name, 26)) + '</option>'; }).join('');
     if (filterCourse) {
       var cur = state.filterCourse;
-      filterCourse.innerHTML = '<option value="all">All Enrolled Courses</option>' + state.courses.map(function (c) { return '<option value="' + escapeHtml(c.id) + '" ' + (c.id === cur ? 'selected' : '') + ' title="' + escapeHtml(c.code + ' — ' + c.name) + '">' + escapeHtml(shorten(c.code, 14)) + ' - ' + escapeHtml(shorten(c.name, 26)) + '</option>'; }).join('');
+      filterCourse.innerHTML = '<option value="all">All Enrolled Courses</option>' + state.courses.map(function (c) { return '<option value="' + escapeHtml(c.id) + '" ' + (c.id === cur ? 'selected' : '') + ' title="' + escapeHtml(c.code + ' - ' + c.name) + '">' + escapeHtml(shorten(c.code, 14)) + ' - ' + escapeHtml(shorten(c.name, 26)) + '</option>'; }).join('');
     }
     if (typeof syncKeepScopeSelect === 'function') { try { syncKeepScopeSelect(true); } catch (e) {} }
+    if (typeof renderFcTopics === 'function') { try { renderFcTopics(); } catch (e) {} }
   }
 
   function openDeadlineModal() {
@@ -1973,7 +2038,7 @@
   }
 
   // =========================================================================
-  // 19b. Calendar — Google-Calendar-style month grid + reminders
+  // 19b. Calendar - Google-Calendar-style month grid + reminders
   // =========================================================================
 
   var CAL_KEY = 'horizon_calendar_v1';
@@ -2089,7 +2154,7 @@
           chip.className = 'cal-chip ' + (item.kind === 'event' ? 'cal-chip-event' : 'cal-chip-deadline' + (item.ref.completed ? ' done' : ''));
         }
         chip.textContent = item.title;
-        chip.title = (item.time || '') + ' — ' + item.title;
+        chip.title = (item.time || '') + ' - ' + item.title;
         chip.dataset.kind = item.kind;
         chip.dataset.date = dateStr;
         chip.dataset.id = item.ref.id;
@@ -2148,7 +2213,7 @@
 
     if (countEl) countEl.textContent = items.length + (items.length === 1 ? ' item' : ' items');
     if (!items.length) {
-      box.innerHTML = '<div class="cal-agenda-empty">Nothing scheduled. Enjoy the quiet — or add a reminder.</div>';
+      box.innerHTML = '<div class="cal-agenda-empty">Nothing scheduled. Enjoy the quiet - or add a reminder.</div>';
       return;
     }
     items.forEach(function (item) {
@@ -2262,7 +2327,7 @@
   }
 
   // =========================================================================
-  // 19c. Study Planner — syllabus blocks mapped onto the calendar
+  // 19c. Study Planner: syllabus blocks mapped onto the calendar.
   // Maths: 12–26 Sept 2026 · Physics: 13–17 Sept 2026 (requested defaults)
   // =========================================================================
 
@@ -2293,8 +2358,8 @@
     var hasMaths = studyBlocks.some(function (b) { return /math/i.test(b.subject); });
     var hasPhys = studyBlocks.some(function (b) { return /phys/i.test(b.subject); });
     var mStart = plusDaysStr(0), mEnd = plusDaysStr(14), pStart = plusDaysStr(1), pEnd = plusDaysStr(5);
-    if (!hasMaths) studyBlocks.push({ id: 'st-maths', subject: 'Maths — Algebra & Calculus', start: mStart, end: mEnd, time: '09:00', color: 'blue', notes: 'Daily drill: 45 min theory + 45 min problem sets. Chapters 1–6 across the 15 days.' });
-    if (!hasPhys) studyBlocks.push({ id: 'st-physics', subject: 'Physics — Mechanics', start: pStart, end: pEnd, time: '14:00', color: 'orange', notes: 'Kinematics → dynamics → energy → rotation → mock test. Lab prep each evening.' });
+    if (!hasMaths) studyBlocks.push({ id: 'st-maths', subject: 'Maths - Algebra & Calculus', start: mStart, end: mEnd, time: '09:00', color: 'blue', notes: 'Daily drill: 45 min theory + 45 min problem sets. Chapters 1–6 across the 15 days.' });
+    if (!hasPhys) studyBlocks.push({ id: 'st-physics', subject: 'Physics - Mechanics', start: pStart, end: pEnd, time: '14:00', color: 'orange', notes: 'Kinematics → dynamics → energy → rotation → mock test. Lab prep each evening.' });
     persistStudy();
     renderStudy();
     renderCalendar();
@@ -2347,7 +2412,7 @@
     var todayStr = todayKey(new Date());
 
     if (!studyBlocks.length) {
-      grid.innerHTML = '<div class="empty-state"><p class="empty-state-text">No study blocks yet — load the Maths + Physics plan.</p></div>';
+      grid.innerHTML = '<div class="empty-state"><p class="empty-state-text">No study blocks yet - load the Maths + Physics plan.</p></div>';
       var badge = document.getElementById('studyRangeBadge');
       if (badge) badge.textContent = '0 days';
       return;
@@ -2400,7 +2465,7 @@
         p.className = 'timeline-pill' + (isStudyDone(b.id, ds) ? ' done' : '') + (ds === todayStr ? ' today' : '');
         p.setAttribute('data-color', b.color || 'blue');
         p.textContent = shortDay(ds);
-        p.title = b.subject + ' · ' + ds + (isStudyDone(b.id, ds) ? ' (done — click to reopen)' : ' — click to open day, double-click toggles done');
+        p.title = b.subject + ' · ' + ds + (isStudyDone(b.id, ds) ? ' (done - click to reopen)' : ' - click to open day, double-click toggles done');
         p.addEventListener('click', function () {
           calSelected = ds;
           var dd = new Date(ds + 'T12:00:00');
@@ -2455,7 +2520,7 @@
         c.type = 'button';
         c.className = 'day-chip' + (isStudyDone(b.id, ds) ? ' done' : '') + (ds === todayStr ? ' today' : '');
         c.textContent = ds.slice(5);
-        c.title = ds + ' — click to toggle done, shift-click to open day';
+        c.title = ds + ' - click to toggle done, shift-click to open day';
         c.addEventListener('click', function (e) {
           if (e.shiftKey) {
             calSelected = ds;
@@ -2514,13 +2579,452 @@
       showToast('Study block updated', 'success');
     } else {
       studyBlocks.push({ id: 'st-' + Date.now(), subject: subject, start: start, end: end, time: time, color: color, notes: notes });
-      showToast('Study block added — see calendar', 'success');
+      showToast('Study block added - see calendar', 'success');
     }
     persistStudy(); closeStudyModal(); renderStudy(); renderCalendar();
   }
 
   // =========================================================================
-  // 19e. Code — GitHub organizer (live fetch + pins + custom links)
+  // 19d. Flashcards live in the Study tab.
+  // Topics come from courses, study blocks, General, or a custom topic.
+  // =========================================================================
+
+  var FC_KEY = 'horizon_flashcards_v1';
+  var fcCards = [];
+  var fcIndex = 0;
+  var fcFlipped = false;
+  var fcEditingId = null;
+
+  var SYMBOLS = ['π', '√', '∫', 'Σ', 'Δ', 'θ', 'λ', 'μ', '∞', '≠', '≈', '≤', '≥', '×', '÷', '±', '°', '²', '³', 'α', 'β', 'γ', 'φ', 'Ω', '∂', '→', 'sin', 'cos', 'log', 'lim'];
+  var symTargetId = 'fcFront';
+
+  function insertSymbol(sym) {
+    var el = document.getElementById(symTargetId) || document.getElementById('fcFront');
+    if (!el) return;
+    if (el.isContentEditable) {
+      el.focus();
+      try {
+        if (!document.execCommand('insertText', false, sym)) {
+          var sel = window.getSelection();
+          if (sel && sel.rangeCount) {
+            var range = sel.getRangeAt(0);
+            range.deleteContents();
+            range.insertNode(document.createTextNode(sym));
+            range.collapse(false);
+          } else {
+            el.innerHTML += escapeHtml(sym);
+          }
+        }
+      } catch (err) {}
+      return;
+    }
+    try {
+      var s = el.selectionStart !== undefined ? el.selectionStart : el.value.length;
+      var e = el.selectionEnd !== undefined ? el.selectionEnd : el.value.length;
+      el.value = el.value.slice(0, s) + sym + el.value.slice(e);
+      el.focus();
+      var pos = s + sym.length;
+      try { el.setSelectionRange(pos, pos); } catch (err) {}
+    } catch (err) {
+      el.value += sym;
+      el.focus();
+    }
+  }
+
+  function buildSymBars() {
+    ['fcSymBar', 'studySymBar'].forEach(function (barId) {
+      var bar = document.getElementById(barId);
+      if (!bar || bar.childNodes.length) return;
+      SYMBOLS.forEach(function (sym) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.textContent = sym;
+        b.title = 'Insert ' + sym;
+        b.addEventListener('click', function () { insertSymbol(sym); });
+        bar.appendChild(b);
+      });
+    });
+    ['fcFront', 'fcBack', 'studyNotesInput', 'keepBody'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.addEventListener('focus', function () { symTargetId = id; });
+    });
+    [['btnFcSymToggle', 'fcSymBar'], ['btnStudySymToggle', 'studySymBar']].forEach(function (pair) {
+      var btn = document.getElementById(pair[0]);
+      var bar = document.getElementById(pair[1]);
+      if (!btn || !bar) return;
+      btn.addEventListener('click', function () {
+        var open = bar.classList.toggle('open');
+        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        btn.classList.toggle('active', open);
+      });
+    });
+  }
+
+  function loadFc() {
+    try {
+      var raw = localStorage.getItem(FC_KEY);
+      fcCards = raw ? (JSON.parse(raw) || []) : [];
+    } catch (e) { fcCards = []; }
+    if (!Array.isArray(fcCards)) fcCards = [];
+    fcIndex = 0;
+    fcFlipped = false;
+  }
+
+  function persistFc() {
+    try { localStorage.setItem(FC_KEY, JSON.stringify(fcCards)); } catch (e) {}
+  }
+
+  function fcCourseLabel(c) {
+    return (c.code ? c.code + ' ' : '') + (c.name || 'Course');
+  }
+
+  function fcAllTopics() {
+    var topics = ['General'];
+    try {
+      (state.courses || []).forEach(function (c) {
+        var label = fcCourseLabel(c);
+        if (topics.indexOf(label) < 0) topics.push(label);
+      });
+      (typeof studyBlocks !== 'undefined' ? studyBlocks : []).forEach(function (b) {
+        if (b && b.subject && topics.indexOf(b.subject) < 0) topics.push(b.subject);
+      });
+      fcCards.forEach(function (card) {
+        if (card && card.topic && topics.indexOf(card.topic) < 0) topics.push(card.topic);
+      });
+    } catch (e) {}
+    return topics;
+  }
+
+  function fcDeck() {
+    var filterEl = document.getElementById('fcFilterSelect');
+    var filter = filterEl ? filterEl.value : 'all';
+    if (!filter || filter === 'all') return fcCards.slice();
+    return fcCards.filter(function (card) { return card.topic === filter; });
+  }
+
+  function renderFcTopics() {
+    var topicEl = document.getElementById('fcTopicSelect');
+    var filterEl = document.getElementById('fcFilterSelect');
+    if (!topicEl || !filterEl) return;
+    var prevTopic = topicEl.value || 'General';
+    var prevFilter = filterEl.value || 'all';
+    var topics = fcAllTopics();
+    topicEl.innerHTML = topics.map(function (t) {
+      return '<option value="' + escapeHtml(t) + '">' + escapeHtml(t) + '</option>';
+    }).join('');
+    if (topics.indexOf(prevTopic) >= 0) topicEl.value = prevTopic;
+    function fcTopicCount(t) {
+      if (t === 'all') return fcCards.length;
+      return fcCards.filter(function (c) { return c.topic === t; }).length;
+    }
+    var filterTopics = ['all'].concat(topics);
+    filterEl.innerHTML = filterTopics.map(function (t) {
+      var label = t === 'all' ? 'All topics' : t;
+      return '<option value="' + escapeHtml(t) + '">' + escapeHtml(label) + ' (' + fcTopicCount(t) + ')</option>';
+    }).join('');
+    if (filterTopics.indexOf(prevFilter) >= 0) filterEl.value = prevFilter;
+  }
+
+  function fcCurrentFilterLabel() {
+    var filterEl = document.getElementById('fcFilterSelect');
+    var filter = filterEl ? filterEl.value : 'all';
+    if (!filter || filter === 'all') return 'All topics';
+    return filter;
+  }
+
+  function renderFcStage() {
+    var topicEl = document.getElementById('fcStageTopic');
+    var textEl = document.getElementById('fcStageText');
+    var hintEl = document.getElementById('fcStageHint');
+    var posEl = document.getElementById('fcPos');
+    var countEl = document.getElementById('fcCount');
+    if (!topicEl || !textEl || !posEl || !countEl) return;
+    if (countEl) countEl.textContent = fcCards.length + (fcCards.length === 1 ? ' card' : ' cards');
+    var deck = fcDeck();
+    var infoEl = document.getElementById('fcDeckInfo');
+    if (infoEl) infoEl.textContent = deck.length + (deck.length === 1 ? ' in this topic' : ' in this topic');
+    var bigTopic = document.getElementById('fcBigTopic');
+    var bigText = document.getElementById('fcBigText');
+    var bigHint = document.getElementById('fcBigHint');
+    var bigPos = document.getElementById('fcBigPos');
+    var bigFilter = document.getElementById('fcBigFilter');
+    var bigFlip = document.getElementById('btnFcBigFlip');
+    if (bigFilter) bigFilter.textContent = fcCurrentFilterLabel();
+    if (!deck.length) {
+      topicEl.textContent = 'No cards yet';
+      textEl.textContent = 'Add your first card above.';
+      if (hintEl) hintEl.textContent = 'Cards save in this browser';
+      posEl.textContent = '0 / 0';
+      if (bigTopic) bigTopic.textContent = 'No cards yet';
+      if (bigText) bigText.textContent = 'Add your first card above.';
+      if (bigHint) bigHint.textContent = 'Cards save in this browser';
+      if (bigPos) bigPos.textContent = '0 / 0';
+      if (bigFlip) bigFlip.textContent = 'Show answer';
+      return;
+    }
+    if (fcIndex < 0) fcIndex = 0;
+    if (fcIndex >= deck.length) fcIndex = deck.length - 1;
+    var card = deck[fcIndex];
+    topicEl.textContent = card.topic || 'General';
+    textEl.textContent = fcFlipped ? (card.back || '') : (card.front || '');
+    if (hintEl) hintEl.textContent = fcFlipped ? 'Back - click to see front' : 'Front - click to see back';
+    posEl.textContent = (fcIndex + 1) + ' / ' + deck.length;
+    if (bigTopic) bigTopic.textContent = card.topic || 'General';
+    if (bigText) bigText.textContent = fcFlipped ? (card.back || '') : (card.front || '');
+    if (bigHint) bigHint.textContent = fcFlipped ? 'Answer - click to see question' : 'Question - click to see answer';
+    if (bigPos) bigPos.textContent = (fcIndex + 1) + ' / ' + deck.length;
+    if (bigFlip) bigFlip.textContent = fcFlipped ? 'Show question' : 'Show answer';
+  }
+
+  function renderFcList() {
+    var list = document.getElementById('fcList');
+    if (!list) return;
+    list.innerHTML = '';
+    var deck = fcDeck();
+    if (!deck.length) {
+      list.innerHTML = '<div class="money-empty">No cards for this topic yet.</div>';
+      return;
+    }
+    deck.forEach(function (card) {
+      var row = document.createElement('div');
+      row.className = 'fc-row';
+      var main = document.createElement('div');
+      main.className = 'fc-row-main';
+      var topic = document.createElement('div');
+      topic.className = 'fc-row-topic';
+      topic.textContent = card.topic || 'General';
+      var front = document.createElement('div');
+      front.className = 'fc-row-front';
+      front.textContent = card.front || '';
+      var back = document.createElement('div');
+      back.className = 'fc-row-back';
+      back.textContent = card.back || '';
+      main.appendChild(topic);
+      main.appendChild(front);
+      main.appendChild(back);
+      var edit = document.createElement('button');
+      edit.type = 'button';
+      edit.className = 'btn-card-glyph fc-edit';
+      edit.title = 'Edit card';
+      edit.setAttribute('aria-label', 'Edit card');
+      edit.innerHTML = '<svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M11 2l3 3-9 9H2v-3l9-9z"></path></svg>';
+      edit.addEventListener('click', function () { fcStartEdit(card.id); });
+      var del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'btn-card-glyph';
+      del.title = 'Delete card';
+      del.setAttribute('aria-label', 'Delete card');
+      del.innerHTML = '<svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 4h10M6 4V2.5h4V4M5 4v9h6V4"></path></svg>';
+      del.addEventListener('click', function () { fcDeleteCard(card.id); });
+      row.appendChild(main);
+      row.appendChild(edit);
+      row.appendChild(del);
+      list.appendChild(row);
+    });
+  }
+
+  function renderFcAll() {
+    renderFcTopics();
+    renderFcStage();
+    renderFcList();
+  }
+
+  function fcResolvedTopic() {
+    var customEl = document.getElementById('fcCustomTopic');
+    var topicEl = document.getElementById('fcTopicSelect');
+    var custom = customEl ? customEl.value.trim().slice(0, 60) : '';
+    if (custom) return custom;
+    return topicEl && topicEl.value ? topicEl.value : 'General';
+  }
+
+  function fcResetComposer() {
+    var frontEl = document.getElementById('fcFront');
+    var backEl = document.getElementById('fcBack');
+    if (frontEl) frontEl.value = '';
+    if (backEl) backEl.value = '';
+    fcEditingId = null;
+    var addBtn = document.getElementById('btnFcAdd');
+    if (addBtn) addBtn.textContent = 'Add card';
+    var card = document.getElementById('fcCard');
+    if (card) card.classList.remove('fc-editing');
+  }
+
+  function fcStartEdit(id) {
+    if (fcEditingId === id) { fcResetComposer(); return; }
+    var card = null;
+    fcCards.forEach(function (c) { if (c.id === id) card = c; });
+    if (!card) return;
+    fcEditingId = id;
+    var topicEl = document.getElementById('fcTopicSelect');
+    var customEl = document.getElementById('fcCustomTopic');
+    if (customEl) customEl.value = card.topic || '';
+    if (topicEl) {
+      var topics = fcAllTopics();
+      if (topics.indexOf(card.topic) >= 0) topicEl.value = card.topic;
+    }
+    document.getElementById('fcFront').value = card.front || '';
+    document.getElementById('fcBack').value = card.back || '';
+    var addBtn = document.getElementById('btnFcAdd');
+    if (addBtn) addBtn.textContent = 'Update card';
+    var wrap = document.getElementById('fcCard');
+    if (wrap) wrap.classList.add('fc-editing');
+    showToast('Editing card - Update to save', 'info');
+    if (typeof scrollFlash === 'function') scrollFlash('fcCard');
+  }
+
+  function fcAddCard() {
+    var frontEl = document.getElementById('fcFront');
+    var backEl = document.getElementById('fcBack');
+    if (!frontEl || !backEl) return;
+    var front = frontEl.value.trim().slice(0, 160);
+    var back = backEl.value.trim().slice(0, 300);
+    if (!front || !back) { showToast('Write both sides of the card', 'warn'); return; }
+    var topic = fcResolvedTopic();
+    if (fcEditingId) {
+      fcCards.forEach(function (c) {
+        if (c.id === fcEditingId) { c.topic = topic; c.front = front; c.back = back; }
+      });
+      persistFc();
+      fcResetComposer();
+      renderFcAll();
+      showToast('Card updated', 'success');
+      return;
+    }
+    fcCards.unshift({ id: 'fc-' + Date.now(), topic: topic, front: front, back: back });
+    persistFc();
+    frontEl.value = '';
+    backEl.value = '';
+    fcIndex = 0;
+    fcFlipped = false;
+    renderFcAll();
+    showToast('Card added to ' + topic, 'success');
+  }
+
+  function fcDeleteCard(id) {
+    var card = null;
+    fcCards.forEach(function (c) { if (c.id === id) card = c; });
+    askConfirm('Delete card?', 'Remove this card' + (card ? ' ("' + card.front.slice(0, 60) + '")' : '') + ' from your deck?').then(function (ok) {
+      if (!ok) return;
+      fcCards = fcCards.filter(function (c) { return c.id !== id; });
+      persistFc();
+      fcIndex = 0;
+      fcFlipped = false;
+      renderFcAll();
+      showToast('Card deleted', 'info');
+    });
+  }
+
+  function fcStep(delta) {
+    var deck = fcDeck();
+    if (!deck.length) return;
+    fcIndex = (fcIndex + delta + deck.length) % deck.length;
+    fcFlipped = false;
+    renderFcStage();
+  }
+
+  function fcFlip() {
+    if (!fcDeck().length) return;
+    fcFlipped = !fcFlipped;
+    renderFcStage();
+  }
+
+  function openFcModal() {
+    var modal = document.getElementById('fcModal');
+    if (!modal) return;
+    fcFlipped = false;
+    renderFcStage();
+    modal.classList.add('active');
+  }
+
+  function closeFcModal() {
+    var modal = document.getElementById('fcModal');
+    if (modal) modal.classList.remove('active');
+  }
+
+  function fcRevise() {
+    renderFcTopics();
+    fcIndex = 0;
+    fcFlipped = false;
+    renderFcStage();
+    renderFcList();
+    var deck = fcDeck();
+    if (!deck.length) { showToast('No cards in this topic yet', 'warn'); return; }
+    showToast('Revising ' + fcCurrentFilterLabel() + ': ' + deck.length + (deck.length === 1 ? ' card' : ' cards'), 'success');
+    if (typeof scrollFlash === 'function') scrollFlash('fcStage');
+  }
+
+  function fcShuffle() {
+    var deck = fcDeck();
+    if (deck.length < 2) { showToast('Add at least 2 cards to shuffle', 'warn'); return; }
+    var ids = deck.map(function (c) { return c.id; });
+    for (var i = ids.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = ids[i]; ids[i] = ids[j]; ids[j] = tmp;
+    }
+    var order = {};
+    ids.forEach(function (id, idx) { order[id] = idx; });
+    fcCards.sort(function (a, b) {
+      var ao = order[a.id], bo = order[b.id];
+      if (ao === undefined) return 1;
+      if (bo === undefined) return -1;
+      return ao - bo;
+    });
+    persistFc();
+    fcIndex = 0;
+    fcFlipped = false;
+    renderFcStage();
+    renderFcList();
+    showToast('Deck shuffled', 'success');
+  }
+
+  function initFc() {
+    loadFc();
+    renderFcAll();
+    function on(id, evt, fn) {
+      var el = document.getElementById(id);
+      if (el) el.addEventListener(evt, fn);
+    }
+    on('btnFcAdd', 'click', fcAddCard);
+    on('btnFcShuffle', 'click', fcShuffle);
+    on('btnFcRevise', 'click', fcRevise);
+    on('btnFcExpand', 'click', openFcModal);
+    on('btnFcBigClose', 'click', closeFcModal);
+    on('btnFcBigPrev', 'click', function () { fcStep(-1); });
+    on('btnFcBigNext', 'click', function () { fcStep(1); });
+    on('btnFcBigFlip', 'click', fcFlip);
+    on('fcBigStage', 'click', fcFlip);
+    on('btnFcPrev', 'click', function () { fcStep(-1); });
+    on('btnFcNext', 'click', function () { fcStep(1); });
+    on('btnFcFlip', 'click', fcFlip);
+    on('fcStage', 'click', fcFlip);
+    on('btnFcDelete', 'click', function () {
+      var deck = fcDeck();
+      if (!deck.length) return;
+      fcDeleteCard(deck[fcIndex].id);
+    });
+    on('fcFilterSelect', 'change', function () { fcIndex = 0; fcFlipped = false; renderFcStage(); renderFcList(); });
+    var fcModal = document.getElementById('fcModal');
+    if (fcModal) fcModal.addEventListener('click', function (e) { if (e.target === fcModal) closeFcModal(); });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') { closeFcModal(); return; }
+      var modal = document.getElementById('fcModal');
+      if (!modal || !modal.classList.contains('active')) return;
+      var tag = (e.target.tagName || '').toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || tag === 'select' || e.target.isContentEditable) return;
+      if (e.key === 'ArrowRight') { e.preventDefault(); fcStep(1); }
+      else if (e.key === 'ArrowLeft') { e.preventDefault(); fcStep(-1); }
+      else if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); fcFlip(); }
+    });
+    buildSymBars();
+    on('fcTopicSelect', 'focus', renderFcTopics);
+    on('fcFilterSelect', 'focus', renderFcTopics);
+    ['fcFront', 'fcBack'].forEach(function (id) {
+      on(id, 'keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); fcAddCard(); } });
+    });
+  }
+
+  // =========================================================================
+  // 19e. Code tab: GitHub repos with pins, search, and custom links.
   // =========================================================================
 
   var GH_KEY = 'horizon_gh_v1';
@@ -2531,6 +3035,13 @@
   var ghPinned = {};
   var ghUser = 'BKarbalai';
   var ghTab = 'repos';
+  var ghFetchedAt = 0;
+  var ghFetchedUser = '';
+
+  function ghSlim(r) {
+    if (!r) return null;
+    return { id: r.id, name: r.name, full_name: r.full_name, html_url: r.html_url, description: r.description, language: r.language, stargazers_count: r.stargazers_count, forks_count: r.forks_count, updated_at: r.updated_at || r.pushed_at };
+  }
 
   function loadGhLocal() {
     try {
@@ -2538,13 +3049,26 @@
       if (raw) {
         var o = JSON.parse(raw);
         ghCustom = o.custom || []; ghPinned = o.pinned || {}; ghUser = o.user || 'BKarbalai';
+        if (Array.isArray(o.cache)) ghCache = o.cache;
+        if (Array.isArray(o.starred)) ghStarred = o.starred;
+        if (o.profile) ghProfile = o.profile;
+        ghFetchedAt = o.fetchedAt || 0;
+        ghFetchedUser = o.fetchedUser || '';
         var inp = document.getElementById('ghUserInput');
         if (inp && !inp.value) inp.value = ghUser;
       }
     } catch (e) {}
   }
   function persistGhLocal() {
-    try { localStorage.setItem(GH_KEY, JSON.stringify({ custom: ghCustom, pinned: ghPinned, user: ghUser })); } catch (e) {}
+    try {
+      localStorage.setItem(GH_KEY, JSON.stringify({
+        custom: ghCustom, pinned: ghPinned, user: ghUser,
+        cache: ghCache.map(ghSlim).filter(Boolean).slice(0, 60),
+        starred: ghStarred.map(ghSlim).filter(Boolean).slice(0, 60),
+        profile: ghProfile ? { login: ghProfile.login, avatar_url: ghProfile.avatar_url, html_url: ghProfile.html_url, bio: ghProfile.bio, public_repos: ghProfile.public_repos, followers: ghProfile.followers, following: ghProfile.following } : null,
+        fetchedAt: ghFetchedAt, fetchedUser: ghFetchedUser
+      }));
+    } catch (e) {}
   }
 
   function langColor(lang) {
@@ -2639,15 +3163,19 @@
     });
     if (status) {
       var pinnedCount = Object.keys(ghPinned).filter(function (k) { return ghPinned[k]; }).length;
+      var syncTxt = '';
+      if (ghFetchedAt && (!ghFetchedUser || ghFetchedUser === ghUser)) {
+        try { syncTxt = ' · synced ' + new Date(ghFetchedAt).toISOString().slice(0, 10); } catch (e) {}
+      }
       status.textContent = ghTab === 'starred'
-        ? filtered.length + ' starred · @' + ghUser
-        : filtered.length + ' repos · ' + pinnedCount + ' pinned · @' + ghUser;
+        ? filtered.length + ' starred · @' + ghUser + syncTxt
+        : filtered.length + ' repos · ' + pinnedCount + ' pinned · @' + ghUser + syncTxt;
       status.style.display = '';
     }
     grid.innerHTML = '';
     if (!filtered.length) {
       grid.innerHTML = '<div class="empty-state"><p class="empty-state-text">' +
-        (ghTab === 'starred' ? 'No starred repos yet — press Load repos, or star something on GitHub first.' : 'No repos match. Load a username or add a custom link.') +
+        (ghTab === 'starred' ? 'No starred repos yet - press Load repos, or star something on GitHub first.' : 'No repos match. Load a username or add a custom link.') +
         '</p></div>';
       return;
     }
@@ -2724,12 +3252,15 @@
       var failedAll = !parts[0] && !parts[1] && !parts[2];
       if (failedAll) {
         if (status) status.textContent = 'Could not reach GitHub API (offline or rate-limited). Custom links still work.';
-        showToast('GitHub fetch failed — check username / connection', 'warn');
+        showToast('GitHub fetch failed - check username / connection', 'warn');
         return;
       }
       if (parts[0]) ghProfile = parts[0];
       if (Array.isArray(parts[1])) ghCache = parts[1];
       if (Array.isArray(parts[2])) ghStarred = parts[2];
+      ghFetchedAt = Date.now();
+      ghFetchedUser = user;
+      persistGhLocal();
       renderGh();
       renderHomeDigest();
       showToast(ghCache.length + ' repos · ' + ghStarred.length + ' starred for @' + user, 'success');
@@ -2754,7 +3285,7 @@
   function closeGhModal() { var m = document.getElementById('ghModal'); if (m) m.classList.remove('active'); }
 
   // =========================================================================
-  // 19f. Money — student finance tracker
+  // 19f. Money tab: income, expenses, dues, and wishlist.
   // =========================================================================
 
   var FIN_KEY = 'horizon_fin_v1';
@@ -2819,7 +3350,7 @@
     balEl.classList.toggle('positive', bal >= 0);
     document.getElementById('finIncome').textContent = usd(inc);
     document.getElementById('finExpenses').textContent = usd(out);
-    document.getElementById('finSaved').textContent = inc > 0 ? Math.max(0, Math.round((bal / inc) * 100)) + '%' : '—';
+    document.getElementById('finSaved').textContent = inc > 0 ? Math.max(0, Math.round((bal / inc) * 100)) + '%' : '-';
     var mb = document.getElementById('moneyMonthBadge');
     if (mb) mb.textContent = mk;
     var bl = document.getElementById('finBudgetLabel');
@@ -2855,7 +3386,7 @@
     var items = transactions.slice().sort(function (a, b) { return String(b.date).localeCompare(String(a.date)); })
       .filter(function (t) { return finFilter === 'all' || t.type === finFilter; })
       .slice(0, 40);
-    if (!items.length) { list.innerHTML = '<div class="money-empty">Nothing here — add your first transaction.</div>'; return; }
+    if (!items.length) { list.innerHTML = '<div class="money-empty">Nothing here - add your first transaction.</div>'; return; }
     var initials = { Food: 'Fo', Transport: 'Tr', Study: 'St', Rent: 'Re', Fun: 'Fu', Job: 'Jo', Other: 'Ot' };
     items.forEach(function (t) {
       var row = document.createElement('div'); row.className = 'tx-row';
@@ -2878,6 +3409,20 @@
     var e = document.getElementById('finTypeExpense'), i = document.getElementById('finTypeIncome');
     if (e) e.classList.toggle('active', finType === 'expense');
     if (i) i.classList.toggle('active', finType === 'income');
+  }
+
+  function resetFinMonth() {
+    var mk = currentMonthKey();
+    var monthTx = transactions.filter(function (t) { return monthKey(t.date) === mk; });
+    if (!monthTx.length) { showToast('Nothing to reset - no transactions this month', 'info'); return; }
+    var out = monthTx.filter(function (t) { return t.type === 'expense'; }).reduce(function (a, t) { return a + (parseFloat(t.amount) || 0); }, 0);
+    askConfirm('Reset this month?', 'Delete ' + monthTx.length + ' transaction' + (monthTx.length === 1 ? '' : 's') + ' (' + usd(out) + ' spent) from ' + mk + '? Dues and wishlist are kept. This cannot be undone.').then(function (ok) {
+      if (!ok) return;
+      transactions = transactions.filter(function (t) { return monthKey(t.date) !== mk; });
+      persistFinance();
+      renderFinance();
+      showToast('Cleared ' + monthTx.length + ' transactions for ' + mk, 'success');
+    });
   }
 
   function openFinModal(editId) {
@@ -2948,7 +3493,7 @@
     list.innerHTML = '';
     var items = dues.slice().sort(function (a, b) { return String(a.dueDate).localeCompare(String(b.dueDate)); });
     if (!items.length) {
-      list.innerHTML = '<div class="money-empty">No dues tracked — add rent, a subscription or an installment above.</div>';
+      list.innerHTML = '<div class="money-empty">No dues tracked - add rent, a subscription or an installment above.</div>';
       return;
     }
     items.forEach(function (d) {
@@ -2965,7 +3510,7 @@
       ti.textContent = d.name + (d.recur === 'monthly' ? ' · monthly' : '');
       var su = document.createElement('span');
       su.className = 'tx-sub';
-      su.textContent = (d.dueDate || '—') + ' · ' + st.label;
+      su.textContent = (d.dueDate || '-') + ' · ' + st.label;
       body.appendChild(ti);
       body.appendChild(su);
       var amt = document.createElement('span');
@@ -2985,7 +3530,7 @@
         if (d.recur === 'monthly') {
           d.dueDate = addMonths(d.dueDate || todayKey(new Date()), 1);
           persistFinance(); renderDues(); renderFinance();
-          showToast(d.name + ' paid ' + usd(d.amount) + ' — next due ' + d.dueDate, 'success');
+          showToast(d.name + ' paid ' + usd(d.amount) + ' - next due ' + d.dueDate, 'success');
         } else {
           dues = dues.filter(function (x) { return x.id !== d.id; });
           persistFinance(); renderDues(); renderFinance();
@@ -3069,7 +3614,7 @@
       return prioRank(a.prio) - prioRank(b.prio) || (parseFloat(b.amount) || 0) - (parseFloat(a.amount) || 0);
     });
     if (!items.length) {
-      list.innerHTML = '<div class="money-empty">Wishlist is empty — add those shoes you keep thinking about.</div>';
+      list.innerHTML = '<div class="money-empty">Wishlist is empty - add those shoes you keep thinking about.</div>';
       return;
     }
     items.forEach(function (w) {
@@ -3108,7 +3653,7 @@
         wishlist = wishlist.filter(function (x) { return x.id !== w.id; });
         persistFinance(); renderWishlist(); renderFinance();
         confetti.fire(0.5, 0.4);
-        showToast('Enjoy your ' + w.name + ' — logged as ' + usd(w.amount), 'success');
+        showToast('Enjoy your ' + w.name + ' - logged as ' + usd(w.amount), 'success');
       });
       row.appendChild(ic);
       row.appendChild(body);
@@ -3162,7 +3707,7 @@
   }
 
   // =========================================================================
-  // 19g. Flight simulator — fly your focus sessions
+  // 19g. Flight simulator - fly your focus sessions
   // =========================================================================
 
   var FLIGHT_KEY = 'horizon_flight_v1';
@@ -3380,9 +3925,9 @@
           var o = document.createElement('option');
           o.value = a.id;
           var locked = !isApUnlocked(a);
-          o.textContent = a.id + ' — ' + a.city + (locked ? ' (locked · ' + fmtNum(TIER_MILES[a.tier]) + ' mi)' : '');
+          o.textContent = a.id + ' - ' + a.city + (locked ? ' (locked · ' + fmtNum(TIER_MILES[a.tier]) + ' mi)' : '');
           o.disabled = locked;
-          if (locked) o.title = 'Locked — earn ' + fmtNum(TIER_MILES[a.tier]) + ' total miles to unlock ' + a.city;
+          if (locked) o.title = 'Locked - earn ' + fmtNum(TIER_MILES[a.tier]) + ' total miles to unlock ' + a.city;
           if (a.id === val) o.selected = true;
           g.appendChild(o);
         });
@@ -3411,6 +3956,34 @@
         pl.appendChild(o);
       });
     }
+    var ch = document.getElementById('flCustomH'), cmm = document.getElementById('flCustomM');
+    if (ch && !ch.options.length) {
+      for (var hh = 0; hh <= 10; hh++) {
+        var oh = document.createElement('option');
+        oh.value = hh; oh.textContent = hh;
+        ch.appendChild(oh);
+      }
+    }
+    if (cmm && !cmm.options.length) {
+      for (var mm = 0; mm <= 59; mm++) {
+        var om = document.createElement('option');
+        om.value = mm; om.textContent = String(mm).padStart(2, '0');
+        cmm.appendChild(om);
+      }
+    }
+    if (ch && cmm) {
+      var savedMin = clampFlightMin(flightSave.customMin, 50);
+      ch.value = Math.min(10, Math.floor(savedMin / 60));
+      cmm.value = Math.round(savedMin % 60);
+      var hid = document.getElementById('flCustomMin');
+      if (hid) hid.value = savedMin;
+    }
+  }
+
+  function flCustomTotalMin() {
+    var ch = document.getElementById('flCustomH'), cmm = document.getElementById('flCustomM');
+    var total = (ch ? parseInt(ch.value, 10) || 0 : 0) * 60 + (cmm ? parseInt(cmm.value, 10) || 0 : 0);
+    return clampFlightMin(total, 50);
   }
 
   function nextUnlockInfo() {
@@ -3478,7 +4051,7 @@
     if (!box) return;
     box.innerHTML = '';
     if (!flightSave.log.length) {
-      box.innerHTML = '<div class="money-empty">Passport is empty — every landed flight earns a stamp here.</div>';
+      box.innerHTML = '<div class="money-empty">Passport is empty - every landed flight earns a stamp here.</div>';
       return;
     }
     flightSave.log.slice(0, 8).forEach(function (f) {
@@ -3709,7 +4282,7 @@
       ctx.lineWidth = width;
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
-      if (glow) { ctx.shadowColor = style; ctx.shadowBlur = 10; }
+      if (glow) { ctx.shadowBlur = 0; }
       ctx.beginPath();
       var started = false, prevX = 0;
       for (var i = 0; i < n; i++) {
@@ -3731,8 +4304,7 @@
       ctx.translate(pp.x, pp.y);
       ctx.rotate(planeHeading * Math.PI / 180);
       ctx.scale(sc, sc);
-      ctx.shadowColor = livery;
-      ctx.shadowBlur = 12;
+      ctx.shadowBlur = 0;
       ctx.fillStyle = livery;
       ctx.strokeStyle = '#ffffff';
       ctx.lineWidth = 1.4;
@@ -3784,7 +4356,7 @@
   }
 
   function flAttribution() {
-    return 'Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics';
+    return 'Tiles &copy; Esri - Source: Esri, Maxar, Earthstar Geographics';
   }
 
   function flApplyBase() {
@@ -3995,11 +4567,11 @@
     if (fill) fill.style.width = (t * 100) + '%';
     var remain = flight.totalSec ? flight.totalSec * (1 - t) : 0;
     var rl = document.getElementById('flRemain');
-    if (rl) rl.textContent = flight.totalSec ? fmtClock(remain) : '—';
+    if (rl) rl.textContent = flight.totalSec ? fmtClock(remain) : '-';
     var dl = document.getElementById('flDistLeft');
-    if (dl) dl.textContent = flight.distMi ? fmtNum(Math.round(flight.distMi * (1 - t))) + ' mi' : '—';
+    if (dl) dl.textContent = flight.distMi ? fmtNum(Math.round(flight.distMi * (1 - t))) + ' mi' : '-';
     var er = document.getElementById('flEarn');
-    if (er) er.textContent = flight.miles ? '+' + fmtNum(flight.miles) + ' mi' : '—';
+    if (er) er.textContent = flight.miles ? '+' + fmtNum(flight.miles) + ' mi' : '-';
     var phase = document.getElementById('flPhase');
     var title = document.getElementById('flStatusTitle');
     var label = 'IDLE', sub = 'Ready to board';
@@ -4008,7 +4580,7 @@
       sub = flightSave.from + ' → ' + flightSave.to + ' · ' + label.charAt(0) + label.slice(1).toLowerCase() +
         ' · ' + fmtNum(flightAltFt(t)) + ' ft · ' + fmtNum(flightSpdKmh(t)) + ' km/h';
     } else if (flight.state === 'paused') {
-      label = 'HELD'; sub = 'Holding pattern — resume to continue';
+      label = 'HELD'; sub = 'Holding pattern - resume to continue';
     } else if (flight.state === 'landed') {
       label = 'LANDED'; sub = 'Welcome to ' + (apById(flightSave.to) || {}).city;
     }
@@ -4037,7 +4609,7 @@
       } else if (flight.state === 'landed' && flight.landedAt) {
         var la = new Date(flight.landedAt);
         etaEl.textContent = 'Arrived ' + String(la.getHours()).padStart(2, '0') + ':' + String(la.getMinutes()).padStart(2, '0');
-      } else etaEl.textContent = 'ETA: —';
+      } else etaEl.textContent = 'ETA: -';
     }
     if (big) {
       if (flight.state === 'flying' || flight.state === 'paused') big.textContent = fmtClock(remain);
@@ -4100,12 +4672,11 @@
     var plane = planeById(flightSave.plane);
     var info = routeInfo(flightSave.from, flightSave.to, flightSave.plane);
     if (!info) { showToast('Pick two different airports first', 'warn'); return; }
-    if (!isApUnlocked(info.a) || !isApUnlocked(info.b)) { showToast('That airport is still locked — earn more miles', 'warn'); return; }
-    if (!info.inRange) { showToast(plane.name + ' cannot fly ' + fmtNum(info.km) + ' km nonstop (range ' + fmtNum(plane.range) + ' km) — pick a bigger jet', 'warn'); return; }
+    if (!isApUnlocked(info.a) || !isApUnlocked(info.b)) { showToast('That airport is still locked - earn more miles', 'warn'); return; }
+    if (!info.inRange) { showToast(plane.name + ' cannot fly ' + fmtNum(info.km) + ' km nonstop (range ' + fmtNum(plane.range) + ' km) - pick a bigger jet', 'warn'); return; }
     var cab = cabinById(flightSave.cabin);
-    var mins = flightSave.mode === 'custom'
-      ? clampFlightMin(document.getElementById('flCustomMin').value, 50)
-      : info.realMin;
+    var mins = flightSave.mode === 'custom' ? flCustomTotalMin() : info.realMin;
+    if (flightSave.mode === 'custom' && mins < 1) { showToast('Pick at least 1 minute', 'warn'); return; }
     if (flightSave.mode === 'custom') { flightSave.customMin = mins; persistFlight(); }
     if (flight.state === 'landed' || flight.state === 'idle') flight.elapsed = 0;
     flight.totalSec = mins * 60;
@@ -4212,26 +4783,39 @@
   }
 
   function onFlightPlanChange() {
-    flightSave.from = document.getElementById('flFrom').value;
-    flightSave.to = document.getElementById('flTo').value;
-    flightSave.cabin = document.getElementById('flCabin').value;
-    flightSave.mode = document.getElementById('flMode').value;
-    var plEl = document.getElementById('flPlane');
-    if (plEl) flightSave.plane = plEl.value;
-    flLeafUserHold = false;
-    var cm = document.getElementById('flCustomMin');
-    if (cm) flightSave.customMin = clampFlightMin(cm.value, 50);
-    persistFlight();
+    var next = {
+      from: document.getElementById('flFrom').value,
+      to: document.getElementById('flTo').value,
+      cabin: document.getElementById('flCabin').value,
+      mode: document.getElementById('flMode').value,
+      plane: document.getElementById('flPlane') ? document.getElementById('flPlane').value : flightSave.plane,
+      customMin: flCustomTotalMin()
+    };
     if (flight.state === 'flying' || flight.state === 'paused') {
-      resetFlight(true);
-      showToast('Flight plan changed — back to the gate', 'info');
+      askConfirm('Discard this flight?', 'Changing the plan ends the current flight with no miles. Continue?').then(function (ok) {
+        if (!ok) {
+          populateFlightSelects();
+          renderFlightAll();
+          return;
+        }
+        flightSave.from = next.from; flightSave.to = next.to; flightSave.cabin = next.cabin;
+        flightSave.mode = next.mode; flightSave.plane = next.plane; flightSave.customMin = next.customMin;
+        persistFlight();
+        resetFlight(true);
+        showToast('Flight plan changed - back to the gate', 'info');
+        renderFlightAll();
+      });
+      return;
     }
+    flightSave.from = next.from; flightSave.to = next.to; flightSave.cabin = next.cabin;
+    flightSave.mode = next.mode; flightSave.plane = next.plane; flightSave.customMin = next.customMin;
+    persistFlight();
     renderFlightAll();
   }
 
   // ---------- departures board (one-tap boarding, 2x on next flight) ----------
 
-  // Real IRL photos — every URL below verified live on Wikimedia Commons
+  // Real IRL photos - every URL below verified live on Wikimedia Commons
   var CITY_PHOTOS = {
     'New York': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9b/One_World_Trade_Center_at_Night.jpg/1280px-One_World_Trade_Center_at_Night.jpg',
     'San Diego': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e8/San_Diego_skyline_at_night_from_Point_Loma_2014.jpg/1280px-San_Diego_skyline_at_night_from_Point_Loma_2014.jpg',
@@ -4433,22 +5017,77 @@
   function closeFeedbackModal() { document.getElementById('feedbackModal').classList.remove('active'); }
 
   // =========================================================================
-  // 18b. Keep-Style Notes + Todo Lists (modal only — zero page bloat)
+  // 18b. Keep-Style Notes + Todo Lists (modal only - zero page bloat)
   // =========================================================================
 
   var KEEP_KEY = 'tue_pass_keep_v1';
   var keepNotes = [];
   var keepEditingId = null;
   var keepFreshId = null;
+  var keepImgData = null;
+  var noteModalId = null;
+  var histNoteId = null;
+  var TRASH_MS = 7 * 24 * 60 * 60 * 1000;
 
   function persistKeep() {
     try { localStorage.setItem(KEEP_KEY, JSON.stringify(keepNotes)); } catch (e) {}
   }
 
+  function renderRich(s) {
+    var h = escapeHtml(String(s || ''));
+    h = h.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    h = h.replace(/__([^_]+)__/g, '<u>$1</u>');
+    h = h.replace(/\*([^*\n]+)\*/g, '<em>$1</em>');
+    return h;
+  }
+
+  function stripHtml(html) {
+    var d = document.createElement('div');
+    d.innerHTML = String(html || '');
+    return d.textContent || '';
+  }
+
+  function sanitizeRich(html) {
+    var d = document.createElement('div');
+    d.innerHTML = String(html || '');
+    var allowed = { B: 1, STRONG: 1, I: 1, EM: 1, U: 1, BR: 1, DIV: 1, P: 1 };
+    var els = d.querySelectorAll('*');
+    for (var i = 0; i < els.length; i++) {
+      var el = els[i];
+      if (el.tagName === 'SCRIPT' || el.tagName === 'STYLE') { el.remove(); continue; }
+      while (el.attributes.length) el.removeAttribute(el.attributes[0].name);
+      if (!allowed[el.tagName]) {
+        var parent = el.parentNode;
+        while (el.firstChild) parent.insertBefore(el.firstChild, el);
+        parent.removeChild(el);
+      }
+    }
+    return d.innerHTML;
+  }
+
+  function noteBodyHtml(n) {
+    if (!n || !n.body) return '';
+    return n.rich ? sanitizeRich(n.body) : renderRich(n.body);
+  }
+
+  function purgeTrash() {
+    var now = Date.now();
+    var before = keepNotes.length;
+    keepNotes = keepNotes.filter(function (n) {
+      return !n.deletedAt || (now - n.deletedAt) < TRASH_MS;
+    });
+    if (keepNotes.length !== before) persistKeep();
+  }
+
+  function trashDaysLeft(n) {
+    var left = Math.ceil((TRASH_MS - (Date.now() - n.deletedAt)) / (24 * 60 * 60 * 1000));
+    return Math.max(0, left);
+  }
+
   function loadKeep() {
     try {
       var raw = localStorage.getItem(KEEP_KEY);
-      if (raw) { keepNotes = JSON.parse(raw); normalizeTodos(); ensureNoteOrder(); return; }
+      if (raw) { keepNotes = JSON.parse(raw); purgeTrash(); normalizeTodos(); ensureNoteOrder(); return; }
     } catch (e) {}
     keepNotes = [];
     // One-time migration from the old single-note format
@@ -4495,21 +5134,105 @@
 
   function resetComposer() {
     keepEditingId = null;
+    keepImgData = null;
     document.getElementById('keepTitle').value = '';
-    document.getElementById('keepBody').value = '';
+    document.getElementById('keepBody').innerHTML = '';
     var sel = document.getElementById('keepScope');
     if (sel) sel.value = 'general';
+    var rem = document.getElementById('keepRemind');
+    if (rem) rem.value = '';
+    syncKeepRemindUI();
+    syncKeepImgPrev();
+    closeKeepRemindPop();
     document.getElementById('btnKeepSave').textContent = 'Add note';
   }
 
-  function renderKeepList() {
+  function syncKeepImgPrev() {
+    var wrap = document.getElementById('keepImgPrevWrap');
+    var img = document.getElementById('keepImgPrev');
+    if (!wrap || !img) return;
+    if (keepImgData) {
+      img.src = keepImgData;
+      wrap.style.display = '';
+    } else {
+      img.removeAttribute('src');
+      wrap.style.display = 'none';
+    }
+  }
+
+  function fmtKeepDoc(cmd) {
+    var el = document.getElementById('keepBody');
+    if (!el) return;
+    el.focus();
+    try { document.execCommand(cmd, false, null); } catch (e) {}
+  }
+
+  function syncKeepRemindUI() {
+    var rem = document.getElementById('keepRemind');
+    var chip = document.getElementById('keepRemindChip');
+    if (!chip) return;
+    if (rem && rem.value) {
+      chip.textContent = String(rem.value).replace('T', ' ');
+      chip.style.display = '';
+    } else {
+      chip.textContent = '';
+      chip.style.display = 'none';
+    }
+  }
+
+  function closeKeepRemindPop() {
+    var pop = document.getElementById('keepRemindPop');
+    if (pop) pop.style.display = 'none';
+    var btn = document.getElementById('btnKeepRemind');
+    if (btn) btn.setAttribute('aria-expanded', 'false');
+  }
+
+  function attachKeepImage(file) {
+    if (!file || !file.type || file.type.indexOf('image/') !== 0) { showToast('Pick an image file', 'warn'); return; }
+    var reader = new FileReader();
+    reader.onload = function () {
+      var img = new Image();
+      img.onload = function () {
+        try {
+          var max = 640;
+          var w = img.width, h = img.height;
+          var scale = Math.min(1, max / Math.max(w, h));
+          var cv = document.createElement('canvas');
+          cv.width = Math.max(1, Math.round(w * scale));
+          cv.height = Math.max(1, Math.round(h * scale));
+          cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+          var url = cv.toDataURL('image/jpeg', 0.72);
+          if (url.length > 400000) { showToast('Image is too large even compressed', 'warn'); return; }
+          keepImgData = url;
+          syncKeepImgPrev();
+        } catch (err) { showToast('Could not read that image', 'warn'); }
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function fmtReminderChip(n) {
+    if (!n.reminder) return null;
+    var chip = document.createElement('span');
+    chip.className = 'todo-chip';
+    var when = String(n.reminder).replace('T', ' ');
+    var overdue = !n.reminded && new Date(n.reminder).getTime() < Date.now();
+    if (overdue) chip.classList.add('overdue');
+    chip.textContent = (n.reminded ? 'Done: ' : overdue ? 'Due: ' : 'Remind: ') + when;
+    chip.title = String(n.reminder);
+    return chip;
+  }
+
+  function renderKeepList(animate) {
     var list = document.getElementById('keepList');
+    if (!list) return;
     list.innerHTML = '';
-    if (!keepNotes.length) {
+    var sorted = keepNotes.filter(function (n) { return n.type !== 'todo' && !n.deletedAt; });
+    if (!sorted.length) {
       list.innerHTML = '<div class="keep-empty">No notes yet. Jot one above.</div>';
       return;
     }
-    var sorted = keepNotes.filter(function (n) { return n.type !== 'todo'; });
     sorted.forEach(function (n) {
       var card = document.createElement('div');
       card.className = 'keep-card';
@@ -4529,15 +5252,37 @@
         e.stopPropagation();
         card.classList.add('leaving');
         setTimeout(function () {
-          keepNotes = keepNotes.filter(function (x) { return x.id !== n.id; });
+          var target = keepNotes.find(function (x) { return x.id === n.id; });
+          if (target) target.deletedAt = Date.now();
           if (keepEditingId === n.id) resetComposer();
           persistKeep();
           renderKeepList();
         }, 180);
-        showToast('Note deleted', 'info');
+        showToast('Moved to trash - gone in 7 days', 'info');
       });
       top.appendChild(chip);
-      top.appendChild(del);
+      var acts = document.createElement('div');
+      acts.className = 'keep-card-actions';
+      if (n.history && n.history.length) {
+        var hist = document.createElement('button');
+        hist.type = 'button';
+        hist.className = 'btn-card-glyph';
+        hist.title = 'Version history';
+        hist.setAttribute('aria-label', 'Version history');
+        hist.innerHTML = '<svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="8" cy="8" r="5.5"></circle><path d="M8 5v3l2 1.5"></path></svg>';
+        hist.addEventListener('click', function (e) { e.stopPropagation(); openNoteHist(n.id); });
+        acts.appendChild(hist);
+      }
+      var exp = document.createElement('button');
+      exp.type = 'button';
+      exp.className = 'btn-card-glyph';
+      exp.title = 'Open';
+      exp.setAttribute('aria-label', 'Open note');
+      exp.innerHTML = '<svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3H3v10h10v-3M9 3h4v4M13 3L7.5 8.5"></path></svg>';
+      exp.addEventListener('click', function (e) { e.stopPropagation(); openNoteModal(n.id); });
+      acts.appendChild(exp);
+      acts.appendChild(del);
+      top.appendChild(acts);
       card.appendChild(top);
 
       if (n.title) {
@@ -4547,19 +5292,115 @@
         card.appendChild(title);
       }
 
+      if (n.img) {
+        var thumb = document.createElement('img');
+        thumb.className = 'keep-card-img';
+        thumb.src = n.img;
+        thumb.alt = '';
+        thumb.loading = 'lazy';
+        card.appendChild(thumb);
+      }
+
       if (n.body) {
         var body = document.createElement('div');
         body.className = 'keep-card-body';
-        body.textContent = n.body;
+        body.innerHTML = noteBodyHtml(n);
         card.appendChild(body);
       }
 
-      card.addEventListener('click', function () { loadKeepIntoComposer(n.id); });
+      var rchip = fmtReminderChip(n);
+      if (rchip) {
+        var meta = document.createElement('div');
+        meta.className = 'keep-card-meta';
+        meta.appendChild(rchip);
+        card.appendChild(meta);
+      }
+
+      card.addEventListener('click', function () { openNoteModal(n.id); });
       enableCardDrag(card, n.id);
       if (n.id === keepFreshId) card.classList.add('fresh');
       list.appendChild(card);
     });
     keepFreshId = null;
+    if (animate) {
+      list.classList.remove('play');
+      void list.offsetWidth;
+      list.classList.add('play');
+    }
+  }
+
+  function renderTrash() {
+    var list = document.getElementById('trashList');
+    if (!list) return;
+    purgeTrash();
+    list.innerHTML = '';
+    var items = keepNotes.filter(function (n) { return n.type !== 'todo' && n.deletedAt; })
+      .sort(function (a, b) { return a.deletedAt - b.deletedAt; });
+    if (!items.length) {
+      list.innerHTML = '<div class="keep-empty">Trash is empty.</div>';
+      return;
+    }
+    items.forEach(function (n) {
+      var card = document.createElement('div');
+      card.className = 'keep-card';
+      card.dataset.id = n.id;
+      var top = document.createElement('div');
+      top.className = 'keep-card-top';
+      var chip = document.createElement('span');
+      chip.className = 'meta-chip';
+      chip.textContent = keepScopeLabel(n.scope);
+      top.appendChild(chip);
+      card.appendChild(top);
+      if (n.title) {
+        var title = document.createElement('div');
+        title.className = 'keep-card-title';
+        title.textContent = n.title;
+        card.appendChild(title);
+      }
+      if (n.body) {
+        var body = document.createElement('div');
+        body.className = 'keep-card-body';
+        body.innerHTML = noteBodyHtml(n);
+        card.appendChild(body);
+      }
+      var meta = document.createElement('div');
+      meta.className = 'trash-meta';
+      var left = trashDaysLeft(n);
+      meta.textContent = left + (left === 1 ? ' day left' : ' days left');
+      card.appendChild(meta);
+      var row = document.createElement('div');
+      row.className = 'trash-actions';
+      var restore = document.createElement('button');
+      restore.type = 'button';
+      restore.className = 'pill-btn pill-btn-secondary pill-sm';
+      restore.textContent = 'Restore';
+      restore.addEventListener('click', function () {
+        delete n.deletedAt;
+        n.updated = Date.now();
+        persistKeep();
+        renderTrash();
+        renderKeepList();
+        showToast('Note restored', 'success');
+      });
+      var wipe = document.createElement('button');
+      wipe.type = 'button';
+      wipe.className = 'pill-btn pill-btn-secondary pill-sm';
+      wipe.textContent = 'Delete forever';
+      wipe.addEventListener('click', function () {
+        askConfirm('Delete forever?', 'Permanently delete "' + (n.title || 'this note') + '"? This cannot be undone.').then(function (ok) {
+          if (!ok) return;
+          keepNotes = keepNotes.filter(function (x) { return x.id !== n.id; });
+          if (keepEditingId === n.id) resetComposer();
+          persistKeep();
+          renderTrash();
+          showToast('Note deleted forever', 'info');
+        });
+      });
+      row.appendChild(restore);
+      row.appendChild(wipe);
+      card.appendChild(row);
+      list.appendChild(card);
+    });
   }
 
   function enableCardDrag(card, id) {
@@ -4584,7 +5425,7 @@
 
   // Stable insertion-point lookup: first element whose vertical midpoint is
   // below the pointer (or same row, horizontal midpoint to the right).
-  // Deterministic — no distance scoring, so it can't oscillate / flicker.
+  // Deterministic - no distance scoring, so it can't oscillate / flicker.
   function gridDragAfter(container, x, y, sel) {
     var els = Array.prototype.slice.call(container.querySelectorAll((sel || '.keep-card') + ':not(.dragging)'));
     for (var i = 0; i < els.length; i++) {
@@ -4595,7 +5436,7 @@
     return null;
   }
 
-  // Move only when the DOM would actually change — the old code called
+  // Move only when the DOM would actually change - the old code called
   // insertBefore/appendChild on every dragover tick, which thrashed layout
   // and made cards flicker. Also coalesced via rAF in the dragover handlers.
   function moveDraggedTo(container, dragging, after) {
@@ -4647,13 +5488,19 @@
 
   function loadKeepIntoComposer(id) {
     var n = keepNotes.find(function (x) { return x.id === id; });
-    if (!n) return;
+    if (!n || n.deletedAt) return;
     keepEditingId = id;
+    keepImgData = n.img || null;
     document.getElementById('keepTitle').value = n.title || '';
-    document.getElementById('keepBody').value = n.body || '';
+    document.getElementById('keepBody').innerHTML = n.rich ? sanitizeRich(n.body) : renderRich(n.body || '');
     syncKeepScopeSelect(true);
     var sel = document.getElementById('keepScope');
     if (sel) sel.value = (n.scope && (n.scope === 'general' || state.courses.some(function (c) { return c.id === n.scope; }))) ? n.scope : 'general';
+    var rem = document.getElementById('keepRemind');
+    if (rem) rem.value = n.reminder || '';
+    syncKeepRemindUI();
+    closeKeepRemindPop();
+    syncKeepImgPrev();
     document.getElementById('btnKeepSave').textContent = 'Save changes';
   }
 
@@ -4662,8 +5509,12 @@
     var scopeSel = document.getElementById('keepScope');
     var scope = scopeSel ? scopeSel.value : 'general';
     if (scope !== 'general' && !state.courses.some(function (c) { return c.id === scope; })) scope = 'general';
-    var body = document.getElementById('keepBody').value.trim().slice(0, 2000);
-    if (!title && !body) {
+    var bodyHtml = sanitizeRich(document.getElementById('keepBody').innerHTML);
+    var bodyText = stripHtml(bodyHtml).replace(/\s+$/, '');
+    if (bodyText.length > 2000) { showToast('Note is too long - keep it under 2000 characters', 'warn'); return; }
+    var remEl = document.getElementById('keepRemind');
+    var reminder = remEl && remEl.value ? remEl.value : '';
+    if (!title && !bodyText && !keepImgData) {
       showToast('Write something first', 'warn');
       return;
     }
@@ -4671,9 +5522,17 @@
       keepFreshId = keepEditingId;
       var n = keepNotes.find(function (x) { return x.id === keepEditingId; });
       if (n) {
+        if (n.title !== title || noteBodyHtml(n) !== bodyHtml) {
+          n.history = n.history || [];
+          n.history.unshift({ title: n.title, body: n.body, rich: !!n.rich, at: n.updated || Date.now() });
+          n.history = n.history.slice(0, 10);
+        }
         n.title = title;
-        n.body = body;
+        n.body = bodyHtml;
+        n.rich = true;
         n.scope = scope;
+        n.img = keepImgData || '';
+        if (reminder !== (n.reminder || '')) { n.reminder = reminder; n.reminded = false; }
         n.updated = Date.now();
       }
     } else {
@@ -4682,10 +5541,15 @@
       keepNotes.unshift({
         id: nid,
         title: title,
-        body: body,
+        body: bodyHtml,
+        rich: true,
         type: 'note',
         items: [],
         scope: scope,
+        img: keepImgData || '',
+        reminder: reminder,
+        reminded: false,
+        history: [],
         updated: Date.now()
       });
     }
@@ -4696,11 +5560,110 @@
   }
 
   function switchKeepTab(which) {
+    if (which !== 'notes' && which !== 'todo' && which !== 'trash') which = 'notes';
     document.getElementById('keepTabNotes').classList.toggle('active', which === 'notes');
     document.getElementById('keepTabTodo').classList.toggle('active', which === 'todo');
-    document.getElementById('notesTabPane').style.display = which === 'notes' ? '' : 'none';
-    document.getElementById('todoTabPane').style.display = which === 'todo' ? '' : 'none';
+    document.getElementById('keepTabTrash').classList.toggle('active', which === 'trash');
+    var panes = { notes: 'notesTabPane', todo: 'todoTabPane', trash: 'trashTabPane' };
+    Object.keys(panes).forEach(function (k) {
+      var pane = document.getElementById(panes[k]);
+      if (!pane) return;
+      pane.style.display = k === which ? '' : 'none';
+      if (k === which) {
+        pane.classList.remove('pane-swap');
+        void pane.offsetWidth;
+        pane.classList.add('pane-swap');
+      }
+    });
     if (which === 'todo') renderTodoPane();
+    if (which === 'trash') renderTrash();
+    if (which === 'notes') renderKeepList(true);
+  }
+
+  function openNoteModal(id) {
+    var n = keepNotes.find(function (x) { return x.id === id; });
+    if (!n || n.deletedAt) return;
+    noteModalId = id;
+    document.getElementById('noteModalTitle').textContent = n.title || 'Untitled';
+    var meta = document.getElementById('noteModalMeta');
+    meta.innerHTML = '';
+    var chip = document.createElement('span');
+    chip.className = 'meta-chip';
+    chip.textContent = keepScopeLabel(n.scope);
+    meta.appendChild(chip);
+    var rc = fmtReminderChip(n);
+    if (rc) meta.appendChild(rc);
+    var img = document.getElementById('noteModalImg');
+    if (n.img) { img.src = n.img; img.style.display = ''; }
+    else { img.removeAttribute('src'); img.style.display = 'none'; }
+    document.getElementById('noteModalBody').innerHTML = n.body ? noteBodyHtml(n) : '<span class="trash-meta">Empty note</span>';
+    var hb = document.getElementById('btnNoteModalHist');
+    if (hb) hb.style.display = (n.history && n.history.length) ? '' : 'none';
+    document.getElementById('noteModal').classList.add('active');
+  }
+
+  function closeNoteModal() {
+    var m = document.getElementById('noteModal');
+    if (m) m.classList.remove('active');
+    var s = document.getElementById('noteModalSurface');
+    if (s) s.classList.remove('note-full');
+    var b = document.getElementById('btnNoteModalFull');
+    if (b) b.textContent = 'Fullscreen';
+    noteModalId = null;
+  }
+
+  function openNoteHist(id) {
+    var n = keepNotes.find(function (x) { return x.id === id; });
+    if (!n) return;
+    histNoteId = id;
+    var list = document.getElementById('noteHistList');
+    list.innerHTML = '';
+    var hist = n.history || [];
+    if (!hist.length) {
+      list.innerHTML = '<div class="money-empty">No earlier versions yet. Edit the note to create one.</div>';
+    }
+    hist.forEach(function (v, idx) {
+      var row = document.createElement('div');
+      row.className = 'hist-row';
+      var when = document.createElement('div');
+      when.className = 'hist-when';
+      try { when.textContent = new Date(v.at).toLocaleString(); } catch (e) { when.textContent = ''; }
+      var snip = document.createElement('div');
+      snip.className = 'hist-snippet';
+      snip.textContent = (v.title ? v.title + ' - ' : '') + stripHtml(v.rich ? v.body : renderRich(v.body || '')).slice(0, 220);
+      var rb = document.createElement('button');
+      rb.type = 'button';
+      rb.className = 'pill-btn pill-btn-secondary pill-sm';
+      rb.textContent = 'Restore this version';
+      rb.addEventListener('click', function () {
+        var target = keepNotes.find(function (x) { return x.id === histNoteId; });
+        if (!target) return;
+        target.history = target.history || [];
+        target.history.unshift({ title: target.title, body: target.body, rich: !!target.rich, at: target.updated || Date.now() });
+        target.history = target.history.slice(0, 10);
+        target.title = v.title || '';
+        target.body = v.body || '';
+        target.rich = !!v.rich;
+        target.updated = Date.now();
+        if (keepEditingId === target.id) loadKeepIntoComposer(target.id);
+        persistKeep();
+        renderKeepList();
+        closeNoteHist();
+        if (noteModalId === target.id) openNoteModal(target.id);
+        showToast('Version restored', 'success');
+      });
+      row.appendChild(when);
+      row.appendChild(snip);
+      row.appendChild(rb);
+      list.appendChild(row);
+    });
+    document.getElementById('noteHistModal').classList.add('active');
+  }
+
+  function closeNoteHist() {
+    var m = document.getElementById('noteHistModal');
+    if (m) m.classList.remove('active');
+    histNoteId = null;
   }
 
   function getTaskNote(scope, create) {
@@ -4751,9 +5714,17 @@
     });
     if (idDirty && note) persistKeep();
     var done = items.filter(function (it) { return it.done; }).length;
-    prog.textContent = items.length ? done + ' of ' + items.length + ' done' : 'Nothing here yet — add your first task above';
+    prog.textContent = items.length ? done + ' of ' + items.length + ' done' : 'Nothing here yet - add your first task above';
+    var todayStr = todayKey(new Date());
+    function todoRank(it) { return it.prio && TODO_PRIO_WEIGHT[it.prio] !== undefined ? TODO_PRIO_WEIGHT[it.prio] : 3; }
     items.map(function (it, i) { return { it: it, i: i }; })
-      .sort(function (a, b) { return (a.it.done - b.it.done) || (a.i - b.i); })
+      .sort(function (a, b) {
+        if ((a.it.done - b.it.done) !== 0) return a.it.done - b.it.done;
+        if (todoRank(a.it) !== todoRank(b.it)) return todoRank(a.it) - todoRank(b.it);
+        if ((a.it.due || '9999') < (b.it.due || '9999')) return -1;
+        if ((a.it.due || '9999') > (b.it.due || '9999')) return 1;
+        return a.i - b.i;
+      })
       .forEach(function (entry) {
         var row = document.createElement('div');
         row.className = 'todo-row';
@@ -4787,12 +5758,29 @@
           circle.setAttribute('aria-label', entry.it.done ? 'Mark as not done' : 'Mark as done');
           text.classList.toggle('done', entry.it.done);
           var doneCount = note.items.filter(function (x) { return x.done; }).length;
-          prog.textContent = note.items.length ? doneCount + ' of ' + note.items.length + ' done' : 'Nothing here yet — add your first task above';
+          prog.textContent = note.items.length ? doneCount + ' of ' + note.items.length + ' done' : 'Nothing here yet - add your first task above';
           setTimeout(renderTodoPane, 450);
         });
         var text = document.createElement('span');
         text.className = 'todo-text' + (entry.it.done ? ' done' : '');
         text.textContent = entry.it.t;
+        if (entry.it.due || entry.it.prio) {
+          var chips = document.createElement('span');
+          chips.className = 'todo-chips';
+          if (entry.it.due) {
+            var due = document.createElement('span');
+            due.className = 'todo-chip' + (!entry.it.done && entry.it.due < todayStr ? ' overdue' : '');
+            due.textContent = entry.it.due + (!entry.it.done && entry.it.due < todayStr ? ' overdue' : '');
+            chips.appendChild(due);
+          }
+          if (entry.it.prio) {
+            var pr = document.createElement('span');
+            pr.className = 'todo-chip prio-' + entry.it.prio;
+            pr.textContent = entry.it.prio;
+            chips.appendChild(pr);
+          }
+          text.appendChild(chips);
+        }
         var del = document.createElement('button');
         del.type = 'button';
         del.className = 'btn-remove-row';
@@ -4823,23 +5811,32 @@
     persistKeep();
   }
 
+  var TODO_PRIO_WEIGHT = { High: 0, Medium: 1, Low: 2 };
+
   function addTodoQuick() {
     var inp = document.getElementById('todoQuickInput');
     var v = inp.value.trim();
     if (!v) return;
     var scope = 'general';
     var note = getTaskNote(scope, true);
-    note.items.push({ t: v, done: false, id: 'i' + Date.now() });
+    var dueEl = document.getElementById('todoDueInput');
+    var prioEl = document.getElementById('todoPrioInput');
+    var item = { t: v.slice(0, 120), done: false, id: 'i' + Date.now() };
+    if (dueEl && dueEl.value) item.due = dueEl.value;
+    if (prioEl && prioEl.value) item.prio = prioEl.value;
+    note.items.push(item);
     note.updated = Date.now();
     persistKeep();
     inp.value = '';
+    if (dueEl) dueEl.value = '';
+    if (prioEl) prioEl.value = '';
     inp.focus();
     renderTodoPane();
   }
   function closeCreditsModal() { document.getElementById('creditsModal').classList.remove('active'); }
 
   // =========================================================================
-  // 20b. Home front page — stats, today digest, easter eggs
+  // 20b. Home front page - stats, today digest, easter eggs
   // =========================================================================
 
   function setText(id, txt) { var el = document.getElementById(id); if (el) el.textContent = txt; }
@@ -4882,13 +5879,13 @@
       }
 
       fillList('digestDue', due.map(function (d) {
-        return { label: (d.dueTime || '23:59') + ' — ' + d.title, go: function () { scrollFlash('deadline-' + d.id); } };
+        return { label: (d.dueTime || '23:59') + ' - ' + d.title, go: function () { scrollFlash('deadline-' + d.id); } };
       }), 'Nothing due today. Enjoy it.');
       fillList('digestStudy', study.map(function (s) {
-        return { label: (s.block.time || '09:00') + ' — ' + s.block.subject + (s.done ? ' ✓' : ''), go: function () { scrollFlash('study-' + s.block.id); } };
+        return { label: (s.block.time || '09:00') + ' - ' + s.block.subject + (s.done ? ' ✓' : ''), go: function () { scrollFlash('study-' + s.block.id); } };
       }), 'No study blocks today.');
       fillList('digestRem', rems.map(function (e) {
-        return { label: (e.time || '09:00') + ' — ' + e.title, go: function () { showPage('calendar', false); calSelected = e.date; renderCalendar(); } };
+        return { label: (e.time || '09:00') + ' - ' + e.title, go: function () { showPage('calendar', false); calSelected = e.date; renderCalendar(); } };
       }), 'No reminders today.');
     } catch (e) {}
   }
@@ -4899,7 +5896,7 @@
 
   function initEasterEggs() {
     try {
-      console.log('%cHORIZON%c v42 — psst: try the Konami code, click the logo 5x, or click the coffee heart.', 'font-weight:bold;color:#0071e3', 'color:inherit');
+      console.log('%cHORIZON%c v42 - psst: try the Konami code, click the logo 5x, or click the coffee heart.', 'font-weight:bold;color:#0071e3', 'color:inherit');
     } catch (e) {}
     document.addEventListener('keydown', function (e) {
       var k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
@@ -4963,6 +5960,7 @@
     if (typeof loadGhLocal === 'function') loadGhLocal();
     if (typeof loadFinance === 'function') loadFinance();
     if (typeof loadFlight === 'function') loadFlight();
+    if (typeof loadFc === 'function') loadFc();
     setScale(state.scale);
     renderCourses();
     renderDeadlines();
@@ -4979,8 +5977,14 @@
     renderSprintCount();
     renderKeepList();
     if (typeof renderHomeDigest === 'function') renderHomeDigest();
+    if (typeof initFc === 'function') { try { initFc(); } catch (e) { console.error('flashcards init', e); } }
     initRouter();
     initEasterEggs();
+    window.addEventListener('hashchange', function () {
+      if ((location.hash || '').indexOf('study') >= 0 && typeof renderFcAll === 'function') {
+        try { renderFcAll(); } catch (e) {}
+      }
+    });
 
     setInterval(function () { updateStanfordClock(); updateOverallKPIs(); updatePanicMeter(); tickDeadlineTimers(); }, 1000);
     setInterval(function () { if (currentPage === 'home') renderHomeDigest(); }, 15000);
@@ -5072,6 +6076,8 @@
         var cm = document.getElementById('confirmModal');
         if (cm && cm.classList.contains('active')) closeConfirm(false);
         closeThemeMenu();
+        if (typeof closeNoteHist === 'function') closeNoteHist();
+        if (typeof closeNoteModal === 'function') closeNoteModal();
       }
     });
     document.getElementById('btnOpenCredits').addEventListener('click', openCreditsModal);
@@ -5093,7 +6099,66 @@
     todoListEl.addEventListener('dragleave', function () { todoListEl.classList.remove('is-reordering'); });
     document.getElementById('keepTabNotes').addEventListener('click', function () { switchKeepTab('notes'); });
     document.getElementById('keepTabTodo').addEventListener('click', function () { switchKeepTab('todo'); });
+    document.getElementById('keepTabTrash').addEventListener('click', function () { switchKeepTab('trash'); });
     document.getElementById('btnKeepSave').addEventListener('click', saveKeepComposer);
+    document.getElementById('btnFmtBold').addEventListener('click', function () { fmtKeepDoc('bold'); });
+    document.getElementById('btnFmtItalic').addEventListener('click', function () { fmtKeepDoc('italic'); });
+    document.getElementById('btnFmtUnderline').addEventListener('click', function () { fmtKeepDoc('underline'); });
+    document.getElementById('keepBody').addEventListener('input', function () {
+      var el = document.getElementById('keepBody');
+      if (el && el.textContent === '' && el.innerHTML !== '') el.innerHTML = '';
+    });
+    document.getElementById('btnKeepImg').addEventListener('click', function () { document.getElementById('keepImgInput').click(); });
+    document.getElementById('keepImgInput').addEventListener('change', function (e) {
+      if (e.target.files && e.target.files[0]) attachKeepImage(e.target.files[0]);
+      e.target.value = '';
+    });
+    document.getElementById('btnKeepImgRemove').addEventListener('click', function () { keepImgData = null; syncKeepImgPrev(); });
+    document.getElementById('btnKeepRemind').addEventListener('click', function (e) {
+      e.stopPropagation();
+      var pop = document.getElementById('keepRemindPop');
+      var open = pop.style.display === 'none';
+      pop.style.display = open ? '' : 'none';
+      this.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) document.getElementById('keepRemind').focus();
+    });
+    document.getElementById('keepRemindChip').addEventListener('click', function () {
+      var pop = document.getElementById('keepRemindPop');
+      pop.style.display = pop.style.display === 'none' ? '' : 'none';
+    });
+    document.getElementById('btnKeepRemindSet').addEventListener('click', function () {
+      syncKeepRemindUI();
+      closeKeepRemindPop();
+    });
+    document.getElementById('btnKeepRemindClear').addEventListener('click', function () {
+      document.getElementById('keepRemind').value = '';
+      syncKeepRemindUI();
+      closeKeepRemindPop();
+    });
+    document.addEventListener('click', function (e) {
+      var pop = document.getElementById('keepRemindPop');
+      if (pop && pop.style.display !== 'none' && !e.target.closest('.keep-remind-row')) closeKeepRemindPop();
+    });
+    document.getElementById('btnCloseNoteModal').addEventListener('click', closeNoteModal);
+    document.getElementById('btnNoteModalDone').addEventListener('click', closeNoteModal);
+    document.getElementById('noteModal').addEventListener('click', function (e) { if (e.target === this) closeNoteModal(); });
+    document.getElementById('btnNoteModalFull').addEventListener('click', function () {
+      var s = document.getElementById('noteModalSurface');
+      var full = s.classList.toggle('note-full');
+      this.textContent = full ? 'Exit fullscreen' : 'Fullscreen';
+    });
+    document.getElementById('btnNoteModalEdit').addEventListener('click', function () {
+      if (noteModalId) {
+        loadKeepIntoComposer(noteModalId);
+        closeNoteModal();
+        scrollFlash('notes');
+        setTimeout(function () { document.getElementById('keepBody').focus(); }, 300);
+      }
+    });
+    document.getElementById('btnNoteModalHist').addEventListener('click', function () { if (noteModalId) openNoteHist(noteModalId); });
+    document.getElementById('btnCloseNoteHistModal').addEventListener('click', closeNoteHist);
+    document.getElementById('btnNoteHistDone').addEventListener('click', closeNoteHist);
+    document.getElementById('noteHistModal').addEventListener('click', function (e) { if (e.target === this) closeNoteHist(); });
     document.getElementById('btnTodoAdd').addEventListener('click', addTodoQuick);
     document.getElementById('todoQuickInput').addEventListener('keydown', function (e) {
       if (e.key === 'Enter') { e.preventDefault(); addTodoQuick(); }
@@ -5233,6 +6298,7 @@
         });
       });
       document.getElementById('finFilterSelect').addEventListener('change', function (e) { finFilter = e.target.value; renderFinance(); });
+      document.getElementById('btnFinResetMonth').addEventListener('click', resetFinMonth);
       document.getElementById('btnHeroTakeoff').addEventListener('click', function () {
         setTimeout(function () { scrollFlash('flightSim'); }, 150);
       });
@@ -5246,7 +6312,8 @@
       ['flFrom', 'flTo', 'flCabin', 'flMode', 'flPlane'].forEach(function (id) {
         document.getElementById(id).addEventListener('change', onFlightPlanChange);
       });
-      document.getElementById('flCustomMin').addEventListener('change', onFlightPlanChange);
+      document.getElementById('flCustomH').addEventListener('change', onFlightPlanChange);
+      document.getElementById('flCustomM').addEventListener('change', onFlightPlanChange);
       [['flViewMap', 'map'], ['flViewFollow', 'follow']].forEach(function (p) {
         document.getElementById(p[0]).addEventListener('click', function () {
           flightSave.view = p[1]; persistFlight(); renderFlightAll();
@@ -5261,7 +6328,10 @@
       document.getElementById('btnFlZoomOut').addEventListener('click', function () { flZoom(-1); });
       document.getElementById('btnFlZoomIn2').addEventListener('click', function () { flZoom(1); });
       document.getElementById('btnFlZoomOut2').addEventListener('click', function () { flZoom(-1); });
-      document.getElementById('btnFlPause').addEventListener('click', toggleFlight);
+      document.getElementById('btnFlPause').addEventListener('click', function () {
+        if (flight.state === 'flying' || flight.state === 'paused') toggleFlight();
+        else showToast('Take off first - then you can hold the flight', 'info');
+      });
       document.getElementById('btnFlEnd').addEventListener('click', function () {
         if (flight.state !== 'flying' && flight.state !== 'paused') { showToast('No active flight to end', 'info'); return; }
         askConfirm('End flight?', 'Cut this flight short? You will not earn miles for it.').then(function (ok) {
@@ -5309,7 +6379,7 @@
       });
       document.getElementById('btnFlCrew').addEventListener('click', function () {
         flBell();
-        showToast(flight.state === 'flying' ? 'Cabin crew on the way — extra pretzels incoming' : 'Crew standing by for your next flight', 'info');
+        showToast(flight.state === 'flying' ? 'Cabin crew on the way - extra pretzels incoming' : 'Crew standing by for your next flight', 'info');
       });
       document.getElementById('btnDepMore').addEventListener('click', function () {
         depExpanded = !depExpanded;
@@ -5383,7 +6453,7 @@
     document.getElementById('btnTimerToggle').addEventListener('click', function () { if (pomodoroState.isRunning) pausePomodoro(); else startPomodoro(); });
     document.getElementById('btnTimerReset').addEventListener('click', resetPomodoro);
     document.getElementById('btnTimerSkip').addEventListener('click', function () {
-      var chips = Array.prototype.slice.call(document.querySelectorAll('.chip-btn'));
+      var chips = Array.prototype.slice.call(document.querySelectorAll('.chip-btn[data-duration]'));
       var idx = -1;
       chips.forEach(function (c, i) {
         if (parseInt(c.dataset.duration, 10) === pomodoroState.durationMinutes && c.dataset.phase === pomodoroState.phase) idx = i;
@@ -5391,18 +6461,22 @@
       var next = chips[(idx + 1) % chips.length];
       pomodoroState.durationMinutes = parseInt(next.dataset.duration, 10);
       pomodoroState.phase = next.dataset.phase;
-      showToast((pomodoroState.phase === 'focus' ? 'Focus' : 'Break') + ' queued — ' + next.textContent.trim(), 'info');
+      showToast((pomodoroState.phase === 'focus' ? 'Focus' : 'Break') + ' queued - ' + next.textContent.trim(), 'info');
       syncTimerPhaseUI();
       resetPomodoro();
     });
 
-    document.querySelectorAll('.chip-btn').forEach(function (chip) {
+    document.querySelectorAll('.chip-btn[data-duration]').forEach(function (chip) {
       chip.addEventListener('click', function () {
         pomodoroState.durationMinutes = parseInt(chip.dataset.duration, 10);
         pomodoroState.phase = chip.dataset.phase;
         syncTimerPhaseUI();
         resetPomodoro();
       });
+    });
+    document.getElementById('btnFocusCustom').addEventListener('click', setFocusCustom);
+    document.getElementById('focusCustomMin').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); setFocusCustom(); }
     });
 
     // Audio controls
