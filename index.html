@@ -53,7 +53,7 @@
           <button class="pill-btn pill-btn-secondary theme-toggle-btn" id="btnThemeToggle" title="Choose theme" aria-label="Choose theme" aria-haspopup="menu"><svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M13.5 9.5A5.5 5.5 0 0 1 6.5 2.5a5.5 5.5 0 1 0 7 7z"/></svg></button>
           <div class="theme-menu" id="themeMenu" role="menu">
             <div class="theme-group">
-              <div class="theme-group-label">Everyday</div>
+              <div class="theme-group-label">Core</div>
               <div class="theme-group-grid">
                 <button class="theme-option" data-theme-value="dark" role="menuitem"><span class="theme-dots"><i style="background:#000000"></i><i style="background:#121215"></i><i style="background:#0071e3"></i></span>Dark</button>
                 <button class="theme-option" data-theme-value="light" role="menuitem"><span class="theme-dots"><i style="background:#f5f5f7"></i><i style="background:#ffffff"></i><i style="background:#0071e3"></i></span>Light</button>
@@ -61,7 +61,7 @@
               </div>
             </div>
             <div class="theme-group">
-              <div class="theme-group-label">Warm paper</div>
+              <div class="theme-group-label">Paper</div>
               <div class="theme-group-grid">
                 <button class="theme-option" data-theme-value="indie" role="menuitem"><span class="theme-dots"><i style="background:#f1ece1"></i><i style="background:#faf6ec"></i><i style="background:#a94a26"></i></span>Indie</button>
                 <button class="theme-option" data-theme-value="moss" role="menuitem"><span class="theme-dots"><i style="background:#ece6d5"></i><i style="background:#f4efe0"></i><i style="background:#4a6741"></i></span>Moss</button>
@@ -69,7 +69,7 @@
               </div>
             </div>
             <div class="theme-group">
-              <div class="theme-group-label">Color vision safe</div>
+              <div class="theme-group-label">Accessible</div>
               <div class="theme-group-grid">
                 <button class="theme-option" data-theme-value="colorblind" role="menuitem" title="Red-green safe (protanopia, deuteranopia)"><span class="theme-dots"><i style="background:#000000"></i><i style="background:#66aaff"></i><i style="background:#E69F00"></i></span>Colorblind</button>
                 <button class="theme-option" data-theme-value="colorblind-light" role="menuitem" title="Red-green safe, light background"><span class="theme-dots"><i style="background:#ffffff"></i><i style="background:#005fcc"></i><i style="background:#8a5a00"></i></span>Colorblind Light</button>
@@ -90,7 +90,6 @@
         <a href="#/deadlines" class="nav-link" data-page-link="deadlines">Deadlines</a>
         <a href="#/calendar" class="nav-link" data-page-link="calendar">Calendar</a>
         <a href="#/study" class="nav-link" data-page-link="study">Study</a>
-        <a href="#/code" class="nav-link" data-page-link="code">Code</a>
         <a href="#/money" class="nav-link" data-page-link="money">Finances</a>
         <a href="#/focus" class="nav-link" data-page-link="focus">Focus</a>
         <a href="#/notes" class="nav-link" data-page-link="notes">Notes</a>
@@ -99,13 +98,12 @@
   </header>
 
   <main>
-    <!-- QUOTE OF THE DAY -->
-    <section class="quote-band" id="quote">
-      <div class="site-container quote-container">
-        <span class="section-eyebrow" id="quoteDateLabel">Quote of the day</span>
+    <!-- QUOTE OF THE DAY: slim strip above the hero -->
+    <section class="quote-strip" id="quote">
+      <div class="site-container quote-strip-inner">
         <p class="quote-text" id="quoteText"></p>
         <p class="quote-author" id="quoteAuthor"></p>
-        <button class="shuffle-btn" id="btnShuffleQuote" title="Shuffle" aria-label="Shuffle quote">
+        <button class="shuffle-btn" id="btnShuffleQuote" type="button" title="Shuffle quote" aria-label="Shuffle quote">
           <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
         </button>
       </div>
@@ -157,7 +155,6 @@
           <a href="#/deadlines" class="home-card" data-page-link="deadlines"><span class="home-card-dot" data-accent="red"></span><span class="home-card-title">Deadlines</span><span class="home-card-sub" id="homeStatDeadlines">- pending</span></a>
           <a href="#/calendar" class="home-card" data-page-link="calendar"><span class="home-card-dot" data-accent="violet"></span><span class="home-card-title">Calendar</span><span class="home-card-sub" id="homeStatCal">- reminders</span></a>
           <a href="#/study" class="home-card" data-page-link="study"><span class="home-card-dot" data-accent="orange"></span><span class="home-card-title">Study</span><span class="home-card-sub" id="homeStatStudy">- blocks</span></a>
-          <a href="#/code" class="home-card" data-page-link="code"><span class="home-card-dot" data-accent="ink"></span><span class="home-card-title">Code</span><span class="home-card-sub" id="homeStatCode">- repos</span></a>
           <a href="#/money" class="home-card" data-page-link="money"><span class="home-card-dot" data-accent="green"></span><span class="home-card-title">Finances</span><span class="home-card-sub" id="homeStatMoney">- balance</span></a>
           <a href="#/focus" class="home-card" data-page-link="focus"><span class="home-card-dot" data-accent="pink"></span><span class="home-card-title">Focus</span><span class="home-card-sub" id="homeStatFocus">- sprints</span></a>
           <a href="#/notes" class="home-card" data-page-link="notes"><span class="home-card-dot" data-accent="gold"></span><span class="home-card-title">Notes</span><span class="home-card-sub" id="homeStatNotes">- notes</span></a>
@@ -368,6 +365,7 @@
             </div>
             <span class="fc-deck-info" id="fcDeckInfo">0 in this topic</span>
             <button class="pill-btn pill-btn-primary pill-sm" id="btnFcRevise" type="button">Revise</button>
+            <button class="pill-btn pill-btn-secondary pill-sm" id="btnFcMistakes" type="button" title="Only revise cards you missed">Mistakes: Off</button>
             <button class="pill-btn pill-btn-secondary pill-sm" id="btnFcShuffle" type="button">Shuffle</button>
             <button class="pill-btn pill-btn-secondary pill-sm" id="btnFcExpand" type="button">Big view</button>
           </div>
@@ -381,6 +379,8 @@
             <span class="fc-pos" id="fcPos">0 / 0</span>
             <button class="pill-btn pill-btn-secondary pill-sm" id="btnFcNext" type="button">Next</button>
             <button class="pill-btn pill-btn-secondary pill-sm" id="btnFcFlip" type="button">Flip</button>
+            <button class="pill-btn pill-btn-secondary pill-sm fc-got" id="btnFcGot" type="button" title="I knew this">✓ Got it</button>
+            <button class="pill-btn pill-btn-secondary pill-sm fc-miss" id="btnFcMiss" type="button" title="I missed this">✕ Missed</button>
             <button class="pill-btn pill-btn-secondary pill-sm" id="btnFcDelete" type="button">Delete</button>
           </div>
           <div class="money-list" id="fcList"></div>
@@ -411,47 +411,13 @@
             <button class="pill-btn pill-btn-primary pill-btn-lg" id="btnFcBigFlip" type="button">Show answer</button>
             <button class="pill-btn pill-btn-secondary" id="btnFcBigNext" type="button">Next</button>
           </div>
+          <div class="fc-big-nav">
+            <button class="pill-btn pill-btn-secondary pill-sm fc-got" id="btnFcBigGot" type="button">✓ Got it</button>
+            <button class="pill-btn pill-btn-secondary pill-sm fc-miss" id="btnFcBigMiss" type="button">✕ Missed</button>
+          </div>
         </div>
       </div>
     </div>
-
-    <!-- SECTION 2e: CODE / GITHUB -->
-    <section class="section-block section-alt" id="code">
-      <div class="site-container">
-        <div class="section-header-centered">
-          <span class="section-eyebrow">Code</span>
-          <div class="gh-logo-row">
-            <svg class="gh-big-logo" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
-            <h2 class="section-headline">Your GitHub, organized.</h2>
-          </div>
-          <p class="section-lead">Pull any profile, browse repos <em>and</em> starred repos, pin favourites, copy clone commands. Repos live in an aesthetic card grid with local notes.</p>
-          <div class="gh-action-bar">
-            <input type="text" id="ghUserInput" class="apple-input gh-user-input" placeholder="github username - e.g. BKarbalaI" maxlength="39" value="BKarbalai">
-            <button class="pill-btn pill-btn-primary pill-sm" id="btnGhLoad">Load repos</button>
-            <button class="pill-btn pill-btn-secondary pill-sm" id="btnGhAdd">Add custom</button>
-          </div>
-          <div class="gh-profile" id="ghProfile" style="display:none;"></div>
-          <div class="segmented-control gh-tabs" role="group" aria-label="Repos or starred">
-            <button type="button" class="seg-btn active" id="ghTabRepos">Repos</button>
-            <button type="button" class="seg-btn" id="ghTabStarred">Starred</button>
-          </div>
-          <div class="gh-toolbar-row">
-            <input type="text" id="ghSearchInput" class="apple-input" placeholder="Search repos..." maxlength="60">
-            <button class="pill-btn pill-btn-secondary pill-sm" id="btnGhReadme">Surprise me</button>
-            <select id="ghSortSelect" class="apple-select" aria-label="Sort repos">
-              <option value="updated">Recently updated</option>
-              <option value="stars">Most stars</option>
-              <option value="name">Name A–Z</option>
-            </select>
-            <select id="ghLangFilter" class="apple-select" aria-label="Filter by language">
-              <option value="all">All languages</option>
-            </select>
-          </div>
-          <p class="grade-insight" id="ghStatus"></p>
-        </div>
-        <div class="gh-grid" id="ghGrid"></div>
-      </div>
-    </section>
 
     <!-- SECTION 2f: MONEY -->
     <section class="section-block" id="money">
@@ -499,7 +465,10 @@
         <div class="apple-card dues-card">
           <div class="card-caption-row">
             <span class="card-title">Upcoming dues</span>
-            <button class="pill-btn pill-btn-primary pill-sm" id="btnAddDue">Add due</button>
+            <span style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="pill-btn pill-btn-secondary pill-sm" id="btnPostOverdue" title="Log every overdue due as an expense in one click">Post overdue</button>
+              <button class="pill-btn pill-btn-primary pill-sm" id="btnAddDue">Add due</button>
+            </span>
           </div>
           <p class="cal-agenda-hint dues-hint">Rent, subscriptions, installments - with the amount and the exact due date. Mark paid when it clears.</p>
           <div class="money-list" id="dueList"></div>
@@ -1209,35 +1178,6 @@
   </div>
 
   <!-- MODAL: Custom repo -->
-  <div class="modal-backdrop" id="ghModal">
-    <div class="modal-surface">
-      <div class="modal-header">
-        <h3 class="modal-title">Add repo / link</h3>
-        <button class="modal-close-btn" id="btnCloseGhModal" aria-label="Close modal">
-          <svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3l10 10M13 3L3 13"></path></svg>
-        </button>
-      </div>
-      <form id="ghForm" class="modal-form">
-        <div class="form-field">
-          <label for="ghNameInput">Name</label>
-          <input type="text" id="ghNameInput" placeholder="e.g. riscv-cpu" maxlength="80" required>
-        </div>
-        <div class="form-field">
-          <label for="ghUrlInput">URL</label>
-          <input type="text" id="ghUrlInput" placeholder="https://github.com/..." maxlength="200" required>
-        </div>
-        <div class="form-field">
-          <label for="ghDescInput">Note</label>
-          <textarea id="ghDescInput" class="apple-textarea notes-area" rows="2" placeholder="What is this repo for?"></textarea>
-        </div>
-        <div class="modal-actions-footer">
-          <button type="button" class="pill-btn pill-btn-secondary" id="btnCancelGhModal">Cancel</button>
-          <button type="submit" class="pill-btn pill-btn-primary">Save</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
   <!-- MODAL: Arrival celebration -->
   <div class="modal-backdrop" id="arrivalModal">
     <div class="modal-surface arrival-surface">
@@ -1403,12 +1343,6 @@ Final Project (60%) - 2026-10-28 23:59"></textarea>
       </svg>
       <span>Cal</span>
     </a>
-    <a href="#/code" class="mobile-nav-item" data-page-link="code">
-      <svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
-        <path d="M6 3L2.5 8 6 13M10 3l3.5 5L10 13"></path>
-      </svg>
-      <span>Code</span>
-    </a>
     <a href="#/money" class="mobile-nav-item" data-page-link="money">
       <svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
         <rect x="2" y="4.5" width="12" height="8" rx="1.5"></rect>
@@ -1431,7 +1365,6 @@ Final Project (60%) - 2026-10-28 23:59"></textarea>
         <a href="#/deadlines" data-page-link="deadlines">Deadlines</a>
         <a href="#/calendar" data-page-link="calendar">Calendar</a>
         <a href="#/study" data-page-link="study">Study</a>
-        <a href="#/code" data-page-link="code">Code</a>
         <a href="#/money" data-page-link="money">Finances</a>
         <a href="#/focus" data-page-link="focus">Focus</a>
         <a href="#/notes" data-page-link="notes">Notes</a>
@@ -1492,6 +1425,18 @@ Final Project (60%) - 2026-10-28 23:59"></textarea>
             <span class="credit-link-text">
               <span class="credit-link-label">GitHub</span>
               <span class="credit-link-handle">BKarbalai</span>
+            </span>
+            <span class="credit-link-go">
+              <svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 17L17 7M9 7h8v8"></path></svg>
+            </span>
+          </a>
+          <a class="credit-link" href="https://github.com/BKarbalai/BackToSchool-Coding-Challenege" target="_blank" rel="noopener">
+            <span class="credit-link-icon brand-code">
+              <svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L2 8l4 6M10 2l4 6-4 6"></path></svg>
+            </span>
+            <span class="credit-link-text">
+              <span class="credit-link-label">Source</span>
+              <span class="credit-link-handle">BackToSchool-Coding-Challenege</span>
             </span>
             <span class="credit-link-go">
               <svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 17L17 7M9 7h8v8"></path></svg>

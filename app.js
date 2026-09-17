@@ -195,7 +195,6 @@
     deadlines: ['deadlines'],
     calendar: ['calendar'],
     study: ['study'],
-    code: ['code'],
     money: ['money'],
     focus: ['focus'],
     notes: ['notes']
@@ -203,7 +202,7 @@
 
   var LEGACY_HASH = {
     hero: 'home', quote: 'home', radar: 'grades', deadlines: 'deadlines',
-    calendar: 'calendar', study: 'study', code: 'code',
+    calendar: 'calendar', study: 'study',
     money: 'money', focus: 'focus', notes: 'notes', top: 'home'
   };
 
@@ -250,7 +249,6 @@
     try {
       if (page === 'home' && typeof renderHomeDigest === 'function') renderHomeDigest();
       if (page === 'calendar' && typeof renderCalendar === 'function') renderCalendar();
-      if (page === 'code' && typeof renderGh === 'function') renderGh();
       if (page === 'money' && typeof renderFinance === 'function') renderFinance();
       if (page === 'study' && typeof renderStudy === 'function') renderStudy();
       if (page === 'focus' && typeof flLeafRefresh === 'function') {
@@ -405,7 +403,6 @@
       dues: (typeof dues !== 'undefined' ? dues : []),
       wishlist: (typeof wishlist !== 'undefined' ? wishlist : []),
       budget: (typeof finBudget !== 'undefined' ? finBudget : 400),
-      customRepos: (typeof ghCustom !== 'undefined' ? ghCustom : []),
       flashcards: (typeof fcCards !== 'undefined' ? fcCards : []),
       settings: { scale: state.scale },
       exportedAt: new Date().toISOString()
@@ -746,13 +743,15 @@
     fitQuote();
   }
 
-  // Shrink long quotes to fit 2 lines instead of growing taller
+  // Long quotes render smaller, short quotes render bigger - the strip
+  // never exceeds 2 lines no matter the length.
   function fitQuote() {
     var el = document.getElementById('quoteText');
     if (!el) return;
-    var size = 17;
+    var len = (el.textContent || '').length;
+    var size = len > 140 ? 11 : len > 100 ? 12 : len > 60 ? 13 : 14.5;
     el.style.fontSize = size + 'px';
-    while (el.scrollHeight > el.clientHeight + 1 && size > 12) {
+    while (el.scrollHeight > el.clientHeight + 1 && size > 10) {
       size -= 0.5;
       el.style.fontSize = size + 'px';
     }
@@ -766,6 +765,12 @@
   var shuffleCount = 0;
 
   function shuffleQuote() {
+    var btn = document.getElementById('btnShuffleQuote');
+    if (btn) {
+      btn.classList.remove('spin');
+      void btn.offsetWidth;
+      btn.classList.add('spin');
+    }
     shuffleCount++;
     if (shuffleCount % 2 === 1) {
       // Odd clicks: Harvey Specter or Max Verstappen only
@@ -1208,7 +1213,7 @@
       { label: 'Go to Deadlines', hint: 'jump', run: function () { showPage('deadlines', false); } },
       { label: 'Go to Calendar', hint: 'jump', run: function () { showPage('calendar', false); } },
       { label: 'Go to Study planner', hint: 'jump', run: function () { showPage('study', false); } },
-      { label: 'Go to Code', hint: 'jump', run: function () { showPage('code', false); } },
+
       { label: 'Go to Finances', hint: 'jump', run: function () { showPage('money', false); } },
       { label: 'Go to Focus', hint: 'jump', run: function () { showPage('focus', false); } },
       { label: 'Go to Airplane mode', hint: 'jump', run: function () { showPage('focus', false); setTimeout(function () { scrollFlash('flightSim'); }, 120); } },
@@ -1219,7 +1224,7 @@
       { label: 'New study block', hint: 'study', run: function () { openStudyModal(); } },
       { label: 'New transaction', hint: 'finances', run: function () { openFinModal(); } },
       { label: 'New due', hint: 'finances', run: function () { openDueModal(); } },
-      { label: 'Load GitHub repos', hint: 'code', run: function () { loadGhRepos(); } },
+
       { label: 'Go to Notes', hint: 'jump', run: function () { showPage('notes', false); } },
       { label: 'Start / pause sprint', hint: 'Space', run: function () { if (pomodoroState.isRunning) pausePomodoro(); else startPomodoro(); } },
       { label: 'Export calendar (.ics)', hint: 'file', run: function () { exportIcsCalendar(); } },
@@ -2594,6 +2599,7 @@
   var fcIndex = 0;
   var fcFlipped = false;
   var fcEditingId = null;
+  var fcMistakesOnly = false;
 
   var SYMBOLS = ['π', '√', '∫', 'Σ', 'Δ', 'θ', 'λ', 'μ', '∞', '≠', '≈', '≤', '≥', '×', '÷', '±', '°', '²', '³', 'α', 'β', 'γ', 'φ', 'Ω', '∂', '→', 'sin', 'cos', 'log', 'lim'];
   var symTargetId = 'fcFront';
@@ -2666,6 +2672,18 @@
       fcCards = raw ? (JSON.parse(raw) || []) : [];
     } catch (e) { fcCards = []; }
     if (!Array.isArray(fcCards)) fcCards = [];
+    // One-time repair: collapse whitespace + cap stored topics so a pasted
+    // 200-char unbroken string can't blow out the <select> ever again.
+    // Also backfill wrong/right counters for the mistakes-only deck.
+    var dirty = false;
+    fcCards.forEach(function (card) {
+      if (!card) return;
+      var clean = String(card.topic == null ? 'General' : card.topic).replace(/\s+/g, ' ').trim().slice(0, 60) || 'General';
+      if (card.topic !== clean) { card.topic = clean; dirty = true; }
+      if (typeof card.wrong !== 'number' || !(card.wrong >= 0)) { card.wrong = 0; dirty = true; }
+      if (typeof card.right !== 'number' || !(card.right >= 0)) { card.right = 0; dirty = true; }
+    });
+    if (dirty) persistFc();
     fcIndex = 0;
     fcFlipped = false;
   }
@@ -2680,26 +2698,55 @@
 
   function fcAllTopics() {
     var topics = ['General'];
+    function pushTopic(raw) {
+      var t = fcCleanTopic(raw);
+      if (t && topics.indexOf(t) < 0) topics.push(t);
+    }
     try {
       (state.courses || []).forEach(function (c) {
-        var label = fcCourseLabel(c);
-        if (topics.indexOf(label) < 0) topics.push(label);
+        pushTopic(fcCourseLabel(c));
       });
       (typeof studyBlocks !== 'undefined' ? studyBlocks : []).forEach(function (b) {
-        if (b && b.subject && topics.indexOf(b.subject) < 0) topics.push(b.subject);
+        if (b && b.subject) pushTopic(b.subject);
       });
       fcCards.forEach(function (card) {
-        if (card && card.topic && topics.indexOf(card.topic) < 0) topics.push(card.topic);
+        if (card && card.topic) pushTopic(card.topic);
       });
     } catch (e) {}
     return topics;
   }
 
+  function fcMistakeCount() {
+    return fcCards.filter(function (c) { return c && (c.wrong || 0) > 0; }).length;
+  }
+
   function fcDeck() {
     var filterEl = document.getElementById('fcFilterSelect');
     var filter = filterEl ? filterEl.value : 'all';
-    if (!filter || filter === 'all') return fcCards.slice();
-    return fcCards.filter(function (card) { return card.topic === filter; });
+    var deck = (!filter || filter === 'all')
+      ? fcCards.slice()
+      : fcCards.filter(function (card) { return card.topic === filter; });
+    if (fcMistakesOnly) deck = deck.filter(function (c) { return c && (c.wrong || 0) > 0; });
+    return deck;
+  }
+
+  function fcSyncMistakesBtn() {
+    var btn = document.getElementById('btnFcMistakes');
+    if (!btn) return;
+    btn.textContent = fcMistakesOnly ? 'Mistakes: On (' + fcMistakeCount() + ')' : 'Mistakes: Off';
+    btn.classList.toggle('active', fcMistakesOnly);
+  }
+
+  function fcCleanTopic(t) {
+    t = String(t == null ? '' : t).replace(/\s+/g, ' ').trim();
+    return t.slice(0, 60);
+  }
+
+  function fcDisplayTopic(t, max) {
+    // Native <select> dropdowns size to the longest <option>, so one
+    // unbroken 150-char topic blows out the whole card (Windows Chrome).
+    // Keep full value for matching, show a truncated label + title tooltip.
+    return shorten(fcCleanTopic(t) || 'General', max || 32);
   }
 
   function renderFcTopics() {
@@ -2708,9 +2755,10 @@
     if (!topicEl || !filterEl) return;
     var prevTopic = topicEl.value || 'General';
     var prevFilter = filterEl.value || 'all';
-    var topics = fcAllTopics();
+    var topics = fcAllTopics().map(fcCleanTopic).filter(Boolean);
+    if (topics.indexOf('General') < 0) topics.unshift('General');
     topicEl.innerHTML = topics.map(function (t) {
-      return '<option value="' + escapeHtml(t) + '">' + escapeHtml(t) + '</option>';
+      return '<option value="' + escapeHtml(t) + '" title="' + escapeHtml(t) + '">' + escapeHtml(fcDisplayTopic(t, 32)) + '</option>';
     }).join('');
     if (topics.indexOf(prevTopic) >= 0) topicEl.value = prevTopic;
     function fcTopicCount(t) {
@@ -2719,8 +2767,9 @@
     }
     var filterTopics = ['all'].concat(topics);
     filterEl.innerHTML = filterTopics.map(function (t) {
-      var label = t === 'all' ? 'All topics' : t;
-      return '<option value="' + escapeHtml(t) + '">' + escapeHtml(label) + ' (' + fcTopicCount(t) + ')</option>';
+      var full = t === 'all' ? 'All topics' : t;
+      var label = t === 'all' ? 'All topics' : fcDisplayTopic(t, 32);
+      return '<option value="' + escapeHtml(t) + '" title="' + escapeHtml(full) + '">' + escapeHtml(label) + ' (' + fcTopicCount(t) + ')</option>';
     }).join('');
     if (filterTopics.indexOf(prevFilter) >= 0) filterEl.value = prevFilter;
   }
@@ -2742,7 +2791,13 @@
     if (countEl) countEl.textContent = fcCards.length + (fcCards.length === 1 ? ' card' : ' cards');
     var deck = fcDeck();
     var infoEl = document.getElementById('fcDeckInfo');
-    if (infoEl) infoEl.textContent = deck.length + (deck.length === 1 ? ' in this topic' : ' in this topic');
+    if (infoEl) {
+      var base = deck.length + ' in this topic';
+      if (fcMistakesOnly) base = deck.length + ' mistakes';
+      else if (fcMistakeCount() > 0) base += ' · ' + fcMistakeCount() + ' missed';
+      infoEl.textContent = base;
+    }
+    fcSyncMistakesBtn();
     var bigTopic = document.getElementById('fcBigTopic');
     var bigText = document.getElementById('fcBigText');
     var bigHint = document.getElementById('fcBigHint');
@@ -2765,11 +2820,12 @@
     if (fcIndex < 0) fcIndex = 0;
     if (fcIndex >= deck.length) fcIndex = deck.length - 1;
     var card = deck[fcIndex];
-    topicEl.textContent = card.topic || 'General';
+    var missTxt = card && (card.wrong || 0) > 0 ? ' · ✕' + card.wrong : '';
+    topicEl.textContent = (card.topic || 'General') + missTxt;
     textEl.textContent = fcFlipped ? (card.back || '') : (card.front || '');
     if (hintEl) hintEl.textContent = fcFlipped ? 'Back - click to see front' : 'Front - click to see back';
     posEl.textContent = (fcIndex + 1) + ' / ' + deck.length;
-    if (bigTopic) bigTopic.textContent = card.topic || 'General';
+    if (bigTopic) bigTopic.textContent = (card.topic || 'General') + missTxt;
     if (bigText) bigText.textContent = fcFlipped ? (card.back || '') : (card.front || '');
     if (bigHint) bigHint.textContent = fcFlipped ? 'Answer - click to see question' : 'Question - click to see answer';
     if (bigPos) bigPos.textContent = (fcIndex + 1) + ' / ' + deck.length;
@@ -2799,6 +2855,8 @@
       var back = document.createElement('div');
       back.className = 'fc-row-back';
       back.textContent = card.back || '';
+      var wrong = (card.wrong || 0);
+      if (wrong > 0) topic.textContent += ' · ✕' + wrong + ' missed';
       main.appendChild(topic);
       main.appendChild(front);
       main.appendChild(back);
@@ -2832,9 +2890,10 @@
   function fcResolvedTopic() {
     var customEl = document.getElementById('fcCustomTopic');
     var topicEl = document.getElementById('fcTopicSelect');
-    var custom = customEl ? customEl.value.trim().slice(0, 60) : '';
+    var custom = customEl ? fcCleanTopic(customEl.value) : '';
     if (custom) return custom;
-    return topicEl && topicEl.value ? topicEl.value : 'General';
+    var base = topicEl && topicEl.value ? topicEl.value : 'General';
+    return fcCleanTopic(base) || 'General';
   }
 
   function fcResetComposer() {
@@ -2890,7 +2949,7 @@
       showToast('Card updated', 'success');
       return;
     }
-    fcCards.unshift({ id: 'fc-' + Date.now(), topic: topic, front: front, back: back });
+    fcCards.unshift({ id: 'fc-' + Date.now(), topic: topic, front: front, back: back, wrong: 0, right: 0 });
     persistFc();
     frontEl.value = '';
     backEl.value = '';
@@ -2977,6 +3036,41 @@
     showToast('Deck shuffled', 'success');
   }
 
+  function fcMarkCurrent(got) {
+    var deck = fcDeck();
+    if (!deck.length) return;
+    if (fcIndex < 0) fcIndex = 0;
+    if (fcIndex >= deck.length) fcIndex = deck.length - 1;
+    var current = deck[fcIndex];
+    var target = null;
+    fcCards.forEach(function (c) { if (c.id === current.id) target = c; });
+    if (!target) return;
+    if (got) {
+      target.right = (target.right || 0) + 1;
+      // Forgive one miss per correct recall so the mistakes deck can clear.
+      target.wrong = Math.max(0, (target.wrong || 0) - 1);
+    } else target.wrong = (target.wrong || 0) + 1;
+    persistFc();
+    // Advance so a revise session flows; mistakes-only shrinks as you get them right.
+    if (!got) { fcFlipped = false; renderFcStage(); renderFcList(); return; }
+    fcIndex = fcIndex + 1;
+    if (fcIndex >= fcDeck().length) fcIndex = 0;
+    fcFlipped = false;
+    renderFcStage();
+    renderFcList();
+  }
+
+  function fcToggleMistakes() {
+    fcMistakesOnly = !fcMistakesOnly;
+    fcIndex = 0;
+    fcFlipped = false;
+    renderFcStage();
+    renderFcList();
+    var n = fcMistakeCount();
+    if (fcMistakesOnly && !fcDeck().length) showToast(n ? 'No missed cards in this topic' : 'No missed cards yet - use ✕ Missed while revising', 'warn');
+    else showToast(fcMistakesOnly ? 'Showing missed cards only' : 'Showing full deck', 'info');
+  }
+
   function initFc() {
     loadFc();
     renderFcAll();
@@ -2986,6 +3080,11 @@
     }
     on('btnFcAdd', 'click', fcAddCard);
     on('btnFcShuffle', 'click', fcShuffle);
+    on('btnFcMistakes', 'click', fcToggleMistakes);
+    on('btnFcGot', 'click', function () { fcMarkCurrent(true); });
+    on('btnFcMiss', 'click', function () { fcMarkCurrent(false); });
+    on('btnFcBigGot', 'click', function () { fcMarkCurrent(true); });
+    on('btnFcBigMiss', 'click', function () { fcMarkCurrent(false); });
     on('btnFcRevise', 'click', fcRevise);
     on('btnFcExpand', 'click', openFcModal);
     on('btnFcBigClose', 'click', closeFcModal);
@@ -3022,267 +3121,6 @@
       on(id, 'keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); fcAddCard(); } });
     });
   }
-
-  // =========================================================================
-  // 19e. Code tab: GitHub repos with pins, search, and custom links.
-  // =========================================================================
-
-  var GH_KEY = 'horizon_gh_v1';
-  var ghCache = [];
-  var ghStarred = [];
-  var ghProfile = null;
-  var ghCustom = [];
-  var ghPinned = {};
-  var ghUser = 'BKarbalai';
-  var ghTab = 'repos';
-  var ghFetchedAt = 0;
-  var ghFetchedUser = '';
-
-  function ghSlim(r) {
-    if (!r) return null;
-    return { id: r.id, name: r.name, full_name: r.full_name, html_url: r.html_url, description: r.description, language: r.language, stargazers_count: r.stargazers_count, forks_count: r.forks_count, updated_at: r.updated_at || r.pushed_at };
-  }
-
-  function loadGhLocal() {
-    try {
-      var raw = localStorage.getItem(GH_KEY);
-      if (raw) {
-        var o = JSON.parse(raw);
-        ghCustom = o.custom || []; ghPinned = o.pinned || {}; ghUser = o.user || 'BKarbalai';
-        if (Array.isArray(o.cache)) ghCache = o.cache;
-        if (Array.isArray(o.starred)) ghStarred = o.starred;
-        if (o.profile) ghProfile = o.profile;
-        ghFetchedAt = o.fetchedAt || 0;
-        ghFetchedUser = o.fetchedUser || '';
-        var inp = document.getElementById('ghUserInput');
-        if (inp && !inp.value) inp.value = ghUser;
-      }
-    } catch (e) {}
-  }
-  function persistGhLocal() {
-    try {
-      localStorage.setItem(GH_KEY, JSON.stringify({
-        custom: ghCustom, pinned: ghPinned, user: ghUser,
-        cache: ghCache.map(ghSlim).filter(Boolean).slice(0, 60),
-        starred: ghStarred.map(ghSlim).filter(Boolean).slice(0, 60),
-        profile: ghProfile ? { login: ghProfile.login, avatar_url: ghProfile.avatar_url, html_url: ghProfile.html_url, bio: ghProfile.bio, public_repos: ghProfile.public_repos, followers: ghProfile.followers, following: ghProfile.following } : null,
-        fetchedAt: ghFetchedAt, fetchedUser: ghFetchedUser
-      }));
-    } catch (e) {}
-  }
-
-  function langColor(lang) {
-    var map = { JavaScript: '#f1e05a', TypeScript: '#3178c6', Python: '#3572A5', HTML: '#e34c26', CSS: '#563d7c', 'C++': '#f34b7d', C: '#555', Java: '#b07219', Go: '#00ADD8', Rust: '#dea584', Verilog: '#848bf3', Shell: '#89e051' };
-    return map[lang] || '#8e8e93';
-  }
-
-  function ghAllRepos() {
-    var customs = ghCustom.map(function (c) {
-      return { id: 'custom-' + c.id, name: c.name, html_url: c.url, description: c.note || 'Custom link', language: 'Link', stargazers_count: 0, forks_count: 0, updated_at: c.addedAt || new Date().toISOString(), custom: true, ref: c };
-    });
-    return customs.concat(ghCache.map(function (r) {
-      return { id: r.id, name: r.name, full_name: r.full_name, html_url: r.html_url, description: r.description, language: r.language, stargazers_count: r.stargazers_count, forks_count: r.forks_count, updated_at: r.updated_at, custom: false, ref: r };
-    }));
-  }
-
-  function renderGhProfile() {
-    var box = document.getElementById('ghProfile');
-    if (!box) return;
-    if (!ghProfile) { box.style.display = 'none'; box.innerHTML = ''; return; }
-    box.style.display = '';
-    box.innerHTML = '';
-    var img = document.createElement('img');
-    img.className = 'gh-avatar'; img.alt = ghProfile.login || ghUser;
-    img.src = ghProfile.avatar_url || '';
-    img.loading = 'lazy';
-    var mid = document.createElement('div'); mid.style.flex = '1'; mid.style.minWidth = '0';
-    var nm = document.createElement('div'); nm.className = 'gh-profile-name';
-    var a = document.createElement('a');
-    a.href = ghProfile.html_url || ('https://github.com/' + ghUser);
-    a.target = '_blank'; a.rel = 'noopener';
-    a.textContent = '@' + (ghProfile.login || ghUser);
-    nm.appendChild(a);
-    mid.appendChild(nm);
-    if (ghProfile.bio) { var bio = document.createElement('div'); bio.className = 'gh-profile-bio'; bio.textContent = ghProfile.bio; mid.appendChild(bio); }
-    var st = document.createElement('div'); st.className = 'gh-profile-stats';
-    st.textContent = (ghProfile.public_repos || 0) + ' repos · ' + (ghProfile.followers || 0) + ' followers · ' + (ghProfile.following || 0) + ' following';
-    mid.appendChild(st);
-    var open = document.createElement('a');
-    open.className = 'pill-btn pill-btn-secondary pill-sm';
-    open.href = ghProfile.html_url || ('https://github.com/' + ghUser);
-    open.target = '_blank'; open.rel = 'noopener'; open.textContent = 'Open profile';
-    box.appendChild(img); box.appendChild(mid); box.appendChild(open);
-  }
-
-  function copyCloneUrl(fullName, btn) {
-    var url = 'https://github.com/' + fullName + '.git';
-    function done() {
-      showToast('Clone URL copied: ' + url, 'success');
-      if (btn) { var old = btn.textContent; btn.textContent = 'Copied!'; setTimeout(function () { btn.textContent = old; }, 1200); }
-    }
-    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(done, function () { showToast(url, 'info'); });
-    else showToast(url, 'info');
-  }
-
-  function renderGh() {
-    var grid = document.getElementById('ghGrid');
-    var status = document.getElementById('ghStatus');
-    var langSel = document.getElementById('ghLangFilter');
-    if (!grid) return;
-    var tabRepos = document.getElementById('ghTabRepos');
-    var tabStar = document.getElementById('ghTabStarred');
-    if (tabRepos) tabRepos.classList.toggle('active', ghTab === 'repos');
-    if (tabStar) tabStar.classList.toggle('active', ghTab === 'starred');
-    renderGhProfile();
-    var q = (document.getElementById('ghSearchInput').value || '').toLowerCase();
-    var sort = document.getElementById('ghSortSelect').value || 'updated';
-    var langF = langSel ? langSel.value : 'all';
-    var all = ghTab === 'starred'
-      ? ghStarred.map(function (r) { return { id: r.id, name: r.name, full_name: r.full_name, html_url: r.html_url, description: r.description, language: r.language, stargazers_count: r.stargazers_count, forks_count: r.forks_count, updated_at: r.updated_at || r.pushed_at, custom: false, starred: true, ref: r }; })
-      : ghAllRepos();
-    var langs = {};
-    all.forEach(function (r) { if (r.language) langs[r.language] = true; });
-    if (langSel) {
-      var cur = langSel.value;
-      langSel.innerHTML = '<option value="all">All languages</option>' + Object.keys(langs).sort().map(function (l) { return '<option value="' + escapeHtml(l) + '">' + escapeHtml(l) + '</option>'; }).join('');
-      langSel.value = langs[cur] || cur === 'all' ? cur : 'all';
-      langF = langSel.value;
-    }
-    var filtered = all.filter(function (r) {
-      if (langF !== 'all' && r.language !== langF) return false;
-      if (q && ((r.name || '').toLowerCase().indexOf(q) < 0 && ((r.description || '').toLowerCase().indexOf(q) < 0))) return false;
-      return true;
-    });
-    var key = function (r) { return r.full_name || ('custom:' + r.name); };
-    filtered.sort(function (a, b) {
-      var pa = !!ghPinned[key(a)], pb = !!ghPinned[key(b)];
-      if (pa !== pb) return pa ? -1 : 1;
-      if (sort === 'stars') return (b.stargazers_count || 0) - (a.stargazers_count || 0);
-      if (sort === 'name') return String(a.name).localeCompare(String(b.name));
-      return new Date(b.updated_at) - new Date(a.updated_at);
-    });
-    if (status) {
-      var pinnedCount = Object.keys(ghPinned).filter(function (k) { return ghPinned[k]; }).length;
-      var syncTxt = '';
-      if (ghFetchedAt && (!ghFetchedUser || ghFetchedUser === ghUser)) {
-        try { syncTxt = ' · synced ' + new Date(ghFetchedAt).toISOString().slice(0, 10); } catch (e) {}
-      }
-      status.textContent = ghTab === 'starred'
-        ? filtered.length + ' starred · @' + ghUser + syncTxt
-        : filtered.length + ' repos · ' + pinnedCount + ' pinned · @' + ghUser + syncTxt;
-      status.style.display = '';
-    }
-    grid.innerHTML = '';
-    if (!filtered.length) {
-      grid.innerHTML = '<div class="empty-state"><p class="empty-state-text">' +
-        (ghTab === 'starred' ? 'No starred repos yet - press Load repos, or star something on GitHub first.' : 'No repos match. Load a username or add a custom link.') +
-        '</p></div>';
-      return;
-    }
-    filtered.slice(0, 24).forEach(function (r) {
-      var card = document.createElement('div');
-      card.className = 'gh-card';
-      var top = document.createElement('div'); top.className = 'gh-card-top';
-      var a = document.createElement('a'); a.className = 'gh-name'; a.href = r.html_url; a.target = '_blank'; a.rel = 'noopener';
-      a.textContent = r.full_name || r.name;
-      var pin = document.createElement('button'); pin.type = 'button';
-      var kk = key(r);
-      pin.className = 'gh-pin' + (ghPinned[kk] ? ' pinned' : '');
-      pin.textContent = ghPinned[kk] ? '★' : '☆';
-      pin.title = ghPinned[kk] ? 'Unpin' : 'Pin to top';
-      pin.addEventListener('click', function () {
-        ghPinned[kk] = !ghPinned[kk];
-        if (!ghPinned[kk]) delete ghPinned[kk];
-        persistGhLocal(); renderGh();
-      });
-      top.appendChild(a); top.appendChild(pin);
-      card.appendChild(top);
-      if (r.description) { var d = document.createElement('p'); d.className = 'gh-desc'; d.textContent = r.description; card.appendChild(d); }
-      if (r.custom && r.ref.note) { var nn = document.createElement('p'); nn.className = 'gh-note'; nn.textContent = r.ref.note; card.appendChild(nn); }
-      var meta = document.createElement('div'); meta.className = 'gh-meta';
-      var langHtml = r.language ? '<span><i class="gh-lang-dot" style="background:' + langColor(r.language) + '"></i>' + escapeHtml(r.language) + '</span>' : '';
-      var upd = '';
-      try { if (r.updated_at) upd = '<span>upd ' + new Date(r.updated_at).toISOString().slice(0, 10) + '</span>'; } catch (e) {}
-      meta.innerHTML = langHtml + '<span>★ ' + (r.stargazers_count || 0) + '</span><span>⑂ ' + (r.forks_count || 0) + '</span>' + upd;
-      card.appendChild(meta);
-      var actions = document.createElement('div'); actions.className = 'gh-card-actions';
-      if (!r.custom && r.full_name) {
-        var clone = document.createElement('button');
-        clone.type = 'button'; clone.className = 'gh-mini-btn'; clone.textContent = '⧉ Clone';
-        clone.title = 'Copy git clone URL';
-        (function (fn, b) { clone.addEventListener('click', function () { copyCloneUrl(fn, b); }); })(r.full_name, clone);
-        actions.appendChild(clone);
-        var openBtn = document.createElement('a');
-        openBtn.className = 'gh-mini-btn'; openBtn.href = r.html_url; openBtn.target = '_blank'; openBtn.rel = 'noopener';
-        openBtn.textContent = 'Open ↗';
-        actions.appendChild(openBtn);
-      }
-      if (r.custom) {
-        var del = document.createElement('button');
-        del.type = 'button'; del.className = 'gh-mini-btn'; del.textContent = 'Remove';
-        del.addEventListener('click', function () {
-          ghCustom = ghCustom.filter(function (x) { return ('custom-' + x.id) !== r.id; });
-          persistGhLocal(); renderGh(); showToast('Custom link removed', 'info');
-        });
-        actions.appendChild(del);
-      }
-      if (actions.childNodes.length) card.appendChild(actions);
-      grid.appendChild(card);
-    });
-  }
-
-  function loadGhRepos() {
-    var inp = document.getElementById('ghUserInput');
-    var user = (inp.value || '').trim().replace(/^@/, '') || 'BKarbalai';
-    ghUser = user;
-    persistGhLocal();
-    var status = document.getElementById('ghStatus');
-    if (status) { status.textContent = 'Loading @' + user + ' (profile, repos, starred)...'; status.style.display = ''; }
-    function get(url) {
-      return fetch(url).then(function (res) {
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        return res.json();
-      });
-    }
-    Promise.all([
-      get('https://api.github.com/users/' + encodeURIComponent(user)).catch(function () { return null; }),
-      get('https://api.github.com/users/' + encodeURIComponent(user) + '/repos?per_page=100&sort=updated').catch(function () { return null; }),
-      get('https://api.github.com/users/' + encodeURIComponent(user) + '/starred?per_page=100').catch(function () { return null; })
-    ]).then(function (parts) {
-      var failedAll = !parts[0] && !parts[1] && !parts[2];
-      if (failedAll) {
-        if (status) status.textContent = 'Could not reach GitHub API (offline or rate-limited). Custom links still work.';
-        showToast('GitHub fetch failed - check username / connection', 'warn');
-        return;
-      }
-      if (parts[0]) ghProfile = parts[0];
-      if (Array.isArray(parts[1])) ghCache = parts[1];
-      if (Array.isArray(parts[2])) ghStarred = parts[2];
-      ghFetchedAt = Date.now();
-      ghFetchedUser = user;
-      persistGhLocal();
-      renderGh();
-      renderHomeDigest();
-      showToast(ghCache.length + ' repos · ' + ghStarred.length + ' starred for @' + user, 'success');
-    });
-  }
-
-  function ghSurprise() {
-    var all = ghTab === 'starred' ? ghStarred : ghCache;
-    if (!all.length && ghCustom.length) {
-      var c = ghCustom[Math.floor(Math.random() * ghCustom.length)];
-      try { window.open(c.url, '_blank', 'noopener'); } catch (e) {}
-      showToast('Random pick: ' + c.name, 'info');
-      return;
-    }
-    if (!all.length) { showToast('Load repos first, then roll the dice', 'warn'); return; }
-    var r = all[Math.floor(Math.random() * all.length)];
-    showToast('Random pick: ' + (r.full_name || r.name), 'info');
-    try { window.open(r.html_url, '_blank', 'noopener'); } catch (e) {}
-  }
-
-  function openGhModal() { var m = document.getElementById('ghModal'); if (m) m.classList.add('active'); }
-  function closeGhModal() { var m = document.getElementById('ghModal'); if (m) m.classList.remove('active'); }
 
   // =========================================================================
   // 19f. Money tab: income, expenses, dues, and wishlist.
@@ -3490,6 +3328,13 @@
   function renderDues() {
     var list = document.getElementById('dueList');
     if (!list) return;
+    var today0 = todayKey(new Date());
+    var overdueN = dues.filter(function (d) { return d.dueDate && d.dueDate <= today0; }).length;
+    var overBtn = document.getElementById('btnPostOverdue');
+    if (overBtn) {
+      overBtn.textContent = overdueN ? 'Post overdue (' + overdueN + ')' : 'Post overdue';
+      overBtn.style.display = overdueN ? '' : 'none';
+    }
     list.innerHTML = '';
     var items = dues.slice().sort(function (a, b) { return String(a.dueDate).localeCompare(String(b.dueDate)); });
     if (!items.length) {
@@ -3545,6 +3390,34 @@
       row.addEventListener('click', function () { openDueModal(d.id); });
       list.appendChild(row);
     });
+  }
+
+  function postOverdueDues() {
+    var today = todayKey(new Date());
+    var overdue = dues.filter(function (d) { return d.dueDate && d.dueDate <= today; });
+    if (!overdue.length) { showToast('Nothing overdue - all clear', 'info'); return; }
+    var total = 0;
+    overdue.forEach(function (d) {
+      var amt = Math.round((parseFloat(d.amount) || 0) * 100) / 100;
+      total += amt;
+      transactions.push({
+        id: 'tx-' + Date.now() + '-' + d.id, type: 'expense',
+        title: (d.name || 'Due') + ' (due)', amount: amt,
+        cat: /rent/i.test(d.name || '') ? 'Rent' : 'Other', date: today
+      });
+      if (d.recur === 'monthly') {
+        var next = d.dueDate;
+        var guard = 0;
+        while (next <= today && guard < 24) { next = addMonths(next, 1); guard++; }
+        d.dueDate = next;
+      }
+    });
+    dues = dues.filter(function (d) {
+      return !(d.recur !== 'monthly' && d.dueDate && d.dueDate <= today);
+    });
+    persistFinance(); renderDues(); renderFinance();
+    confetti.fire(0.5, 0.4);
+    showToast('Posted ' + overdue.length + ' overdue (' + usd(total) + ') as expenses', 'success');
   }
 
   function openDueModal(editId) {
@@ -5065,10 +4938,54 @@
     return d.innerHTML;
   }
 
+  function linkifyNoteLinks(html) {
+    // [[Course code]] or [[Note title]] -> clickable chip. Runs on already-safe HTML.
+    return String(html || '').replace(/\[\[([^\[\]]{1,60})\]\]/g, function (m, name) {
+      var label = String(name).trim();
+      if (!label) return m;
+      return '<button type="button" class="note-link" data-note-link="' + escapeHtml(label) + '">[[' + escapeHtml(label) + ']]</button>';
+    });
+  }
+
   function noteBodyHtml(n) {
     if (!n || !n.body) return '';
-    return n.rich ? sanitizeRich(n.body) : renderRich(n.body);
+    var html = n.rich ? sanitizeRich(n.body) : renderRich(n.body);
+    return linkifyNoteLinks(html);
   }
+
+  function openLinkedNote(name) {
+    var q = String(name || '').trim().toLowerCase();
+    if (!q) return;
+    // 1) course code / subject match -> jump composer scope there
+    var course = (state.courses || []).find(function (c) {
+      return (c.code && c.code.toLowerCase() === q) ||
+        (c.name && c.name.toLowerCase() === q) ||
+        ((c.code + ' ' + c.name).toLowerCase().indexOf(q) >= 0);
+    });
+    // 2) note title / body match
+    var hit = keepNotes.find(function (n) {
+      if (n.deletedAt || n.type === 'todo') return false;
+      return (n.title && n.title.toLowerCase().indexOf(q) >= 0) ||
+        (stripHtml(n.body || '').toLowerCase().indexOf(q) >= 0);
+    });
+    if (hit) { openNoteModal(hit.id); return; }
+    if (course) {
+      var sel = document.getElementById('keepScope');
+      if (sel) sel.value = course.id;
+      showToast('Scope: ' + course.code + ' - no linked note yet', 'info');
+      if (typeof scrollFlash === 'function') scrollFlash('keepTitle');
+      return;
+    }
+    showToast('No note found for [[' + name + ']]', 'warn');
+  }
+
+  document.addEventListener('click', function (e) {
+    var link = e.target && e.target.closest ? e.target.closest('.note-link') : null;
+    if (!link) return;
+    e.preventDefault();
+    e.stopPropagation();
+    openLinkedNote(link.getAttribute('data-note-link'));
+  });
 
   function purgeTrash() {
     var now = Date.now();
@@ -5596,7 +5513,12 @@
     var img = document.getElementById('noteModalImg');
     if (n.img) { img.src = n.img; img.style.display = ''; }
     else { img.removeAttribute('src'); img.style.display = 'none'; }
-    document.getElementById('noteModalBody').innerHTML = n.body ? noteBodyHtml(n) : '<span class="trash-meta">Empty note</span>';
+    var readerBody = document.getElementById('noteModalBody');
+    readerBody.innerHTML = n.body ? noteBodyHtml(n) : '<span class="trash-meta">Empty note</span>';
+    // Swoosh the reader every time a note is opened - incl. note-to-note jumps
+    readerBody.classList.remove('swoosh-in');
+    void readerBody.offsetWidth;
+    readerBody.classList.add('swoosh-in');
     var hb = document.getElementById('btnNoteModalHist');
     if (hb) hb.style.display = (n.history && n.history.length) ? '' : 'none';
     document.getElementById('noteModal').classList.add('active');
@@ -5848,7 +5770,6 @@
       setText('homeStatDeadlines', pending.length + ' pending');
       setText('homeStatCal', calEvents.length + (calEvents.length === 1 ? ' reminder' : ' reminders'));
       setText('homeStatStudy', studyBlocks.length + (studyBlocks.length === 1 ? ' block' : ' blocks'));
-      setText('homeStatCode', (ghCache.length + ghCustom.length) + ' repos · ' + ghStarred.length + ' starred');
       var bal = transactions.reduce(function (a, t) { return a + (t.type === 'income' ? 1 : -1) * (parseFloat(t.amount) || 0); }, 0);
       setText('homeStatMoney', (bal < 0 ? '−' : '') + usd(Math.abs(bal)));
       setText('homeStatFocus', sprintsToday() + (sprintsToday() === 1 ? ' sprint' : ' sprints') + ' today');
@@ -5957,7 +5878,6 @@
     loadState();
     loadCal();
     if (typeof loadStudy === 'function') loadStudy();
-    if (typeof loadGhLocal === 'function') loadGhLocal();
     if (typeof loadFinance === 'function') loadFinance();
     if (typeof loadFlight === 'function') loadFlight();
     if (typeof loadFc === 'function') loadFc();
@@ -5968,7 +5888,6 @@
       if (!studyBlocks.length) seedStudyPlan(true);
       else renderStudy();
     }
-    if (typeof renderGh === 'function') renderGh();
     if (typeof renderFinance === 'function') renderFinance();
     if (typeof renderFlightAll === 'function') { populateFlightSelects(); renderFlightAll(); }
     renderCalendar();
@@ -6233,6 +6152,8 @@
         });
       });
       document.getElementById('btnAddDue').addEventListener('click', function () { openDueModal(); });
+      var btnOverdue = document.getElementById('btnPostOverdue');
+      if (btnOverdue) btnOverdue.addEventListener('click', postOverdueDues);
       document.getElementById('dueForm').addEventListener('submit', saveDueFromModal);
       document.getElementById('btnCloseDueModal').addEventListener('click', closeDueModal);
       document.getElementById('btnCancelDueModal').addEventListener('click', closeDueModal);
@@ -6248,28 +6169,6 @@
           }
         });
       });
-      document.getElementById('btnGhLoad').addEventListener('click', loadGhRepos);
-      document.getElementById('ghUserInput').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); loadGhRepos(); } });
-      document.getElementById('btnGhAdd').addEventListener('click', openGhModal);
-      document.getElementById('btnCloseGhModal').addEventListener('click', closeGhModal);
-      document.getElementById('btnCancelGhModal').addEventListener('click', closeGhModal);
-      document.getElementById('ghForm').addEventListener('submit', function (e) {
-        e.preventDefault();
-        var nm = document.getElementById('ghNameInput').value.trim().slice(0, 80);
-        var url = document.getElementById('ghUrlInput').value.trim().slice(0, 200);
-        var note = document.getElementById('ghDescInput').value.trim().slice(0, 300);
-        if (!nm || !url) { showToast('Name + URL required', 'warn'); return; }
-        ghCustom.unshift({ id: Date.now(), name: nm, url: url, note: note, addedAt: new Date().toISOString() });
-        persistGhLocal(); closeGhModal(); renderGh();
-        document.getElementById('ghForm').reset();
-        showToast('Repo saved: ' + nm, 'success');
-      });
-      document.getElementById('ghSearchInput').addEventListener('input', renderGh);
-      document.getElementById('ghSortSelect').addEventListener('change', renderGh);
-      document.getElementById('ghLangFilter').addEventListener('change', renderGh);
-      document.getElementById('ghTabRepos').addEventListener('click', function () { ghTab = 'repos'; renderGh(); });
-      document.getElementById('ghTabStarred').addEventListener('click', function () { ghTab = 'starred'; renderGh(); });
-      document.getElementById('btnGhReadme').addEventListener('click', ghSurprise);
       document.getElementById('btnAddTx').addEventListener('click', function () { openFinModal(); });
       document.getElementById('finForm').addEventListener('submit', saveFinFromModal);
       document.getElementById('btnCloseFinModal').addEventListener('click', closeFinModal);
@@ -6514,7 +6413,7 @@
     (function () {
       var items = document.querySelectorAll('.mobile-nav-item');
       if (!items.length || !('IntersectionObserver' in window)) return;
-      var map = { hero: 'home', quote: 'home', radar: 'grades', deadlines: 'deadlines', calendar: 'calendar', study: 'study', code: 'code', money: 'money', focus: 'focus', notes: 'notes' };
+      var map = { hero: 'home', quote: 'home', radar: 'grades', deadlines: 'deadlines', calendar: 'calendar', study: 'study', money: 'money', focus: 'focus', notes: 'notes' };
       var obs = new IntersectionObserver(function (entries) {
         entries.forEach(function (entry) {
           if (entry.isIntersecting && map[entry.target.id] === currentPage) {
