@@ -1,0 +1,10 @@
+{
+  "name": "horizon-student-os",
+  "version": "1.0.0",
+  "description": "Horizon - the focus-driven student OS. Plan, focus, land, review.",
+  "type": "module",
+  "scripts": {
+    "test": "node tests/smoke.mjs"
+  },
+  "license": "MIT"
+}

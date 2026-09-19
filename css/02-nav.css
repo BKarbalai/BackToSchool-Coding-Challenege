@@ -1,0 +1,214 @@
+/* ==========================================================================
+   Apple-Style Sticky Frosted Navigation Bar
+   ========================================================================== */
+.nav-bar {
+  position: sticky;
+  top: 0;
+  z-index: 500;
+  background: var(--bg-translucent);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: var(--hairline-border);
+  height: 52px;
+  display: flex;
+  align-items: center;
+}
+
+.nav-container {
+  width: 100%;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.nav-brand-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: var(--text-primary);
+}
+
+.hole-logo {
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+.hole-logo svg {
+  width: 100%;
+  height: 100%;
+}
+
+.brand-name {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  opacity: 0;
+  transform: translateY(-6px);
+  pointer-events: none;
+  transition: opacity 0.3s var(--ease-apple), transform 0.3s var(--ease-apple);
+}
+
+.nav-links.show {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: 2px;
+}
+
+.nav-link {
+  text-decoration: none;
+  background: transparent;
+  border: var(--hairline-border);
+  border-radius: var(--radius-pill);
+  padding: 6px 14px;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast), background-color var(--transition-fast);
+  white-space: nowrap;
+}
+
+.nav-link:hover {
+  color: var(--text-primary);
+  border-color: rgba(255, 255, 255, 0.25);
+  background: var(--bg-surface-subtle);
+}
+
+:is([data-theme="light"], [data-theme="colorblind-light"]) .nav-link:hover {
+  border-color: rgba(0, 0, 0, 0.25);
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.pt-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+}
+
+.pt-text {
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pt-digits {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   Pill Buttons (border-radius: 980px, flat colors, zero gradients)
+   ========================================================================== */
+.pill-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  padding: 8px 18px;
+  border-radius: var(--radius-pill);
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-normal);
+  white-space: nowrap;
+}
+
+.pill-btn:active {
+  transform: scale(0.98);
+}
+
+.pill-btn-primary {
+  background-color: var(--accent-blue);
+  color: #ffffff;
+}
+
+.pill-btn-primary:hover {
+  background-color: var(--accent-blue-hover);
+  box-shadow: 0 2px 12px rgba(0, 113, 227, 0.25);
+}
+
+.pill-btn-secondary {
+  background-color: rgba(255, 255, 255, 0.13);
+  color: var(--text-primary);
+  border: 1px solid rgba(255, 255, 255, 0.24);
+}
+
+.pill-btn-secondary:hover {
+  background-color: rgba(255, 255, 255, 0.19);
+  border-color: rgba(255, 255, 255, 0.34);
+}
+
+.pill-btn-lg {
+  padding: 10px 24px;
+  font-size: 14px;
+}
+
+.pill-sm {
+  padding: 5px 14px;
+  font-size: 12px;
+}
+
+.pill-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.pill-btn-secondary.active {
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+}
+
+/* Icons */
+.icon-svg {
+  width: 14px;
+  height: 14px;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* Dark base: faint icon controls get a real surface so none vanish */
+html:not([data-theme]) .btn-card-glyph,
+html:not([data-theme]) .modal-close-btn,
+html:not([data-theme]) .shuffle-btn,
+html:not([data-theme]) .btn-remove-row {
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.07);
+  border: var(--hairline-border);
+}
+html:not([data-theme]) .chip-btn {
+  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-secondary);
+}
+html:not([data-theme]) .todo-circle { border-color: rgba(255, 255, 255, 0.45); }
+html:not([data-theme]) .fmt-btn { background: rgba(255, 255, 255, 0.05); }
+

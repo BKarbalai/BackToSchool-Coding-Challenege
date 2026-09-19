@@ -1,0 +1,928 @@
+/* ==========================================================================
+   Indie Theme - cream paper, ink text, terracotta accent
+   ========================================================================== */
+[data-theme="indie"] {
+  color-scheme: light;
+  --bg-primary: #f1ece1;
+  --bg-secondary: #e8e1d1;
+  --bg-surface: #faf6ec;
+  --bg-surface-subtle: #efe8d7;
+  --bg-translucent: rgba(241, 236, 225, 0.85);
+
+  --text-primary: #211d16;
+  --text-secondary: #5c5546;
+  --text-tertiary: #6e6e73;
+
+  --accent-blue: #a94a26;
+  --accent-blue-hover: #bc5630;
+  --accent-blue-subtle: rgba(169, 74, 38, 0.12);
+
+  --hairline-border: 1px solid rgba(33, 29, 22, 0.1);
+  --hairline-border-hover: 1px solid rgba(33, 29, 22, 0.2);
+  --hairline-divider: 1px solid rgba(33, 29, 22, 0.07);
+}
+
+[data-theme="indie"] body {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+[data-theme="indie"] ::-webkit-scrollbar-track {
+  background: #e8e1d1;
+}
+[data-theme="indie"] ::-webkit-scrollbar-thumb {
+  background: #c9c0aa;
+}
+[data-theme="indie"] ::-webkit-scrollbar-thumb:hover {
+  background: #a89e83;
+}
+[data-theme="indie"] * {
+  scrollbar-color: #c9c0aa #e8e1d1;
+}
+
+[data-theme="indie"] .segmented-control {
+  background: #e3dac6;
+}
+[data-theme="indie"] .seg-btn.active {
+  background: #fffdf6;
+  color: var(--text-primary);
+  box-shadow: 0 1px 3px rgba(33, 29, 22, 0.14);
+}
+[data-theme="indie"] .meta-chip {
+  background: rgba(33, 29, 22, 0.05);
+}
+[data-theme="indie"] .sim-output-badge {
+  background: rgba(33, 29, 22, 0.04);
+}
+[data-theme="indie"] .apple-select,
+[data-theme="indie"] .modal-form input[type="text"],
+[data-theme="indie"] .modal-form input[type="number"],
+[data-theme="indie"] .modal-form input[type="date"],
+[data-theme="indie"] .modal-form input[type="time"],
+[data-theme="indie"] .apple-textarea {
+  background: #fffdf8;
+}
+[data-theme="indie"] .modal-surface .apple-select,
+[data-theme="indie"] .modal-form input[type="text"],
+[data-theme="indie"] .modal-form input[type="number"],
+[data-theme="indie"] .modal-form input[type="date"],
+[data-theme="indie"] .modal-form input[type="time"],
+[data-theme="indie"] .apple-textarea,
+[data-theme="indie"] .components-config-block,
+[data-theme="indie"] .import-preview-box {
+  background: #f1ebdb;
+}
+[data-theme="indie"] .modal-surface {
+  background: #faf6ec;
+}
+[data-theme="indie"] .sound-track-row {
+  background: #f1ebdb;
+}
+[data-theme="indie"] .sound-track-row:hover {
+  border-color: rgba(33, 29, 22, 0.16);
+}
+[data-theme="indie"] .toast-item {
+  background: #fffdf8;
+  box-shadow: 0 8px 32px rgba(33, 29, 22, 0.16);
+}
+[data-theme="indie"] .mobile-nav {
+  background: rgba(241, 236, 225, 0.92);
+}
+
+[data-theme="indie"] .timer-circle-track {
+  stroke: #ddd3bd;
+}
+[data-theme="indie"] .apple-slider,
+[data-theme="indie"] .course-progress-bar {
+  background: #ddd3bd;
+}
+[data-theme="indie"] .apple-slider::-webkit-slider-thumb {
+  border-color: rgba(33, 29, 22, 0.12);
+  box-shadow: 0 1px 4px rgba(33, 29, 22, 0.2);
+}
+[data-theme="indie"] .apple-slider::-moz-range-thumb {
+  border-color: rgba(33, 29, 22, 0.12);
+  box-shadow: 0 1px 4px rgba(33, 29, 22, 0.2);
+}
+
+[data-theme="indie"] .pill-btn-secondary {
+  background-color: rgba(33, 29, 22, 0.05);
+}
+[data-theme="indie"] .pill-btn-secondary:hover {
+  background-color: rgba(33, 29, 22, 0.09);
+  border-color: rgba(33, 29, 22, 0.2);
+}
+[data-theme="indie"] .chip-btn:hover {
+  border-color: rgba(33, 29, 22, 0.25);
+}
+[data-theme="indie"] .chip-btn.active {
+  background: #211d16;
+  color: #faf6ec;
+  border-color: #211d16;
+}
+[data-theme="indie"] .btn-card-glyph:hover {
+  background: rgba(33, 29, 22, 0.06);
+}
+[data-theme="indie"] .modal-close-btn:hover {
+  background: rgba(33, 29, 22, 0.06);
+}
+[data-theme="indie"] .apple-course-card:hover {
+  border-color: rgba(33, 29, 22, 0.2);
+}
+[data-theme="indie"] .deadline-row-item:hover {
+  background: rgba(33, 29, 22, 0.02);
+}
+[data-theme="indie"] .apple-checkbox {
+  border-color: rgba(33, 29, 22, 0.3);
+}
+[data-theme="indie"] .nav-link:hover {
+  border-color: rgba(33, 29, 22, 0.25);
+}
+[data-theme="indie"] .footer-year-track {
+  background: #ddd3bd;
+}
+[data-theme="indie"] .keep-composer {
+  background: #f1ebdb;
+}
+[data-theme="indie"] .keep-card {
+  background: #f1ebdb;
+}
+[data-theme="indie"] .keep-card:hover {
+  border-color: rgba(33, 29, 22, 0.2);
+}
+[data-theme="indie"] .todo-row {
+  background: #f1ebdb;
+}
+[data-theme="indie"] .todo-circle {
+  border-color: rgba(33, 29, 22, 0.3);
+}
+[data-theme="indie"] .credit-link {
+  background: #f1ebdb;
+}
+[data-theme="indie"] .credit-link:hover {
+  border-color: rgba(33, 29, 22, 0.2);
+}
+
+/* ==========================================================================
+   Moss Theme - warm sand paper, ink text, moss-green accent
+   ========================================================================== */
+[data-theme="moss"] {
+  color-scheme: light;
+  --bg-primary: #ece6d5;
+  --bg-secondary: #e0d7bf;
+  --bg-surface: #f4efe0;
+  --bg-surface-subtle: #e9e2cd;
+  --bg-translucent: rgba(236, 230, 213, 0.85);
+
+  --text-primary: #22241b;
+  --text-secondary: #5a5b4c;
+  --text-tertiary: #6e6e73;
+
+  --accent-blue: #4a6741;
+  --accent-blue-hover: #587a4e;
+  --accent-blue-subtle: rgba(74, 103, 65, 0.12);
+
+  --hairline-border: 1px solid rgba(34, 36, 27, 0.1);
+  --hairline-border-hover: 1px solid rgba(34, 36, 27, 0.2);
+  --hairline-divider: 1px solid rgba(34, 36, 27, 0.07);
+}
+
+[data-theme="moss"] body {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+[data-theme="moss"] ::-webkit-scrollbar-track {
+  background: #e0d7bf;
+}
+[data-theme="moss"] ::-webkit-scrollbar-thumb {
+  background: #c2b795;
+}
+[data-theme="moss"] ::-webkit-scrollbar-thumb:hover {
+  background: #a2987a;
+}
+[data-theme="moss"] * {
+  scrollbar-color: #c2b795 #e0d7bf;
+}
+
+[data-theme="moss"] .segmented-control {
+  background: #dcd2b6;
+}
+[data-theme="moss"] .seg-btn.active {
+  background: #faf6e9;
+  color: var(--text-primary);
+  box-shadow: 0 1px 3px rgba(34, 36, 27, 0.14);
+}
+[data-theme="moss"] .meta-chip {
+  background: rgba(34, 36, 27, 0.05);
+}
+[data-theme="moss"] .sim-output-badge {
+  background: rgba(34, 36, 27, 0.04);
+}
+[data-theme="moss"] .apple-select,
+[data-theme="moss"] .modal-form input[type="text"],
+[data-theme="moss"] .modal-form input[type="number"],
+[data-theme="moss"] .modal-form input[type="date"],
+[data-theme="moss"] .modal-form input[type="time"],
+[data-theme="moss"] .apple-textarea {
+  background: #fdfaf1;
+}
+[data-theme="moss"] .modal-surface .apple-select,
+[data-theme="moss"] .modal-form input[type="text"],
+[data-theme="moss"] .modal-form input[type="number"],
+[data-theme="moss"] .modal-form input[type="date"],
+[data-theme="moss"] .modal-form input[type="time"],
+[data-theme="moss"] .apple-textarea,
+[data-theme="moss"] .components-config-block,
+[data-theme="moss"] .import-preview-box {
+  background: #ece5cf;
+}
+[data-theme="moss"] .modal-surface {
+  background: #f4efe0;
+}
+[data-theme="moss"] .sound-track-row {
+  background: #ece5cf;
+}
+[data-theme="moss"] .sound-track-row:hover {
+  border-color: rgba(34, 36, 27, 0.16);
+}
+[data-theme="moss"] .toast-item {
+  background: #fdfaf1;
+  box-shadow: 0 8px 32px rgba(34, 36, 27, 0.16);
+}
+[data-theme="moss"] .mobile-nav {
+  background: rgba(236, 230, 213, 0.92);
+}
+
+[data-theme="moss"] .timer-circle-track {
+  stroke: #d5cbaa;
+}
+[data-theme="moss"] .apple-slider,
+[data-theme="moss"] .course-progress-bar {
+  background: #d5cbaa;
+}
+[data-theme="moss"] .apple-slider::-webkit-slider-thumb {
+  border-color: rgba(34, 36, 27, 0.12);
+  box-shadow: 0 1px 4px rgba(34, 36, 27, 0.2);
+}
+[data-theme="moss"] .apple-slider::-moz-range-thumb {
+  border-color: rgba(34, 36, 27, 0.12);
+  box-shadow: 0 1px 4px rgba(34, 36, 27, 0.2);
+}
+
+[data-theme="moss"] .pill-btn-secondary {
+  background-color: rgba(34, 36, 27, 0.05);
+}
+[data-theme="moss"] .pill-btn-secondary:hover {
+  background-color: rgba(34, 36, 27, 0.09);
+  border-color: rgba(34, 36, 27, 0.2);
+}
+[data-theme="moss"] .chip-btn:hover {
+  border-color: rgba(34, 36, 27, 0.25);
+}
+[data-theme="moss"] .chip-btn.active {
+  background: #22241b;
+  color: #f4efe0;
+  border-color: #22241b;
+}
+[data-theme="moss"] .btn-card-glyph:hover {
+  background: rgba(34, 36, 27, 0.06);
+}
+[data-theme="moss"] .modal-close-btn:hover {
+  background: rgba(34, 36, 27, 0.06);
+}
+[data-theme="moss"] .apple-course-card:hover {
+  border-color: rgba(34, 36, 27, 0.2);
+}
+[data-theme="moss"] .deadline-row-item:hover {
+  background: rgba(34, 36, 27, 0.02);
+}
+[data-theme="moss"] .apple-checkbox {
+  border-color: rgba(34, 36, 27, 0.3);
+}
+[data-theme="moss"] .nav-link:hover {
+  border-color: rgba(34, 36, 27, 0.25);
+}
+[data-theme="moss"] .footer-year-track {
+  background: #d5cbaa;
+}
+[data-theme="moss"] .keep-composer {
+  background: #ece5cf;
+}
+[data-theme="moss"] .keep-card {
+  background: #ece5cf;
+}
+[data-theme="moss"] .keep-card:hover {
+  border-color: rgba(34, 36, 27, 0.2);
+}
+[data-theme="moss"] .todo-row {
+  background: #ece5cf;
+}
+[data-theme="moss"] .todo-circle {
+  border-color: rgba(34, 36, 27, 0.3);
+}
+[data-theme="moss"] .credit-link {
+  background: #ece5cf;
+}
+[data-theme="moss"] .credit-link:hover {
+  border-color: rgba(34, 36, 27, 0.2);
+}
+
+/* ==========================================================================
+   Ghost Theme - monochrome dark, white accent, no color at all
+   ========================================================================== */
+[data-theme="ghost"] {
+  color-scheme: dark;
+  --bg-primary: #000000;
+  --bg-secondary: #0a0a0c;
+  --bg-surface: #101014;
+  --bg-surface-subtle: #17171b;
+  --bg-translucent: rgba(0, 0, 0, 0.85);
+
+  --text-primary: #ffffff;
+  --text-secondary: #c9c9ce;
+  --text-tertiary: #8e8e93;
+
+  --accent-blue: #ffffff;
+  --accent-blue-hover: #ffffff;
+  --accent-blue-subtle: rgba(255, 255, 255, 0.14);
+
+  --hairline-border: 1px solid rgba(255, 255, 255, 0.14);
+  --hairline-border-hover: 1px solid rgba(255, 255, 255, 0.24);
+  --hairline-divider: 1px solid rgba(255, 255, 255, 0.09);
+}
+
+[data-theme="ghost"] .pill-btn-primary {
+  color: #000000;
+}
+
+[data-theme="ghost"] .apple-checkbox:checked::after {
+  border-color: #000000;
+}
+
+[data-theme="ghost"] .todo-circle.done svg {
+  stroke: #000000;
+}
+
+/* ==========================================================================
+   Colorblind Theme - high-contrast dark, Okabe-Ito safe palette
+   (blue / orange / vermillion / bluish-green: no red-vs-green signalling,
+   plus underlines + striped bars so urgency never relies on hue alone)
+   ========================================================================== */
+[data-theme="colorblind"] {
+  color-scheme: dark;
+  --bg-primary: #000000;
+  --bg-secondary: #0b0b0e;
+  --bg-surface: #141419;
+  --bg-surface-subtle: #1d1d24;
+  --bg-translucent: rgba(0, 0, 0, 0.88);
+
+  --text-primary: #ffffff;
+  --text-secondary: #d8d8de;
+  --text-tertiary: #b3b3bb;
+
+  --accent-blue: #66aaff;
+  --accent-blue-hover: #85bbff;
+  --accent-blue-subtle: rgba(102, 170, 255, 0.16);
+
+  --hairline-border: 1px solid rgba(255, 255, 255, 0.22);
+  --hairline-border-hover: 1px solid rgba(255, 255, 255, 0.4);
+  --hairline-divider: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+/* Solid interactive blue that keeps white text readable */
+[data-theme="colorblind"] .pill-btn-primary {
+  background-color: #005fcc;
+  color: #ffffff;
+}
+[data-theme="colorblind"] .pill-btn-primary:hover {
+  background-color: #006fe6;
+}
+[data-theme="colorblind"] .apple-checkbox:checked {
+  background: #005fcc;
+  border-color: #005fcc;
+}
+[data-theme="colorblind"] .todo-circle.done {
+  background: #005fcc;
+  border-color: #005fcc;
+}
+[data-theme="colorblind"] .cal-day-today .cal-day-num {
+  background: #005fcc;
+  color: #ffffff;
+}
+
+/* Warning = orange (never yellow-green ambiguity) */
+[data-theme="colorblind"] .grade-warn,
+[data-theme="colorblind"] .panic-widget.warn .panic-digits {
+  color: #E69F00;
+  background: rgba(230, 159, 0, 0.14);
+}
+[data-theme="colorblind"] .panic-widget.warn .panic-digits {
+  background: transparent;
+}
+[data-theme="colorblind"] .deadline-urgency-bar.warning {
+  background: #E69F00;
+}
+[data-theme="colorblind"] .toast-icon.warn {
+  background: rgba(230, 159, 0, 0.16);
+  color: #E69F00;
+}
+
+/* Danger = vermillion (never pure red) + underline cue */
+[data-theme="colorblind"] .grade-fail,
+[data-theme="colorblind"] .timer-digits-urgent,
+[data-theme="colorblind"] .panic-widget.danger .panic-digits {
+  color: #E8702A;
+}
+[data-theme="colorblind"] .grade-fail {
+  background: rgba(232, 112, 42, 0.14);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+[data-theme="colorblind"] .timer-digits-urgent {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+[data-theme="colorblind"] .panic-widget.danger .panic-digits {
+  background: transparent;
+}
+[data-theme="colorblind"] .deadline-urgency-bar.danger {
+  background: repeating-linear-gradient(45deg, #E8702A 0 6px, rgba(232, 112, 42, 0.25) 6px 12px);
+}
+[data-theme="colorblind"] .cal-chip-deadline {
+  color: #E8702A;
+  background: rgba(232, 112, 42, 0.14);
+}
+[data-theme="colorblind"] .cal-agenda-tag.deadline {
+  color: #E8702A;
+  background: rgba(232, 112, 42, 0.14);
+}
+[data-theme="colorblind"] .btn-remove-row:hover {
+  color: #E8702A;
+}
+
+/* Success = bluish-green (distinct from vermillion for deuteranopia) */
+[data-theme="colorblind"] .grade-secured,
+[data-theme="colorblind"] .grade-pass {
+  color: #00c389;
+  background: rgba(0, 195, 137, 0.12);
+}
+[data-theme="colorblind"] .toast-icon.success {
+  background: rgba(0, 195, 137, 0.14);
+  color: #00c389;
+}
+[data-theme="colorblind"] .todo-circle.done svg {
+  stroke: #ffffff;
+}
+
+/* Stronger focus ring for low vision */
+[data-theme="colorblind"] :focus-visible {
+  outline: 3px solid var(--accent-blue);
+  outline-offset: 3px;
+}
+
+/* ==========================================================================
+   Light Theme (toggled via :is([data-theme="light"], [data-theme="colorblind-light"]) on <html>)
+   ========================================================================== */
+:is([data-theme="light"], [data-theme="colorblind-light"]) {
+  color-scheme: light;
+  --bg-primary: #f5f5f7;
+  --bg-secondary: #ececee;
+  --bg-surface: #ffffff;
+  --bg-surface-subtle: #f5f5f7;
+  --bg-translucent: rgba(251, 251, 253, 0.82);
+
+  --text-primary: #1d1d1f;
+  --text-secondary: #515154;
+  --text-tertiary: #6e6e73;
+
+  --hairline-border: 1px solid rgba(0, 0, 0, 0.08);
+  --hairline-border-hover: 1px solid rgba(0, 0, 0, 0.18);
+  --hairline-divider: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+:is([data-theme="light"], [data-theme="colorblind-light"]) body {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Scrollbar */
+:is([data-theme="light"], [data-theme="colorblind-light"]) ::-webkit-scrollbar-track {
+  background: #ececee;
+}
+:is([data-theme="light"], [data-theme="colorblind-light"]) ::-webkit-scrollbar-thumb {
+  background: #c7c7cc;
+}
+:is([data-theme="light"], [data-theme="colorblind-light"]) ::-webkit-scrollbar-thumb:hover {
+  background: #aeaeb2;
+}
+:is([data-theme="light"], [data-theme="colorblind-light"]) * {
+  scrollbar-color: #c7c7cc #ececee;
+}
+
+/* Surfaces that use hardcoded dark fills */
+:is([data-theme="light"], [data-theme="colorblind-light"]) .segmented-control {
+  background: #e8e8ed;
+}
+:is([data-theme="light"], [data-theme="colorblind-light"]) .seg-btn.active {
+  background: #ffffff;
+  color: var(--text-primary);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+:is([data-theme="light"], [data-theme="colorblind-light"]) .meta-chip {
+  background: rgba(0, 0, 0, 0.05);
+}
+:is([data-theme="light"], [data-theme="colorblind-light"]) .sim-output-badge {
+  background: rgba(0, 0, 0, 0.04);
+}
+:is([data-theme="light"], [data-theme="colorblind-light"]) .apple-select,
+:is([data-theme="light"], [data-theme="colorblind-light"]) .modal-form input[type="text"],
+:is([data-theme="light"], [data-theme="colorblind-light"]) .modal-form input[type="number"],
+:is([data-theme="light"], [data-theme="colorblind-light"]) .modal-form input[type="date"],
+:is([data-theme="light"], [data-theme="colorblind-light"]) .modal-form input[type="time"],
+:is([data-theme="light"], [data-theme="colorblind-light"]) .apple-textarea {
+  background: #ffffff;
+}
+:is([data-theme="light"], [data-theme="colorblind-light"]) .modal-surface .apple-select,
+:is([data-theme="light"], [data-theme="colorblind-light"]) .modal-form input[type="text"],
+:is([data-theme="light"], [data-theme="colorblind-light"]) .modal-form input[type="number"],
+:is([data-theme="light"], [data-theme="colorblind-light"]) .modal-form input[type="date"],
+:is([data-theme="light"], [data-theme="colorblind-light"]) .modal-form input[type="time"],
+:is([data-theme="light"], [data-theme="colorblind-light"]) .apple-textarea,
+:is([data-theme="light"], [data-theme="colorblind-light"]) .components-config-block,
+:is([data-theme="light"], [data-theme="colorblind-light"]) .import-preview-box {
+  background: #f5f5f7;
+}
+:is([data-theme="light"], [data-theme="colorblind-light"]) .modal-surface {
+  background: #ffffff;
+}
+:is([data-theme="light"], [data-theme="colorblind-light"]) .sound-track-row {
+  background: #f5f5f7;
+}
+:is([data-theme="light"], [data-theme="colorblind-light"]) .sound-track-row:hover {
+  border-color: rgba(0, 0, 0, 0.16);
+}
+:is([data-theme="light"], [data-theme="colorblind-light"]) .toast-item {
+  background: #ffffff;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+}
+:is([data-theme="light"], [data-theme="colorblind-light"]) .mobile-nav {
+  background: rgba(251, 251, 253, 0.92);
+}
+
+/* Tracks, sliders, progress */
+:is([data-theme="light"], [data-theme="colorblind-light"]) .timer-circle-track {
+  stroke: #e5e5ea;
+}
+:is([data-theme="light"], [data-theme="colorblind-light"]) .apple-slider,
+:is([data-theme="light"], [data-theme="colorblind-light"]) .course-progress-bar {
+  background: #e5e5ea;
+}
+:is([data-theme="light"], [data-theme="colorblind-light"]) .apple-slider::-webkit-slider-thumb {
+  border-color: rgba(0, 0, 0, 0.12);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+:is([data-theme="light"], [data-theme="colorblind-light"]) .apple-slider::-moz-range-thumb {
+  border-color: rgba(0, 0, 0, 0.12);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Buttons & interactive hovers */
+:is([data-theme="light"], [data-theme="colorblind-light"]) .pill-btn-secondary {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+:is([data-theme="light"], [data-theme="colorblind-light"]) .pill-btn-secondary:hover {
+  background-color: rgba(0, 0, 0, 0.09);
+  border-color: rgba(0, 0, 0, 0.2);
+}
+:is([data-theme="light"], [data-theme="colorblind-light"]) .chip-btn:hover {
+  border-color: rgba(0, 0, 0, 0.25);
+}
+:is([data-theme="light"], [data-theme="colorblind-light"]) .chip-btn.active {
+  background: #1d1d1f;
+  color: #ffffff;
+  border-color: #1d1d1f;
+}
+:is([data-theme="light"], [data-theme="colorblind-light"]) .btn-card-glyph:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+:is([data-theme="light"], [data-theme="colorblind-light"]) .modal-close-btn:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+:is([data-theme="light"], [data-theme="colorblind-light"]) .apple-course-card:hover {
+  border-color: rgba(0, 0, 0, 0.2);
+}
+:is([data-theme="light"], [data-theme="colorblind-light"]) .deadline-row-item:hover {
+  background: rgba(0, 0, 0, 0.02);
+}
+:is([data-theme="light"], [data-theme="colorblind-light"]) .apple-checkbox {
+  border-color: rgba(0, 0, 0, 0.3);
+}
+
+/* ==========================================================================
+   Colorblind Light - same red-green-safe logic on a bright base
+   (surfaces inherited from the Light rules above via :is(); colors below
+   are darkened for contrast on white)
+   ========================================================================== */
+[data-theme="colorblind-light"] {
+  color-scheme: light;
+  --bg-primary: #f5f5f7;
+  --bg-secondary: #ececee;
+  --bg-surface: #ffffff;
+  --bg-surface-subtle: #f5f5f7;
+  --bg-translucent: rgba(251, 251, 253, 0.82);
+
+  --text-primary: #111114;
+  --text-secondary: #3d3d45;
+  --text-tertiary: #5a5a63;
+
+  --accent-blue: #005fcc;
+  --accent-blue-hover: #004fb3;
+  --accent-blue-subtle: rgba(0, 95, 204, 0.1);
+
+  --hairline-border: 1px solid rgba(0, 0, 0, 0.16);
+  --hairline-border-hover: 1px solid rgba(0, 0, 0, 0.32);
+  --hairline-divider: 1px solid rgba(0, 0, 0, 0.09);
+}
+
+[data-theme="colorblind-light"] .grade-warn,
+[data-theme="colorblind-light"] .panic-widget.warn .panic-digits {
+  color: #8a5a00;
+  background: rgba(138, 90, 0, 0.1);
+}
+[data-theme="colorblind-light"] .panic-widget.warn .panic-digits {
+  background: transparent;
+}
+[data-theme="colorblind-light"] .deadline-urgency-bar.warning {
+  background: #b87a00;
+}
+[data-theme="colorblind-light"] .toast-icon.warn {
+  background: rgba(138, 90, 0, 0.12);
+  color: #8a5a00;
+}
+
+[data-theme="colorblind-light"] .grade-fail,
+[data-theme="colorblind-light"] .timer-digits-urgent,
+[data-theme="colorblind-light"] .panic-widget.danger .panic-digits {
+  color: #b33a00;
+}
+[data-theme="colorblind-light"] .grade-fail {
+  background: rgba(179, 58, 0, 0.08);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+[data-theme="colorblind-light"] .timer-digits-urgent {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+[data-theme="colorblind-light"] .panic-widget.danger .panic-digits {
+  background: transparent;
+}
+[data-theme="colorblind-light"] .deadline-urgency-bar.danger {
+  background: repeating-linear-gradient(45deg, #c1440e 0 6px, rgba(193, 68, 14, 0.25) 6px 12px);
+}
+[data-theme="colorblind-light"] .cal-chip-deadline {
+  color: #b33a00;
+  background: rgba(179, 58, 0, 0.08);
+}
+[data-theme="colorblind-light"] .cal-agenda-tag.deadline {
+  color: #b33a00;
+  background: rgba(179, 58, 0, 0.08);
+}
+[data-theme="colorblind-light"] .btn-remove-row:hover {
+  color: #b33a00;
+}
+
+[data-theme="colorblind-light"] .grade-secured,
+[data-theme="colorblind-light"] .grade-pass {
+  color: #00755a;
+  background: rgba(0, 117, 90, 0.08);
+}
+[data-theme="colorblind-light"] .toast-icon.success {
+  background: rgba(0, 117, 90, 0.1);
+  color: #00755a;
+}
+
+[data-theme="colorblind-light"] :focus-visible {
+  outline: 3px solid var(--accent-blue);
+  outline-offset: 3px;
+}
+
+/* ==========================================================================
+   Tritan - blue-yellow safe (tritanopia): no blue/yellow signalling at all.
+   Neutrals + red/orange/green (all intact channels) + shape cues.
+   ========================================================================== */
+[data-theme="tritan"] {
+  color-scheme: dark;
+  --bg-primary: #000000;
+  --bg-secondary: #0c0c0e;
+  --bg-surface: #151518;
+  --bg-surface-subtle: #1e1e23;
+  --bg-translucent: rgba(0, 0, 0, 0.88);
+
+  --text-primary: #ffffff;
+  --text-secondary: #d9d9de;
+  --text-tertiary: #b4b4bc;
+
+  --accent-blue: #ededf0;
+  --accent-blue-hover: #ffffff;
+  --accent-blue-subtle: rgba(237, 237, 240, 0.12);
+
+  --hairline-border: 1px solid rgba(255, 255, 255, 0.22);
+  --hairline-border-hover: 1px solid rgba(255, 255, 255, 0.4);
+  --hairline-divider: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+[data-theme="tritan"] .pill-btn-primary {
+  background-color: #ededf0;
+  color: #000000;
+}
+[data-theme="tritan"] .pill-btn-primary:hover {
+  background-color: #ffffff;
+}
+[data-theme="tritan"] .apple-checkbox:checked {
+  background: #ededf0;
+  border-color: #ededf0;
+}
+[data-theme="tritan"] .apple-checkbox:checked::after {
+  border-color: #000000;
+}
+[data-theme="tritan"] .todo-circle.done {
+  background: #ededf0;
+  border-color: #ededf0;
+}
+[data-theme="tritan"] .todo-circle.done svg {
+  stroke: #000000;
+}
+[data-theme="tritan"] .cal-day-today .cal-day-num {
+  background: #ededf0;
+  color: #000000;
+}
+
+/* Warning = orange (yellow is the tritan confusion color) */
+[data-theme="tritan"] .grade-warn,
+[data-theme="tritan"] .panic-widget.warn .panic-digits {
+  color: #ffa726;
+  background: rgba(255, 167, 38, 0.14);
+}
+[data-theme="tritan"] .panic-widget.warn .panic-digits {
+  background: transparent;
+}
+[data-theme="tritan"] .deadline-urgency-bar.warning {
+  background: #ffa726;
+}
+[data-theme="tritan"] .toast-icon.warn {
+  background: rgba(255, 167, 38, 0.16);
+  color: #ffa726;
+}
+
+/* Danger = bright red (fully visible to tritans) + underline cue */
+[data-theme="tritan"] .grade-fail,
+[data-theme="tritan"] .timer-digits-urgent,
+[data-theme="tritan"] .panic-widget.danger .panic-digits {
+  color: #ff6b61;
+}
+[data-theme="tritan"] .grade-fail {
+  background: rgba(255, 107, 97, 0.14);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+[data-theme="tritan"] .timer-digits-urgent {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+[data-theme="tritan"] .panic-widget.danger .panic-digits {
+  background: transparent;
+}
+[data-theme="tritan"] .deadline-urgency-bar.danger {
+  background: repeating-linear-gradient(45deg, #ff6b61 0 6px, rgba(255, 107, 97, 0.25) 6px 12px);
+}
+[data-theme="tritan"] .cal-chip-deadline {
+  color: #ff6b61;
+  background: rgba(255, 107, 97, 0.14);
+}
+[data-theme="tritan"] .cal-agenda-tag.deadline {
+  color: #ff6b61;
+  background: rgba(255, 107, 97, 0.14);
+}
+[data-theme="tritan"] .btn-remove-row:hover {
+  color: #ff6b61;
+}
+
+/* Success = green (intact channel for tritans) */
+[data-theme="tritan"] .grade-secured,
+[data-theme="tritan"] .grade-pass {
+  color: #30d158;
+  background: rgba(48, 209, 88, 0.12);
+}
+[data-theme="tritan"] .toast-icon.success {
+  background: rgba(48, 209, 88, 0.14);
+  color: #30d158;
+}
+
+[data-theme="tritan"] :focus-visible {
+  outline: 3px solid #ffffff;
+  outline-offset: 3px;
+}
+
+/* Smooth crossfade when switching themes */
+.theme-anim,
+.theme-anim *,
+.theme-anim *::before,
+.theme-anim *::after {
+  transition: background-color 0.45s ease, color 0.45s ease, border-color 0.45s ease, box-shadow 0.45s ease, fill 0.45s ease, stroke 0.45s ease !important;
+}
+
+/* Minimal import text button */
+.import-text-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-tertiary);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 6px 4px;
+  white-space: nowrap;
+  transition: color var(--transition-fast);
+}
+.import-text-btn:hover {
+  color: var(--text-primary);
+}
+
+/* Theme picker menu */
+.theme-picker {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.theme-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 10px);
+  min-width: 172px;
+  background: var(--bg-surface);
+  border: var(--hairline-border);
+  border-radius: 12px;
+  padding: 6px;
+  z-index: 600;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+  display: none;
+}
+
+.theme-menu.open {
+  display: block;
+  animation: modalSlideIn 0.25s var(--ease-apple);
+}
+
+.theme-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+
+.theme-option:hover {
+  background: rgba(127, 127, 133, 0.15);
+}
+
+.theme-option.active {
+  color: var(--accent-blue);
+}
+
+.theme-dots {
+  display: flex;
+  align-items: center;
+}
+
+.theme-dots i {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1px solid rgba(127, 127, 133, 0.4);
+  margin-left: -4px;
+}
+
+.theme-dots i:first-child {
+  margin-left: 0;
+}
+
+/* Theme toggle button */
+.theme-toggle-btn {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  flex-shrink: 0;
+}
+.theme-toggle-btn .icon-svg {
+  width: 15px;
+  height: 15px;
+}
+

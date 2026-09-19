@@ -8,11 +8,11 @@
   <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
   <meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)">
   <link rel="icon" type="image/svg+xml" href="favicon.svg?v=30">
-  <!-- TODO(launch): replace og:url + og:image with your real absolute domain -->
   <meta property="og:type" content="website">
+  <meta property="og:url" content="https://bkarbalai.github.io/BackToSchool-Coding-Challenege/">
   <meta property="og:title" content="Horizon - Stanford Grades & Deadlines">
   <meta property="og:description" content="Know exactly what you need on every final. Track every deadline. Focus sprints included.">
-  <meta property="og:image" content="og-image.svg">
+  <meta property="og:image" content="https://bkarbalai.github.io/BackToSchool-Coding-Challenege/og-image.svg">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Horizon - Stanford Grades & Deadlines">
   <meta name="twitter:description" content="Know exactly what you need on every final. Track every deadline.">
@@ -20,7 +20,13 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Caveat:wght@500;600&family=EB+Garamond:ital,wght@1,500;1,600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="style.css?v=62">
+  <link rel="stylesheet" href="css/01-tokens.css?v=64">
+  <link rel="stylesheet" href="css/02-nav.css?v=64">
+  <link rel="stylesheet" href="css/03-sections.css?v=64">
+  <link rel="stylesheet" href="css/04-overlays.css?v=64">
+  <link rel="stylesheet" href="css/05-themes.css?v=64">
+  <link rel="stylesheet" href="css/06-features.css?v=64">
+  <link rel="stylesheet" href="css/07-vintage.css?v=64">
 </head>
 <body>
   <!-- Fullscreen Native Confetti Canvas -->
@@ -98,6 +104,12 @@
   </header>
 
   <main>
+    <!-- Sticky mini flight bar: timer follows you while airborne -->
+    <div class="fl-mini-bar" id="flMiniBar" aria-live="polite">
+      <span class="fl-mini-route" id="flMiniRoute">–</span>
+      <span class="fl-mini-time" id="flMiniTime">--:--</span>
+      <button class="pill-btn pill-btn-primary pill-sm" id="btnFlMiniPause" type="button">Hold</button>
+    </div>
     <!-- QUOTE OF THE DAY: slim strip above the hero -->
     <section class="quote-strip" id="quote">
       <div class="site-container quote-strip-inner">
@@ -143,25 +155,7 @@
       </div>
     </section>
 
-    <!-- FRONT PAGE: quick pages + today digest (home only) -->
-    <section class="section-block home-extra" id="homePages">
-      <div class="site-container">
-        <div class="section-header-centered">
-          <span class="section-eyebrow">Pages</span>
-          <h2 class="section-headline">Everything has its own place.</h2>
-        </div>
-        <div class="home-cards" id="homeCards">
-          <a href="#/grades" class="home-card" data-page-link="grades"><span class="home-card-dot" data-accent="blue"></span><span class="home-card-title">Grades</span><span class="home-card-sub" id="homeStatGrades">- courses</span></a>
-          <a href="#/deadlines" class="home-card" data-page-link="deadlines"><span class="home-card-dot" data-accent="red"></span><span class="home-card-title">Deadlines</span><span class="home-card-sub" id="homeStatDeadlines">- pending</span></a>
-          <a href="#/calendar" class="home-card" data-page-link="calendar"><span class="home-card-dot" data-accent="violet"></span><span class="home-card-title">Calendar</span><span class="home-card-sub" id="homeStatCal">- reminders</span></a>
-          <a href="#/study" class="home-card" data-page-link="study"><span class="home-card-dot" data-accent="orange"></span><span class="home-card-title">Study</span><span class="home-card-sub" id="homeStatStudy">- blocks</span></a>
-          <a href="#/money" class="home-card" data-page-link="money"><span class="home-card-dot" data-accent="green"></span><span class="home-card-title">Finances</span><span class="home-card-sub" id="homeStatMoney">- balance</span></a>
-          <a href="#/focus" class="home-card" data-page-link="focus"><span class="home-card-dot" data-accent="pink"></span><span class="home-card-title">Focus</span><span class="home-card-sub" id="homeStatFocus">- sprints</span></a>
-          <a href="#/notes" class="home-card" data-page-link="notes"><span class="home-card-dot" data-accent="gold"></span><span class="home-card-title">Notes</span><span class="home-card-sub" id="homeStatNotes">- notes</span></a>
-        </div>
-      </div>
-    </section>
-
+    <!-- FRONT PAGE: today digest + quick pages (home only) -->
     <section class="section-block section-alt home-extra" id="homeToday">
       <div class="site-container">
         <div class="section-header-centered">
@@ -181,6 +175,24 @@
             <div class="card-caption-row"><span class="card-title">Reminders</span><span class="phase-badge" id="digestRemCount">0</span></div>
             <div class="digest-list" id="digestRem"></div>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-block home-extra" id="homePages">
+      <div class="site-container">
+        <div class="section-header-centered">
+          <span class="section-eyebrow">Pages</span>
+          <h2 class="section-headline">Everything has its own place.</h2>
+        </div>
+        <div class="home-cards" id="homeCards">
+          <a href="#/grades" class="home-card" data-page-link="grades"><span class="home-card-dot" data-accent="blue"></span><span class="home-card-title">Grades</span><span class="home-card-sub" id="homeStatGrades">- courses</span></a>
+          <a href="#/deadlines" class="home-card" data-page-link="deadlines"><span class="home-card-dot" data-accent="red"></span><span class="home-card-title">Deadlines</span><span class="home-card-sub" id="homeStatDeadlines">- pending</span></a>
+          <a href="#/calendar" class="home-card" data-page-link="calendar"><span class="home-card-dot" data-accent="violet"></span><span class="home-card-title">Calendar</span><span class="home-card-sub" id="homeStatCal">- reminders</span></a>
+          <a href="#/study" class="home-card" data-page-link="study"><span class="home-card-dot" data-accent="orange"></span><span class="home-card-title">Study</span><span class="home-card-sub" id="homeStatStudy">- blocks</span></a>
+          <a href="#/money" class="home-card" data-page-link="money"><span class="home-card-dot" data-accent="green"></span><span class="home-card-title">Finances</span><span class="home-card-sub" id="homeStatMoney">- balance</span></a>
+          <a href="#/focus" class="home-card" data-page-link="focus"><span class="home-card-dot" data-accent="pink"></span><span class="home-card-title">Focus</span><span class="home-card-sub" id="homeStatFocus">- sprints</span></a>
+          <a href="#/notes" class="home-card" data-page-link="notes"><span class="home-card-dot" data-accent="gold"></span><span class="home-card-title">Notes</span><span class="home-card-sub" id="homeStatNotes">- notes</span></a>
         </div>
       </div>
     </section>
@@ -296,6 +308,24 @@
             <div class="cal-agenda-list" id="calAgenda"></div>
             <p class="cal-agenda-hint">Deadlines appear automatically. Click any day to preview it, double-click to add a reminder.</p>
           </div>
+        </div>
+        <div class="apple-card dayplan-card">
+            <div class="card-caption-row">
+              <span class="card-title" id="dayPlanTitle">Day planner</span>
+              <span style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                <span class="phase-badge" id="dayPlanCount">0 blocks</span>
+                <button class="pill-btn pill-btn-secondary pill-sm" id="btnDayPlanToday" type="button">Today</button>
+                <button class="pill-btn pill-btn-primary pill-sm" id="btnDayPlanAdd" type="button">Add block</button>
+              </span>
+            </div>
+          <p class="cal-agenda-hint">Time-block the selected day. Click any empty slot to plan it, click a block to edit, drag a block to move it.</p>
+          <div class="dp-week">
+            <button class="dp-week-nav" id="dayPlanWeekPrev" type="button" aria-label="Previous week">‹</button>
+            <div class="dp-week-days" id="dayPlanWeekDays"></div>
+            <button class="dp-week-nav" id="dayPlanWeekNext" type="button" aria-label="Next week">›</button>
+          </div>
+          <div class="dp-warn" id="dayPlanWarn" style="display:none" role="alert"></div>
+          <div class="dayplan-timeline" id="dayPlanTimeline"></div>
         </div>
       </div>
     </section>
@@ -665,6 +695,7 @@
               <div class="fl-zoom-group">
                 <button type="button" class="pill-btn pill-btn-secondary pill-sm" id="btnFlZoomOut" aria-label="Zoom out">−</button>
                 <button type="button" class="pill-btn pill-btn-secondary pill-sm" id="btnFlZoomIn" aria-label="Zoom in">+</button>
+                <button type="button" class="pill-btn pill-btn-secondary pill-sm active" id="btnFlLabels" title="Show or hide city names">Labels</button>
               </div>
               <div class="segmented-control" role="group" aria-label="Time of day">
                 <button type="button" class="seg-btn" id="flDayDay">Day</button>
@@ -697,30 +728,24 @@
                 <span class="phase-badge" id="flMilesBadge">0 mi flown</span>
               </div>
               <div class="form-field">
-                <label for="flFrom">From</label>
-                <select id="flFrom" class="apple-select"></select>
-              </div>
-              <button class="pill-btn pill-btn-secondary pill-sm fl-swap-btn" id="btnFlSwap" type="button">Swap route</button>
-              <div class="form-field">
-                <label for="flTo">To</label>
-                <select id="flTo" class="apple-select"></select>
-              </div>
-              <div class="form-dual-row">
-                <div class="form-field flex-1">
-                  <label for="flCabin">Cabin</label>
-                  <select id="flCabin" class="apple-select"></select>
+                <label>Route</label>
+                <div class="fl-route-row">
+                  <select id="flFrom" class="apple-select" aria-label="From airport"></select>
+                  <button class="fl-swap-btn" id="btnFlSwap" type="button" title="Swap route" aria-label="Swap route">⇄</button>
+                  <select id="flTo" class="apple-select" aria-label="To airport"></select>
                 </div>
-                <div class="form-field flex-1">
-                  <label for="flMode">Duration</label>
-                  <select id="flMode" class="apple-select">
+              </div>
+              <div class="form-field">
+                <label for="flMode">Duration</label>
+                <div class="fl-quick-row" role="group" aria-label="Quick durations">
+                  <button type="button" class="chip-btn" data-flmin="25">25m</button>
+                  <button type="button" class="chip-btn" data-flmin="50">50m</button>
+                  <button type="button" class="chip-btn" data-flmin="90">1h30</button>
+                  <select id="flMode" class="apple-select fl-mode-select">
                     <option value="real" selected>Real flight time</option>
-                    <option value="custom">Custom</option>
+                    <option value="custom">Custom…</option>
                   </select>
                 </div>
-              </div>
-              <div class="form-field">
-                <label for="flPlane">Aircraft</label>
-                <select id="flPlane" class="apple-select"></select>
               </div>
               <div class="form-field" id="flCustomWrap" style="display:none">
                 <label>Custom flight time</label>
@@ -732,6 +757,19 @@
                 </div>
                 <input type="hidden" id="flCustomMin" value="50">
               </div>
+              <details class="fl-advanced">
+                <summary>Aircraft &amp; cabin</summary>
+                <div class="form-dual-row">
+                  <div class="form-field flex-1">
+                    <label for="flCabin">Cabin</label>
+                    <select id="flCabin" class="apple-select"></select>
+                  </div>
+                  <div class="form-field flex-1">
+                    <label for="flPlane">Aircraft</label>
+                    <select id="flPlane" class="apple-select"></select>
+                  </div>
+                </div>
+              </details>
               <div class="fl-route-meta" id="flRouteMeta">-</div>
               <div class="timer-button-row">
                 <button class="pill-btn pill-btn-secondary" id="btnFlightReset">Reset</button>
@@ -763,6 +801,24 @@
               <div class="money-stat"><span class="money-stat-label">Airports</span><span class="money-stat-val" id="flStatPorts">0/0</span></div>
             </div>
             <div class="money-list" id="flLog"></div>
+          </div>
+          <div class="apple-card flight-hist-card">
+            <div class="card-caption-row">
+              <span class="card-title">Travel history</span>
+              <span style="display:flex;gap:8px;align-items:center">
+                <span class="phase-badge" id="flHistCount">0 flights</span>
+                <button class="pill-btn pill-btn-secondary pill-sm" id="btnFlHistMap" type="button" title="See all routes on a map">Map</button>
+              </span>
+            </div>
+            <div class="segmented-control" role="group" aria-label="History range">
+              <button type="button" class="seg-btn" data-flhist="week">Week</button>
+              <button type="button" class="seg-btn active" data-flhist="month">Month</button>
+              <button type="button" class="seg-btn" data-flhist="year">Year</button>
+              <button type="button" class="seg-btn" data-flhist="all">All time</button>
+            </div>
+            <p class="cal-agenda-hint" id="flHistSummary">No flights yet.</p>
+            <div class="fl-chain" id="flChain"></div>
+            <div class="money-list" id="flHistList"></div>
           </div>
         </div>
       </div>
@@ -998,6 +1054,49 @@
     </div>
   </div>
 
+  <!-- MODAL: Day Planner Block -->
+  <div class="modal-backdrop" id="dayPlanModal">
+    <div class="modal-surface">
+      <div class="modal-header">
+        <h3 class="modal-title" id="dayPlanModalTitle">New time block</h3>
+        <button class="modal-close-btn" id="btnCloseDayPlanModal" aria-label="Close modal">
+          <svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3l10 10M13 3L3 13"></path></svg>
+        </button>
+      </div>
+      <form id="dayPlanForm" class="modal-form">
+        <input type="hidden" id="dayPlanEditId" value="">
+        <div class="form-field">
+          <label for="dayPlanTitleInput">Title</label>
+          <input type="text" id="dayPlanTitleInput" placeholder="e.g. Gym" maxlength="60" required>
+        </div>
+        <div class="form-dual-row">
+          <div class="form-field flex-1">
+            <label for="dayPlanStartInput">Start</label>
+            <input type="time" id="dayPlanStartInput" value="09:00" required>
+          </div>
+          <div class="form-field flex-1">
+            <label for="dayPlanEndInput">End</label>
+            <input type="time" id="dayPlanEndInput" value="10:00" required>
+          </div>
+        </div>
+        <div class="dp-nudge-row">
+          <span class="spec-label">Shift</span>
+          <button type="button" class="chip-btn" id="btnDpMinus15">−15m</button>
+          <button type="button" class="chip-btn" id="btnDpPlus15">+15m</button>
+        </div>
+        <div class="form-field">
+          <label>Color</label>
+          <div class="dp-color-row" id="dayPlanColors"></div>
+        </div>
+        <div class="modal-actions-footer">
+          <button type="button" class="pill-btn pill-btn-secondary" id="btnDayPlanDelete" style="display:none;margin-right:auto;">Delete</button>
+          <button type="button" class="pill-btn pill-btn-secondary" id="btnCancelDayPlanModal">Cancel</button>
+          <button type="submit" class="pill-btn pill-btn-primary">Save block</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- MODAL: Study Block -->
   <div class="modal-backdrop" id="studyModal">
     <div class="modal-surface">
@@ -1025,20 +1124,24 @@
         </div>
         <div class="form-dual-row">
           <div class="form-field flex-1">
-            <label for="studyTimeInput">Daily time</label>
+            <label for="studyTimeInput">Daily start</label>
             <input type="time" id="studyTimeInput" value="09:00" required>
           </div>
           <div class="form-field flex-1">
-            <label for="studyColorInput">Color</label>
-            <select id="studyColorInput" class="apple-select">
-              <option value="blue" selected>Apple Blue</option>
-              <option value="violet">Violet</option>
-              <option value="green">Green</option>
-              <option value="orange">Orange</option>
-              <option value="pink">Pink</option>
-              <option value="teal">Teal</option>
-            </select>
+            <label for="studyTimeEndInput">Daily end</label>
+            <input type="time" id="studyTimeEndInput" value="10:00" required>
           </div>
+        </div>
+        <div class="form-field">
+          <label for="studyColorInput">Color</label>
+          <select id="studyColorInput" class="apple-select">
+            <option value="blue" selected>Apple Blue</option>
+            <option value="violet">Violet</option>
+            <option value="green">Green</option>
+            <option value="orange">Orange</option>
+            <option value="pink">Pink</option>
+            <option value="teal">Teal</option>
+          </select>
         </div>
         <div class="form-field">
           <label for="studyNotesInput">Plan / syllabus notes</label>
@@ -1178,6 +1281,27 @@
   </div>
 
   <!-- MODAL: Custom repo -->
+  <!-- MODAL: Travel history route map -->
+  <div class="modal-backdrop" id="histMapModal">
+    <div class="modal-surface hist-map-surface">
+      <div class="modal-header">
+        <h3 class="modal-title">Route map</h3>
+        <span style="display:flex;gap:8px;align-items:center">
+          <span class="phase-badge" id="histMapRange">Month</span>
+          <button class="modal-close-btn" id="btnHistMapClose" aria-label="Close route map">
+            <svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 3l10 10M13 3L3 13"></path>
+            </svg>
+          </button>
+        </span>
+      </div>
+      <div class="hist-map-body">
+        <div id="histMapDiv" role="img" aria-label="Map of all traveled routes"></div>
+        <p class="cal-agenda-hint" id="histMapHint">Every leg in this range, drawn together.</p>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL: Arrival celebration -->
   <div class="modal-backdrop" id="arrivalModal">
     <div class="modal-surface arrival-surface">
@@ -1308,19 +1432,9 @@ Final Project (60%) - 2026-10-28 23:59"></textarea>
 
   <!-- Toast Notification Container -->
   <div class="toast-container" id="toastContainer" aria-live="polite"></div>
+  <div id="liveRegion" class="sr-only" role="status" aria-live="assertive"></div>
 
   <!-- Keyboard Shortcut Hint Bar -->
-  <div class="shortcut-bar" id="shortcutBar">
-    <span><kbd>Cmd</kbd>+<kbd>K</kbd> Search</span>
-    <span><kbd>N</kbd> New Deadline</span>
-    <span><kbd>E</kbd> New Reminder</span>
-    <span><kbd>C</kbd> Add Course</span>
-    <span><kbd>M</kbd> Mute</span>
-    <span><kbd>T</kbd> Theme</span>
-    <span><kbd>Space</kbd> Timer</span>
-    <span><kbd>?</kbd> Hide</span>
-  </div>
-
   <!-- Mobile Bottom Navigation (5 key pages - the rest live under More) -->
   <nav class="mobile-nav" id="mobileNav" aria-label="Mobile Navigation">
     <a href="#/home" class="mobile-nav-item active" data-page-link="home">
@@ -1357,7 +1471,7 @@ Final Project (60%) - 2026-10-28 23:59"></textarea>
     <div class="site-container footer-container">
       <div class="footer-left">
         <span class="footer-logo">SU</span>
-        <span class="footer-copy">Stanford University<span class="footer-sub">2026 · v62</span></span>
+        <span class="footer-copy">Stanford University<span class="footer-sub">2026 · v64</span></span>
       </div>
       <nav class="footer-pages" aria-label="Pages">
         <a href="#/home" data-page-link="home">Home</a>
@@ -1371,6 +1485,8 @@ Final Project (60%) - 2026-10-28 23:59"></textarea>
       </nav>
       <div class="footer-right">
         <button class="footer-link-btn" id="btnExportJsonData">Export JSON</button>
+        <button class="footer-link-btn" id="btnImportJsonData">Import JSON</button>
+        <input type="file" id="importJsonFile" accept="application/json,.json" style="display:none" aria-label="Choose backup file">
         <button class="footer-link-btn" id="btnOpenFeedback">Feedback</button>
         <button class="footer-link-btn" id="btnResetAllData">Restore Demo Data</button>
       </div>
@@ -1431,8 +1547,8 @@ Final Project (60%) - 2026-10-28 23:59"></textarea>
             </span>
           </a>
           <a class="credit-link" href="https://github.com/BKarbalai/BackToSchool-Coding-Challenege" target="_blank" rel="noopener">
-            <span class="credit-link-icon brand-code">
-              <svg class="icon-svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L2 8l4 6M10 2l4 6-4 6"></path></svg>
+            <span class="credit-link-icon brand-gh">
+              <svg class="icon-svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
             </span>
             <span class="credit-link-text">
               <span class="credit-link-label">Source</span>
@@ -1510,6 +1626,7 @@ Final Project (60%) - 2026-10-28 23:59"></textarea>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" defer></script>
-  <script src="app.js?v=62"></script>
+  <script src="js/data.js?v=64"></script>
+  <script src="app.js?v=64"></script>
 </body>
 </html>
